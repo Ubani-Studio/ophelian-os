@@ -3,8 +3,8 @@ export const ORIPHEON_API_URL =
   process.env.NEXT_PUBLIC_ORIPHEON_API_URL || 'http://localhost:3333';
 
 // Internal LCOS API (always available - built-in character generation)
-const LCOS_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const LCOS_API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'default-dev-key';
+const LCOS_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5130';
+const LCOS_API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'ophelian-dev-key-2026';
 
 export type CreateCharacterPayload = {
   name: string;

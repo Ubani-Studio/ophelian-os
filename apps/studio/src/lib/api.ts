@@ -1,5 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'default-dev-key';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5130';
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'ophelian-dev-key-2026';
 
 interface FetchOptions extends RequestInit {
   body?: string | FormData;

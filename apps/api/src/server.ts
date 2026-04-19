@@ -19,6 +19,8 @@ import { worldRoutes } from './routes/worlds.js';
 import { connectionRoutes } from './routes/connections.js';
 import { snapshotRoutes } from './routes/snapshots.js';
 import { genomeRoutes } from './routes/genomes.js';
+import { consentRoutes } from './routes/consent.js';
+import { inviteRoutes } from './routes/invites.js';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './storage/uploads';
 
@@ -89,9 +91,12 @@ async function start() {
     await fastify.register(connectionRoutes);
     await fastify.register(snapshotRoutes);
     await fastify.register(genomeRoutes);
+    await fastify.register(consentRoutes);
+    await fastify.register(inviteRoutes);
 
     // Start server
-    const port = parseInt(process.env.PORT || '3001', 10);
+    // Ecosystem port convention: Boveda 5130, Ibis 5140, Òrò 5150, Sankoré 5160.
+    const port = parseInt(process.env.PORT || '5130', 10);
     const host = process.env.HOST || '0.0.0.0';
 
     await fastify.listen({ port, host });
