@@ -28,9 +28,15 @@ const navGroups: NavGroup[] = [
   {
     title: 'World',
     items: [
-      { href: '/universes', label: 'Universes', icon: 'U' },
+      // Universes are the top-level worldbuilding container (Station 8,
+      // etc.). Backed by the World model — surfaced via /globes today
+      // because of historical naming. Regions live INSIDE a Universe;
+      // they're a sub-concept, not a top-level peer.
+      { href: '/globes', label: 'Universes', icon: 'U' },
       { href: '/scenes', label: 'Scenes', icon: 'S' },
-      { href: '/globes', label: 'Regions', icon: 'R' },
+      // Old /universes route was the Collaborative-Universes mock
+      // page. Parked here for future multiplayer; not the headline.
+      { href: '/universes', label: 'Collaborative', icon: 'C' },
     ],
   },
   {

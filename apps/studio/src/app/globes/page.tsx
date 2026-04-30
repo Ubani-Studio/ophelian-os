@@ -96,17 +96,17 @@ export default function GlobesPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>Regions</h1>
-          <p className={styles.subtitle}>Worlds and realms in your universe</p>
+          <h1 className={styles.title}>Universes</h1>
+          <p className={styles.subtitle}>Top-level worlds. Station 8, the Mythos, every reality you build.</p>
         </div>
         <button className={styles.createButton} onClick={() => openModal()}>
-          New Region
+          New universe
         </button>
       </div>
 
       {globes.length === 0 ? (
         <div className={styles.emptyState}>
-          <p>No regions yet. Create your first region to get started.</p>
+          <p>No universes yet. Create one or migrate from Òrò in Settings.</p>
         </div>
       ) : (
         <div className={styles.grid}>
