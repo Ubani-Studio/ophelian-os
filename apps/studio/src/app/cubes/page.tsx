@@ -96,17 +96,17 @@ export default function GlobesPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>Universes</h1>
-          <p className={styles.subtitle}>Top-level worlds. Station 8, the Mythos, every reality you build.</p>
+          <h1 className={styles.title}>Cubes</h1>
+          <p className={styles.subtitle}>Self-contained realities. Station 8, the Mythos, every cube you build.</p>
         </div>
         <button className={styles.createButton} onClick={() => openModal()}>
-          New universe
+          New cube
         </button>
       </div>
 
       {globes.length === 0 ? (
         <div className={styles.emptyState}>
-          <p>No universes yet. Create one or migrate from Òrò in Settings.</p>
+          <p>No cubes yet. Create one or migrate from Òrò in Settings.</p>
         </div>
       ) : (
         <div className={styles.grid}>
@@ -149,7 +149,7 @@ export default function GlobesPage() {
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && closeModal()}>
           <div className="modal modal-sm">
             <div className="modal-header">
-              <h2 className="modal-title">{editingGlobe ? 'Edit Region' : 'New Region'}</h2>
+              <h2 className="modal-title">{editingGlobe ? 'Edit cube' : 'New cube'}</h2>
               <button className="modal-close" onClick={closeModal}>&times;</button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -160,7 +160,7 @@ export default function GlobesPage() {
                   className="input"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., The Realm of Shadows"
+                  placeholder="e.g., Station 8, The Mythos"
                   required
                 />
               </div>
@@ -181,7 +181,7 @@ export default function GlobesPage() {
                   className="input textarea"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe this region..."
+                  placeholder="Describe this cube..."
                   rows={4}
                 />
               </div>

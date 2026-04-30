@@ -28,14 +28,15 @@ const navGroups: NavGroup[] = [
   {
     title: 'World',
     items: [
-      // Universes are the top-level worldbuilding container (Station 8,
-      // etc.). Backed by the World model — surfaced via /globes today
-      // because of historical naming. Regions live INSIDE a Universe;
-      // they're a sub-concept, not a top-level peer.
-      { href: '/globes', label: 'Universes', icon: 'U' },
+      // Cubes are the top-level worldbuilding container (Station 8,
+      // etc.). One self-contained reality per Cube. Backed by the
+      // World Prisma model internally; user-facing label is Cube
+      // because it matches the brutalist UI and pairs with Bóveda
+      // (vault) as the brand metaphor.
+      { href: '/cubes', label: 'Cubes', icon: 'C' },
       { href: '/scenes', label: 'Scenes', icon: 'S' },
-      // Old /universes route was the Collaborative-Universes mock
-      // page. Parked here for future multiplayer; not the headline.
+      // Old /universes route is the Collaborative-Universes mock.
+      // Parked for future multiplayer; not the headline today.
       { href: '/universes', label: 'Collaborative', icon: 'C' },
     ],
   },

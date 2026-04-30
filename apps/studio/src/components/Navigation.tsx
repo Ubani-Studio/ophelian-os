@@ -9,9 +9,9 @@ const navLinks = [
   { href: '/genome-legend', label: 'Symbols' },
   { href: '/marketplace', label: 'Threshold' },
   { href: '/rights', label: 'Rights' },
-  { href: '/universes', label: 'Universes' },
+  { href: '/cubes', label: 'Cubes' },
   { href: '/scenes', label: 'Scenes' },
-  { href: '/globes', label: 'Regions' },
+  { href: '/universes', label: 'Collaborative' },
   { href: '/nexus', label: 'Nexus' },
   { href: '/story-templates', label: 'Trajectories' },
   { href: '/ledger', label: 'Ledger' },
@@ -22,7 +22,7 @@ export function Navigation() {
 
   return (
     <nav className="nav">
-      <span className="nav-brand">ZÀNÀ</span>
+      <span className="nav-brand">Bóveda</span>
       <div className="nav-links">
         {navLinks.map((link) => (
           <Link
