@@ -118,7 +118,7 @@ export function AdvancedView({ data, isOpen, onClose }: AdvancedViewProps) {
 
         {/* Orisha Section */}
         <section style={{ marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.7 }}>
             ORISHA: {data.orisha.name}
           </h3>
           <p style={{ fontSize: '1rem', fontStyle: 'italic', marginBottom: '1rem', opacity: 0.9 }}>
@@ -171,7 +171,7 @@ export function AdvancedView({ data, isOpen, onClose }: AdvancedViewProps) {
 
         {/* Kabbalah Section */}
         <section style={{ marginBottom: '2rem', paddingTop: '2rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.7 }}>
             KABBALAH: {data.kabbalah.sephira.name}
           </h3>
           <p style={{ fontSize: '1rem', marginBottom: '1rem', opacity: 0.9 }}>
@@ -209,7 +209,7 @@ export function AdvancedView({ data, isOpen, onClose }: AdvancedViewProps) {
 
         {/* Correspondences */}
         <section style={{ marginBottom: '2rem', paddingTop: '2rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.7 }}>
             CROSS-SYSTEM CORRESPONDENCES
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
@@ -236,7 +236,7 @@ export function AdvancedView({ data, isOpen, onClose }: AdvancedViewProps) {
 
         {/* Psychological Profile */}
         <section style={{ paddingTop: '2rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.7 }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.7 }}>
             PSYCHOLOGICAL PROFILE
           </h3>
 

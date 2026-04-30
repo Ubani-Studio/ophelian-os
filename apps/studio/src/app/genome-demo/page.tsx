@@ -151,7 +151,7 @@ export default function GenomeDemoPage() {
             fontSize: '0.875rem',
             fontWeight: 600,
             marginBottom: '0.5rem',
-            textTransform: 'uppercase',
+            textTransform: 'none',
             letterSpacing: '0.05em',
             opacity: 0.7,
           }}>
@@ -205,7 +205,7 @@ export default function GenomeDemoPage() {
           fontSize: '0.875rem',
           fontWeight: 600,
           marginBottom: '1rem',
-          textTransform: 'uppercase',
+          textTransform: 'none',
           letterSpacing: '0.05em',
           opacity: 0.7,
         }}>

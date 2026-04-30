@@ -189,7 +189,7 @@ export function GenomePuzzleUnlock({ genome, onUnlock, isUnlocked }: GenomePuzzl
         <div
           style={{
             fontSize: '0.75rem',
-            textTransform: 'uppercase',
+            textTransform: 'none',
             letterSpacing: '0.1em',
             color: 'var(--muted-foreground)',
             marginBottom: '0.5rem',
@@ -265,7 +265,7 @@ export function GenomePuzzleUnlock({ genome, onUnlock, isUnlocked }: GenomePuzzl
               borderLeft: '3px solid var(--foreground)',
             }}
           >
-            <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem', opacity: 0.7 }}>
+            <div style={{ fontSize: '0.65rem', textTransform: 'none', letterSpacing: '0.1em', marginBottom: '0.25rem', opacity: 0.7 }}>
               Hint
             </div>
             <div>{riddle.hint}</div>
@@ -286,7 +286,7 @@ export function GenomePuzzleUnlock({ genome, onUnlock, isUnlocked }: GenomePuzzl
               cursor: 'pointer',
               fontSize: '0.75rem',
               fontWeight: 700,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.05em',
             }}
           >
@@ -306,7 +306,7 @@ export function GenomePuzzleUnlock({ genome, onUnlock, isUnlocked }: GenomePuzzl
                 cursor: 'pointer',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                textTransform: 'uppercase',
+                textTransform: 'none',
                 letterSpacing: '0.05em',
               }}
             >

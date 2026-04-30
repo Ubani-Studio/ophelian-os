@@ -225,7 +225,7 @@ export function SymbolLegend({ searchable = false }: SymbolLegendProps) {
             padding: '0.5rem 1rem',
             fontSize: '0.75rem',
             fontWeight: 600,
-            textTransform: 'uppercase',
+            textTransform: 'none',
             letterSpacing: '0.08em',
             backgroundColor: viewMode === 'grid' ? 'var(--foreground)' : '#000000',
             color: viewMode === 'grid' ? 'var(--background)' : 'var(--foreground)',
@@ -243,7 +243,7 @@ export function SymbolLegend({ searchable = false }: SymbolLegendProps) {
             padding: '0.5rem 1rem',
             fontSize: '0.75rem',
             fontWeight: 600,
-            textTransform: 'uppercase',
+            textTransform: 'none',
             letterSpacing: '0.08em',
             backgroundColor: viewMode === 'tree' ? 'var(--foreground)' : '#000000',
             color: viewMode === 'tree' ? 'var(--background)' : 'var(--foreground)',
@@ -326,7 +326,7 @@ export function SymbolLegend({ searchable = false }: SymbolLegendProps) {
             <h3 style={{
               fontSize: '0.875rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.1em',
               color: 'var(--muted-foreground)',
               marginBottom: '0.5rem',
@@ -364,7 +364,7 @@ export function SymbolLegend({ searchable = false }: SymbolLegendProps) {
                       <div style={{
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        textTransform: 'uppercase',
+                        textTransform: 'none',
                         letterSpacing: '0.1em',
                         marginBottom: '0.25rem',
                       }}>
@@ -405,23 +405,23 @@ export function SymbolLegend({ searchable = false }: SymbolLegendProps) {
               paddingTop: '1.5rem',
               borderTop: '1px solid var(--border)',
             }}>
-              <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: '0.625rem', textTransform: 'none', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
                 Genesis
               </span>
               <span style={{ color: 'var(--muted-foreground)' }}>→</span>
-              <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: '0.625rem', textTransform: 'none', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
                 Vision
               </span>
               <span style={{ color: 'var(--muted-foreground)' }}>→</span>
-              <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: '0.625rem', textTransform: 'none', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
                 Refinement
               </span>
               <span style={{ color: 'var(--muted-foreground)' }}>→</span>
-              <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: '0.625rem', textTransform: 'none', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
                 Manifestation
               </span>
               <span style={{ color: 'var(--muted-foreground)' }}>→</span>
-              <span style={{ fontSize: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
+              <span style={{ fontSize: '0.625rem', textTransform: 'none', letterSpacing: '0.1em', color: 'var(--muted-foreground)' }}>
                 Flow
               </span>
               <span style={{ color: 'var(--muted-foreground)' }}>↻</span>

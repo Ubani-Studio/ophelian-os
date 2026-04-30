@@ -225,7 +225,7 @@ export function RepositionableCircleAvatar({
                   fontSize: '9px',
                   fontWeight: 500,
                   letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
+                  textTransform: 'none',
                   writingMode: 'vertical-rl',
                   textOrientation: 'mixed',
                 }}

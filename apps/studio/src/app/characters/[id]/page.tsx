@@ -1105,7 +1105,7 @@ export default function CharacterDetailPage() {
                         cursor: 'pointer',
                         fontSize: '0.75rem',
                         fontWeight: 600,
-                        textTransform: 'uppercase',
+                        textTransform: 'none',
                         letterSpacing: '0.08em',
                         transition: 'all 0.2s ease',
                       }}

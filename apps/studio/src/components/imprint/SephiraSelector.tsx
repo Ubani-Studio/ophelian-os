@@ -53,7 +53,7 @@ export function SephiraSelector({
           fontFamily: 'monospace',
           fontSize: '0.75rem',
           letterSpacing: '2px',
-          textTransform: 'uppercase',
+          textTransform: 'none',
           color: 'rgba(255,255,255,0.5)',
         }}
       >
@@ -93,7 +93,7 @@ export function SephiraSelector({
               fontSize: '0.7rem',
               fontFamily: 'monospace',
               letterSpacing: '1px',
-              textTransform: 'uppercase',
+              textTransform: 'none',
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => {
@@ -220,7 +220,7 @@ export function SephiraSelector({
                 fontWeight: 400,
                 fontFamily: 'monospace',
                 letterSpacing: '1px',
-                textTransform: 'uppercase',
+                textTransform: 'none',
                 display: 'block',
                 marginBottom: '0.5rem',
                 color: 'rgba(255,255,255,0.4)',

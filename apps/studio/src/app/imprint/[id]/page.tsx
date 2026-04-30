@@ -219,7 +219,7 @@ export default function ImprintDetailPage() {
               color: 'var(--foreground)',
               fontSize: '0.75rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.05em',
             }}
           >
@@ -239,7 +239,7 @@ export default function ImprintDetailPage() {
               cursor: 'pointer',
               fontSize: '0.75rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.05em',
             }}
           >
@@ -257,7 +257,7 @@ export default function ImprintDetailPage() {
               cursor: 'pointer',
               fontSize: '0.75rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.05em',
             }}
           >
@@ -275,7 +275,7 @@ export default function ImprintDetailPage() {
               cursor: 'pointer',
               fontSize: '0.75rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.05em',
             }}
           >
@@ -324,7 +324,7 @@ export default function ImprintDetailPage() {
               cursor: 'pointer',
               fontSize: '0.75rem',
               fontWeight: 600,
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.05em',
               transition: 'all 0.2s ease',
             }}
@@ -679,7 +679,7 @@ export default function ImprintDetailPage() {
               border: '1px solid var(--border)',
             }}
           >
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Core Values</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Core Values</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               {genome.narrativeIdentity.coreValues.map((v) => (
                 <span
@@ -706,7 +706,7 @@ export default function ImprintDetailPage() {
               border: '1px solid var(--border)',
             }}
           >
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Central Conflicts</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Central Conflicts</h3>
             <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
               {genome.narrativeIdentity.centralConflicts.map((c, i) => (
                 <li key={i} style={{ marginBottom: '0.5rem' }}>
@@ -724,7 +724,7 @@ export default function ImprintDetailPage() {
               border: '1px solid var(--border)',
             }}
           >
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Recurring Themes</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Recurring Themes</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               {genome.narrativeIdentity.recurringThemes.map((t) => (
                 <span
@@ -751,7 +751,7 @@ export default function ImprintDetailPage() {
               border: '1px solid var(--border)',
             }}
           >
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Telos (Purpose)</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Telos (Purpose)</h3>
             <p style={{ margin: 0, lineHeight: 1.6 }}>{genome.narrativeIdentity.telos}</p>
           </div>
 
@@ -765,7 +765,7 @@ export default function ImprintDetailPage() {
                 gridColumn: '1 / -1',
               }}
             >
-              <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Relational Patterns</h3>
+              <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Relational Patterns</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
                 {genome.narrativeIdentity.relationalPatterns.map((rp, i) => (
                   <div
@@ -815,7 +815,7 @@ export default function ImprintDetailPage() {
                 cursor: promptLoading ? 'not-allowed' : 'pointer',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                textTransform: 'uppercase',
+                textTransform: 'none',
                 letterSpacing: '0.05em',
               }}
             >
@@ -833,14 +833,14 @@ export default function ImprintDetailPage() {
               }}
             >
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.25rem', textTransform: 'none', letterSpacing: '0.08em', fontWeight: 600 }}>
                   Character Name
                 </div>
                 <div style={{ fontWeight: 600 }}>{systemPrompt.characterName}</div>
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.5rem', textTransform: 'none', letterSpacing: '0.08em', fontWeight: 600 }}>
                   Trait Summary
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -862,7 +862,7 @@ export default function ImprintDetailPage() {
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.5rem', textTransform: 'none', letterSpacing: '0.08em', fontWeight: 600 }}>
                   System Prompt
                 </div>
                 <pre
@@ -895,7 +895,7 @@ export default function ImprintDetailPage() {
                   cursor: 'pointer',
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  textTransform: 'uppercase',
+                  textTransform: 'none',
                   letterSpacing: '0.05em',
                 }}
               >
@@ -1043,10 +1043,10 @@ export default function ImprintDetailPage() {
             borderRadius: '0',
             marginBottom: '1.5rem'
           }}>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--foreground)' }}>Social Publishing</h3>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--foreground)' }}>Social Publishing</h3>
             <div style={{ display: 'grid', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Content to Publish</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Content to Publish</label>
                 <textarea
                   id="social-content"
                   placeholder={`Share ${genome.name}'s story, thoughts, or updates...`}
@@ -1066,12 +1066,12 @@ export default function ImprintDetailPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Platforms</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--muted-foreground)' }}>Platforms</label>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                   {['Twitter', 'Instagram', 'TikTok'].map(platform => (
                     <label key={platform} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem 0.75rem', border: '1px solid var(--border)', background: '#000000' }}>
                       <input type="checkbox" defaultChecked style={{ cursor: 'pointer', accentColor: 'var(--foreground)' }} />
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{platform}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', letterSpacing: '0.05em' }}>{platform}</span>
                     </label>
                   ))}
                 </div>
@@ -1126,7 +1126,7 @@ export default function ImprintDetailPage() {
                   borderRadius: '0',
                   fontSize: '0.75rem',
                   fontWeight: 700,
-                  textTransform: 'uppercase',
+                  textTransform: 'none',
                   letterSpacing: '0.08em',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease'
@@ -1143,7 +1143,7 @@ export default function ImprintDetailPage() {
             border: '1px solid var(--border)',
             borderRadius: '0'
           }}>
-            <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--foreground)' }}>Character-Authentic Adaptation</h4>
+            <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.6875rem', fontWeight: 700, textTransform: 'none', letterSpacing: '0.08em', color: 'var(--foreground)' }}>Character-Authentic Adaptation</h4>
             <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
               <li>Auto-generates hashtags from {genome.name}'s personality traits</li>
               <li>Adapts content for each platform's format and character limits</li>
@@ -1193,7 +1193,7 @@ export default function ImprintDetailPage() {
 
           {/* Layer 1: Bóveda */}
           <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#000000', border: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'none', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
               Layer 1 — Bóveda
             </div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
@@ -1206,7 +1206,7 @@ export default function ImprintDetailPage() {
 
           {/* Layer 2: Kabbalah */}
           <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#000000', border: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'none', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
               Layer 2 — Sephirot
             </div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
@@ -1220,7 +1220,7 @@ export default function ImprintDetailPage() {
 
           {/* Layer 3: Orisha */}
           <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#000000', border: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'none', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
               Layer 3 — Orisha
             </div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
@@ -1233,7 +1233,7 @@ export default function ImprintDetailPage() {
 
           {/* I Ching State */}
           <div style={{ padding: '1.5rem', background: '#000000', border: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'none', color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
               State — I Ching
             </div>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>

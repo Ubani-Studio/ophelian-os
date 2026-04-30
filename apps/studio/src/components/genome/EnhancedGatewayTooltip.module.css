@@ -156,7 +156,6 @@
 .correspondenceTitle {
   font-size: 0.7rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
   opacity: 0.7;
@@ -176,7 +175,6 @@
 
 .correspondenceLabel {
   font-size: 0.65rem;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.6;
 }

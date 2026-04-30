@@ -47,7 +47,6 @@
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
 }
 
@@ -140,7 +139,6 @@
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   border: 1px solid currentColor;
 }
 
@@ -189,7 +187,6 @@
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
 }
 
@@ -211,7 +208,6 @@
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   text-decoration: none;
   transition: all 0.2s ease;
   align-self: flex-start;

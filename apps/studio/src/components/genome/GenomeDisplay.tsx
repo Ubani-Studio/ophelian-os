@@ -74,7 +74,7 @@ export const GenomeDisplay = React.memo(function GenomeDisplay({ genome, orisha,
     }}>
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5 }}>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.5 }}>
           CHARACTER GENOME
         </h2>
       </div>
@@ -120,7 +120,7 @@ export const GenomeDisplay = React.memo(function GenomeDisplay({ genome, orisha,
         padding: '1.5rem',
         marginBottom: '2rem',
       }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5 }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.5 }}>
           STATE PROFILE
         </h3>
 
@@ -175,7 +175,7 @@ export const GenomeDisplay = React.memo(function GenomeDisplay({ genome, orisha,
 
       {/* Lattice Position */}
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.5 }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'none', letterSpacing: '0.05em', opacity: 0.5 }}>
           LATTICE POSITION
         </h3>
         <div style={{ fontSize: '0.875rem', display: 'grid', gap: '0.5rem' }}>

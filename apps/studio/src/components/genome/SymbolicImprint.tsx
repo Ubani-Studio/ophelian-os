@@ -116,7 +116,7 @@ interface MarkerListProps {
 export function MarkerList({ markers }: MarkerListProps) {
   return (
     <div className="marker-list" style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-      <span style={{ fontSize: '0.75rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <span style={{ fontSize: '0.75rem', opacity: 0.5, textTransform: 'none', letterSpacing: '0.05em' }}>
         Symbolic Markers
       </span>
       <div style={{ display: 'flex', gap: '0.5rem' }}>

@@ -39,7 +39,6 @@
   font-size: 10px;
   font-weight: 700;
   color: #FFFFFF;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   width: fit-content;
   background: #000000;
@@ -82,7 +81,6 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--muted-foreground);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 8px 0;
 }
@@ -238,7 +236,6 @@
   font-size: 10px;
   font-weight: 700;
   color: var(--foreground);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 

@@ -47,7 +47,6 @@
   border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
@@ -153,7 +152,6 @@
 .statLabel {
   font-size: 11px;
   color: var(--muted-foreground);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
@@ -168,7 +166,6 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--muted-foreground);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 8px 0;
 }

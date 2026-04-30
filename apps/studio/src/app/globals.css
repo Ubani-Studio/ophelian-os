@@ -1,26 +1,50 @@
 /*
- * TYPOGRAPHY HIERARCHY
- * ====================
- * If the text must be interpreted → Fraunces is forbidden.
- * If the text must be obeyed or understood → Söhne only.
+ * Typography hierarchy.
  *
- * H1-H3 (Primary): Fraunces — "Where am I?"
- *   Presence · Naming · Orientation
- *   Short (1-6 words), no paragraphs, no explanation
- *   Examples: THRESHOLD, Trajectories, Sources
+ * H1-H3 (presence): Canela. Fraunces is the fallback. Short labels,
+ *   no paragraphs, sentence case. Threshold, Trajectories, Sources.
  *
- * H4-H6 (Secondary): Söhne Halbfett — "What is this part?"
- *   Structural labels, not expressive moments
- *   Explains how something works, groups content
- *   Examples: How Access Works, The Agreement, Revenue Distribution
+ * H4-H6 (structure): Söhne Halbfett. Labels, groupings, sentence case.
+ *   How access works, The agreement, Revenue distribution.
  *
- * Body/UI: Söhne Buch — "What does it do?"
- *   Law, clarity, trust. No exceptions.
- *   Paragraphs, explanations, buttons, metadata
+ * Body / UI: Söhne Buch. Paragraphs, explanations, buttons, metadata.
  *
- * Fraunces lets people feel. Söhne makes things real.
+ * Canela lets people feel. Söhne makes things real.
  */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+
+/* Canela - Commercial Type. Used for display + headings. */
+@font-face {
+  font-family: 'Canela';
+  src: url('/fonts/Canela-Light-Trial.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Canela';
+  src: url('/fonts/Canela-Regular-Trial.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Canela';
+  src: url('/fonts/Canela-Medium-Trial.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Canela';
+  src: url('/fonts/Canela-Bold-Trial.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* Söhne - Klim Type Foundry */
 @font-face {
@@ -57,8 +81,8 @@
 
 :root {
   /* Typography Hierarchy */
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;    /* Brand name */
-  --font-heading: 'Fraunces', Georgia, 'Times New Roman', serif;    /* H1-H3: presence */
+  --font-display: 'Canela', 'Fraunces', Georgia, 'Times New Roman', serif;  /* Brand name */
+  --font-heading: 'Canela', 'Fraunces', Georgia, 'Times New Roman', serif;  /* H1-H3: presence */
   --font-subheading: 'Sohne', -apple-system, BlinkMacSystemFont, sans-serif; /* H4-H6: structure */
   --font-ui: 'Sohne', -apple-system, BlinkMacSystemFont, sans-serif;         /* Buttons, nav */
   --font-body: 'Sohne', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; /* Body text */
@@ -134,7 +158,7 @@ body {
   line-height: 1.5;
 }
 
-/* Typography Hierarchy: H1-H3 = Fraunces (presence), H4-H6 = Söhne (structure) */
+/* H1-H3 = Canela (presence), H4-H6 = Söhne (structure). Sentence case throughout. */
 h1, h2, h3 {
   font-family: var(--font-heading);
   font-weight: 400;
@@ -290,7 +314,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
   margin-bottom: 0.5rem;
 }
@@ -355,7 +378,6 @@ h6 { font-size: 0.875rem; }
 .table th {
   font-weight: 600;
   font-size: 0.75rem;
-  text-transform: uppercase;
   color: var(--muted-foreground);
 }
 
@@ -528,7 +550,6 @@ h6 { font-size: 0.875rem; }
 .entity-type-badge {
   font-size: 0.65rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -900,7 +921,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.5625rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
 }
 
@@ -1227,7 +1247,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.03em;
-  text-transform: uppercase;
   max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1240,7 +1259,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.5rem;
   font-weight: 500;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
 }
 
@@ -1347,7 +1365,6 @@ h6 { font-size: 0.875rem; }
   display: block;
   font-size: 0.625rem;
   color: var(--muted-foreground);
-  text-transform: uppercase;
   margin-bottom: 0.125rem;
 }
 
@@ -1394,7 +1411,6 @@ h6 { font-size: 0.875rem; }
 .section-title {
   font-size: 0.7rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted-foreground);
   margin-bottom: 0.5rem;
@@ -1500,7 +1516,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   margin-bottom: 1rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border);
@@ -1531,7 +1546,6 @@ h6 { font-size: 0.875rem; }
 .sidebar-section-title {
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
   color: var(--muted-foreground);
   margin-bottom: 0.75rem;
 }
@@ -1841,7 +1855,6 @@ h6 { font-size: 0.875rem; }
   font-family: 'Futura', 'Futura PT', 'Century Gothic', monospace;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted-foreground);
 }
@@ -1869,7 +1882,6 @@ h6 { font-size: 0.875rem; }
   font-family: monospace;
   font-size: 0.65rem;
   font-weight: 500;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
   background: var(--muted);
   color: var(--muted-foreground);
@@ -1959,7 +1971,6 @@ h6 { font-size: 0.875rem; }
 
 .suggested-types {
   font-size: 0.625rem;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--muted-foreground);
 }
@@ -1971,7 +1982,6 @@ h6 { font-size: 0.875rem; }
   border: 1px solid var(--border);
   font-family: monospace;
   font-size: 0.7rem;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.3rem;
   cursor: pointer;
@@ -1993,7 +2003,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.625rem;
   color: #8b5cf6;
   font-family: monospace;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
   margin-bottom: 0.25rem;
 }
@@ -2031,7 +2040,6 @@ h6 { font-size: 0.875rem; }
 .suggestion-banner-action {
   font-size: 0.65rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #14b8a6;
   white-space: nowrap;
@@ -2116,7 +2124,6 @@ h6 { font-size: 0.875rem; }
   font-size: 0.5rem;
   font-weight: 700;
   color: var(--muted-foreground);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
   white-space: nowrap;
   flex-shrink: 0;

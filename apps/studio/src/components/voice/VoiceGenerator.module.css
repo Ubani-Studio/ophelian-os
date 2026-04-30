@@ -37,7 +37,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--foreground);
   margin-bottom: 8px;
 }
@@ -84,7 +83,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -113,7 +111,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--foreground);
   margin: 0 0 16px 0;
 }
@@ -135,7 +132,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--foreground);
   margin: 0 0 12px 0;
 }
@@ -154,7 +150,6 @@
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
   margin-bottom: 6px;
 }
@@ -235,7 +230,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -274,7 +268,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--foreground);
   margin: 0 0 12px 0;
 }
@@ -314,7 +307,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   transition: all 0.2s ease;
 }
 

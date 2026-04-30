@@ -117,7 +117,6 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
   padding: 6px 12px;
   background: transparent;
@@ -161,7 +160,6 @@
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   background: var(--background);
   border: none;
   border-radius: 0;

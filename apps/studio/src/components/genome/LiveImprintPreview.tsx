@@ -77,7 +77,7 @@ export function LiveImprintPreview({ genome, isGenerating }: LiveImprintPreviewP
       <div
         style={{
           fontSize: '0.75rem',
-          textTransform: 'uppercase',
+          textTransform: 'none',
           letterSpacing: '0.1em',
           color: 'var(--muted-foreground)',
           marginBottom: '1rem',
@@ -149,7 +149,7 @@ export function LiveImprintPreview({ genome, isGenerating }: LiveImprintPreviewP
           <div
             style={{
               fontSize: '0.7rem',
-              textTransform: 'uppercase',
+              textTransform: 'none',
               letterSpacing: '0.1em',
               color: 'var(--muted-foreground)',
               marginBottom: '0.5rem',

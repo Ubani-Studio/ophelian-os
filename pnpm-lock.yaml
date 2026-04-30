@@ -65,6 +65,9 @@ importers:
       '@prisma/client':
         specifier: ^5.7.0
         version: 5.22.0(prisma@5.22.0)
+      '@violet-sphinx/names':
+        specifier: file:../../../violet-sphinx-names
+        version: file:../violet-sphinx-names
       cloudinary:
         specifier: ^2.9.0
         version: 2.9.0

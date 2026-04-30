@@ -93,7 +93,7 @@ function PillSelector({ label, options, value, onChange }: {
         fontSize: '0.65rem',
         color: 'rgba(255,255,255,0.4)',
         marginBottom: '0.375rem',
-        textTransform: 'uppercase',
+        textTransform: 'none',
         letterSpacing: '0.12em',
         fontWeight: 500,
         fontFamily: 'monospace',
@@ -240,7 +240,7 @@ function CollapsibleSection({ title, expanded, onToggle, summary, children, bord
           <span style={{
             fontSize: '0.7rem',
             fontWeight: 500,
-            textTransform: 'uppercase',
+            textTransform: 'none',
             letterSpacing: '0.1em',
             color: borderColor || 'var(--muted-foreground)',
           }}>{title}</span>
@@ -1089,7 +1089,7 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                 </div>
                 {/* Variance — compact, matching container style */}
                 <div style={{ maxWidth: '50%', padding: '0.5rem 0.625rem', backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: '0.375rem', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <label style={{ display: 'block', fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 500, fontFamily: 'monospace' }}>
+                  <label style={{ display: 'block', fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.3rem', textTransform: 'none', letterSpacing: '0.12em', fontWeight: 500, fontFamily: 'monospace' }}>
                     Variance <span style={{ textTransform: 'none', letterSpacing: 'normal', color: 'rgba(255,255,255,0.6)' }}>{lcosVariance}%</span>
                   </label>
                   <input type="range" min={0} max={100} step={1} value={lcosVariance} onChange={(e) => setLcosVariance(Number(e.target.value))} style={{ width: '100%', WebkitAppearance: 'none', appearance: 'none', height: '4px', borderRadius: '2px', background: `linear-gradient(to right, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.5) ${lcosVariance}%, rgba(255,255,255,0.08) ${lcosVariance}%)`, outline: 'none', cursor: 'pointer' }} />
@@ -1127,7 +1127,7 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                 {oroCulturalEnabled && (
                   <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'none', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
                         Cultures
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -1163,7 +1163,7 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'none', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
                           Form
                         </div>
                         <select
@@ -1178,7 +1178,7 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                         </select>
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'none', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
                           Surname register
                         </div>
                         <select
@@ -1193,7 +1193,7 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                         </select>
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'none', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
                           Ornament
                         </div>
                         <select
@@ -1528,7 +1528,7 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                       fontSize: '0.6rem',
                       color: 'rgba(255,255,255,0.7)',
                       border: '1px solid rgba(255,255,255,0.08)',
-                      textTransform: 'uppercase',
+                      textTransform: 'none',
                       fontFamily: 'monospace',
                     }}>
                       {charenomePreview.voice.type}

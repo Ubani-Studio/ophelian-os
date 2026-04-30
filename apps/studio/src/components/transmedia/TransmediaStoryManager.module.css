@@ -39,7 +39,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -98,7 +97,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -164,7 +162,6 @@
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
 }

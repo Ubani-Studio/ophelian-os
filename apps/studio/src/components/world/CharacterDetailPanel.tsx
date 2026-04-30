@@ -74,7 +74,7 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
         <div className="character-info-name">{character.name}</div>
         {character.aliases.length > 0 && (
           <div style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', color: 'var(--muted-foreground)', letterSpacing: '0.03em', marginTop: '0.375rem' }}>
-            <span style={{ textTransform: 'uppercase', fontWeight: 600, marginRight: '0.5rem' }}>Aliases</span>
+            <span style={{ textTransform: 'none', fontWeight: 600, marginRight: '0.5rem' }}>Aliases</span>
             {character.aliases.join(' · ')}
           </div>
         )}
@@ -197,7 +197,7 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter') setShowTags(!showTags); }}
           >
-            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-foreground)' }}>
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'none', color: 'var(--muted-foreground)' }}>
               Traits ({character.personaTags.length})
             </span>
             <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{showTags ? '\u2212' : '+'}</span>
