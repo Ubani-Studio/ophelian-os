@@ -147,7 +147,7 @@ export default function NamesPage() {
           </Section>
         </div>
 
-        {(form === 'first_surname' || form === 'surname') && (
+        {form === 'first_surname' && (
           <Section label="Surname register">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {SURNAME_REGISTERS.map((r) => (

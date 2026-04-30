@@ -19,6 +19,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { DraggableAvatar } from '@/components/DraggableAvatar';
 import { RepositionableCircleAvatar } from '@/components/RepositionableCircleAvatar';
 import { ArchetypeDynamics } from '@/components/genome';
+import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
 export default function CharacterDetailPage() {
@@ -521,14 +522,17 @@ export default function CharacterDetailPage() {
               </button>
             </div>
           ) : (
-            <h1
-              className="page-title"
-              style={{ margin: 0, cursor: 'pointer' }}
-              onClick={handleNameEdit}
-              title="Click to edit name"
-            >
-              {character.name}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <h1
+                className="page-title"
+                style={{ margin: 0, cursor: 'pointer' }}
+                onClick={handleNameEdit}
+                title="Click to edit name"
+              >
+                {character.name}
+              </h1>
+              {character.tizitaPersonaId && <IkengaEmblem />}
+            </div>
           )}
         </div>
         <button
@@ -800,7 +804,7 @@ export default function CharacterDetailPage() {
             {/* Avatar Management */}
             <div className="mt-4">
               <strong style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', display: 'block', marginBottom: '0.5rem' }}>
-                AVATAR
+                Avatar
               </strong>
               {character.avatarUrl ? (
                 <DraggableAvatar
@@ -819,6 +823,9 @@ export default function CharacterDetailPage() {
                 />
               )}
             </div>
+
+            {/* Tizita-bound photos + Ikenga emblem */}
+            <TizitaPanel characterId={character.id} tizitaPersonaId={character.tizitaPersonaId} />
 
             <div>
               {/* Aliases Section - Editable like Persona Tags */}

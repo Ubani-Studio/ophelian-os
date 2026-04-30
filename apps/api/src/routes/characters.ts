@@ -261,7 +261,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.post('/characters/bulk-import-tizita', async (_request, reply) => {
     const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
 
-    let tizitaPayload: { personas: Array<{ id: string; display_name: string | null; photo_count: number; kind?: string }>; total: number };
+    let tizitaPayload: { personas: Array<{ id: string; display_name: string | null; photo_count: number; kind?: string; appearance_notes?: string | null; representative_photo_url?: string | null }>; total: number };
     try {
       const res = await fetch(`${TIZITA_API_URL}/personas/?kind=real`, {
         signal: AbortSignal.timeout(10000),
@@ -295,15 +295,32 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         const existing = await prisma.character.findFirst({
           where: { tizitaPersonaId: persona.id },
         });
+        // Tizita's appearance_notes is the writer's free-text brief.
+        // Use it directly as the bio when present so the imported
+        // character reads as more than a stub. Fall back to the
+        // dated stub otherwise.
+        const tizitaBrief = persona.appearance_notes?.trim() || null;
+        const bio = tizitaBrief
+          ? tizitaBrief
+          : `Imported from Tizita on ${today}.${persona.photo_count ? ` ${persona.photo_count} photo${persona.photo_count === 1 ? '' : 's'} on file.` : ''}`;
+
         if (existing) {
+          // Refresh stub bios with Tizita's brief if Tizita has one
+          // and the existing bio is still our placeholder.
+          const isStub = !existing.bio || existing.bio.startsWith('Stubbed from Tizita') || existing.bio.startsWith('Imported from Tizita');
+          if (tizitaBrief && isStub) {
+            await prisma.character.update({
+              where: { id: existing.id },
+              data: { bio: tizitaBrief },
+            });
+          }
           results.reused++;
           continue;
         }
-        const bioStub = `Stubbed from Tizita persona ${persona.id} on ${today}.${persona.photo_count ? ` ${persona.photo_count} photo${persona.photo_count === 1 ? '' : 's'} on file.` : ''}`;
         await prisma.character.create({
           data: {
             name: persona.display_name!.trim(),
-            bio: bioStub,
+            bio,
             tizitaPersonaId: persona.id,
             source: 'PERSONA',
           },
@@ -318,6 +335,52 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     return reply.send(results);
+  });
+
+  // GET /characters/:id/tizita-photos - Federation endpoint: fetches
+  // the best photos for the linked Tizita persona via Tizita's
+  // /personas/:id/best. Returned URLs point at Tizita; the studio
+  // renders them with crossOrigin or a proxy. Empty array if the
+  // character has no tizitaPersonaId or Tizita is unreachable.
+  fastify.get<{ Params: { id: string } }>('/characters/:id/tizita-photos', async (request, reply) => {
+    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+    const char = await prisma.character.findUnique({ where: { id: request.params.id } });
+    if (!char) return reply.code(404).send({ error: 'character not found' });
+    if (!char.tizitaPersonaId) return reply.send({ photos: [], reason: 'no_tizita_persona' });
+
+    try {
+      const res = await fetch(`${TIZITA_API_URL}/personas/${char.tizitaPersonaId}/best?limit=24`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) {
+        return reply.send({ photos: [], reason: `tizita_${res.status}` });
+      }
+      const json = await res.json() as { photos?: Array<{ id: string; file_url?: string; url?: string; thumbnail_url?: string }> };
+      return reply.send({
+        photos: (json.photos ?? []).map((p) => ({
+          id: p.id,
+          url: p.file_url ?? p.url ?? null,
+          thumbnailUrl: p.thumbnail_url ?? p.file_url ?? p.url ?? null,
+        })),
+        tizita_base: TIZITA_API_URL.replace(/\/api\/v1$/, ''),
+      });
+    } catch {
+      return reply.send({ photos: [], reason: 'tizita_unreachable' });
+    }
+  });
+
+  // PATCH /characters/:id/bio - Update the bio (brief) inline. Used
+  // by the character detail page editable brief field.
+  fastify.patch<{ Params: { id: string } }>('/characters/:id/bio', async (request, reply) => {
+    const body = request.body as { bio?: string };
+    if (typeof body?.bio !== 'string') {
+      return reply.code(400).send({ error: 'bio is required' });
+    }
+    const updated = await prisma.character.update({
+      where: { id: request.params.id },
+      data: { bio: body.bio },
+    });
+    return reply.send({ id: updated.id, bio: updated.bio });
   });
 
   // POST /characters/from-persona - Create a Bóveda character from a
@@ -351,6 +414,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     // Optionally fetch persona details from Tizita
     const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
     let displayName: string | null = null;
+    let appearanceNotes: string | null = null;
     let photoCount = 0;
     let tizitaReachable = false;
     try {
@@ -358,8 +422,9 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
-        const persona = await res.json() as { display_name?: string | null; photo_count?: number };
+        const persona = await res.json() as { display_name?: string | null; photo_count?: number; appearance_notes?: string | null };
         displayName = persona.display_name?.trim() ?? null;
+        appearanceNotes = persona.appearance_notes?.trim() ?? null;
         photoCount = persona.photo_count ?? 0;
         tizitaReachable = true;
       } else if (res.status === 404) {
@@ -380,14 +445,18 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const bioStub = tizitaReachable
-      ? `Stubbed from Tizita persona ${body.personaId} on ${today}.${photoCount ? ` ${photoCount} photo${photoCount === 1 ? '' : 's'} on file.` : ''}`
-      : `Stubbed from Tizita persona ${body.personaId} on ${today}.`;
+    // Prefer Tizita's appearance_notes (the writer's free-text brief)
+    // when available; fall back to the dated stub.
+    const bio = appearanceNotes
+      ? appearanceNotes
+      : tizitaReachable
+        ? `Imported from Tizita on ${today}.${photoCount ? ` ${photoCount} photo${photoCount === 1 ? '' : 's'} on file.` : ''}`
+        : `Imported from Tizita on ${today}.`;
 
     const character = await prisma.character.create({
       data: {
         name: inferredName,
-        bio: bioStub,
+        bio,
         tizitaPersonaId: body.personaId,
         source: 'PERSONA',
         ...(body.worldId ? { worldId: body.worldId } : {}),

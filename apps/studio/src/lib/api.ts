@@ -46,6 +46,26 @@ export interface Character {
   createdAt: string;
   updatedAt: string;
   position?: CharacterPosition | null;
+  /** Tizita persona link (Ikenga). When set, the character is bound
+   *  to a real-life face cluster in Tizita and federates photos +
+   *  brief from there. */
+  tizitaPersonaId?: string | null;
+  /** LoRA references attached to this character. Each entry is a
+   *  structured record with category (visual / voice / writing /
+   *  music / motion / style) so downstream surfaces pick the right
+   *  adapter. */
+  loras?: Array<{
+    id: string;
+    name?: string;
+    category?: string;
+    source?: string;
+    trigger?: string;
+    weight?: number;
+    baseModel?: string;
+    trainedFromPersonaId?: string;
+    thumbnailUrl?: string;
+  }>;
+  worldId?: string | null;
 }
 
 export async function getCharacters(): Promise<Character[]> {
