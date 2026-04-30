@@ -171,6 +171,10 @@ model CharacterRelationship {
   sourceRole        String?
   targetRole        String?
   lore              String               @default("")
+  // Articy-style conditional. Free-text expression that gates when
+  // this relationship reads as active: "trust > 5", "post-revelation",
+  // "wartime". No runtime parser yet — author + reader interpret.
+  condition         String?
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
@@ -380,6 +384,10 @@ model NexusSnapshot {
   name        String
   description String?
   data        Json     // Stores positions, relationships, connections as JSON
+  // Figma-style branching. 'sandbox' for in-progress exploration,
+  // 'canonical' for the committed source of truth. UI shows a pill;
+  // promote-to-canonical copies a sandbox snapshot's data forward.
+  kind        String   @default("sandbox") // 'sandbox' | 'canonical'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

@@ -305,8 +305,39 @@ export default function WorldBuilderPage() {
       });
     }
 
-    setNodes(newNodes);
-  }, [characters, scenes, worlds, showCharacters, showScenes, showWorlds, shiftConnectSource, shiftHeld, setNodes]);
+    // Focal interaction (TheBrain-style): when something is selected,
+    // tag each node so CSS can dim non-neighbours and emphasise the
+    // selected node + its 1-hop neighbours. Computed here against
+    // current relationships + connections.
+    const focalId = selectedEntity
+      ? `${selectedEntity.type}:${selectedEntity.id}`
+      : null;
+    const neighbourIds = new Set<string>();
+    if (focalId) {
+      neighbourIds.add(focalId);
+      for (const r of relationships) {
+        const a = `character:${r.sourceCharacterId}`;
+        const b = `character:${r.targetCharacterId}`;
+        if (a === focalId) neighbourIds.add(b);
+        if (b === focalId) neighbourIds.add(a);
+      }
+      for (const c of connections) {
+        const a = `${c.sourceType.toLowerCase()}:${c.sourceId}`;
+        const b = `${c.targetType.toLowerCase()}:${c.targetId}`;
+        if (a === focalId) neighbourIds.add(b);
+        if (b === focalId) neighbourIds.add(a);
+      }
+    }
+
+    const taggedNodes = newNodes.map((n) => {
+      if (!focalId) return { ...n, className: '' };
+      if (n.id === focalId) return { ...n, className: 'focal-target' };
+      if (neighbourIds.has(n.id)) return { ...n, className: 'focal-neighbour' };
+      return { ...n, className: 'focal-faded' };
+    });
+
+    setNodes(taggedNodes);
+  }, [characters, scenes, worlds, showCharacters, showScenes, showWorlds, shiftConnectSource, shiftHeld, setNodes, selectedEntity, relationships, connections]);
 
   // Build edges from relationships and connections
   useEffect(() => {

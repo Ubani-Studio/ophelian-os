@@ -10,20 +10,30 @@ export interface RelationshipEdgeData {
 }
 
 // Tight three-tone palette. Tyrian purple variants for warm bonds,
-// muted red for cold bonds, neutral for everything else. Beats the
-// previous 8-saturated-Tailwind-colors look which read as motley.
+// muted red for cold bonds, neutral for everything else.
 const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
-  // Warm bonds — tyrian purple family
   ALLY:   '#66023C',
   FRIEND: '#7C2952',
   FAMILY: '#9B4772',
   LOVER:  '#5A0532',
-  // Cold bonds — muted red
   ENEMY: '#8B2635',
   RIVAL: '#A3434F',
-  // Neutral
   MENTOR: '#A3A3A3',
   CUSTOM: '#6B7280',
+};
+
+// Text colour per background. Light/neutral bg → black text;
+// saturated dark bg → white text. Computed once per type so the
+// label is always readable.
+const RELATIONSHIP_TEXT: Record<RelationshipType, string> = {
+  ALLY:   '#fff',
+  FRIEND: '#fff',
+  FAMILY: '#fff',
+  LOVER:  '#fff',
+  ENEMY:  '#fff',
+  RIVAL:  '#fff',
+  MENTOR: '#000',
+  CUSTOM: '#000',
 };
 
 function RelationshipEdgeComponent({
@@ -50,6 +60,7 @@ function RelationshipEdgeComponent({
   });
 
   const color = relationship ? RELATIONSHIP_COLORS[relationship.relationshipType] : '#6b7280';
+  const textColor = relationship ? RELATIONSHIP_TEXT[relationship.relationshipType] : '#fff';
   const label =
     relationship?.customTypeName || relationship?.relationshipType.toLowerCase().replace('_', ' ') || '';
 
@@ -73,6 +84,7 @@ function RelationshipEdgeComponent({
             position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             background: color,
+            color: textColor,
             pointerEvents: 'all',
           }}
           onClick={() => relationship && onClick?.(relationship)}

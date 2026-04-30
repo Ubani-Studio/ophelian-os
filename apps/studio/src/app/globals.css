@@ -930,18 +930,46 @@ input[type="checkbox"]:disabled {
 }
 
 .relationship-edge-label {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0;
   font-size: 0.625rem;
   font-weight: 500;
-  color: white;
+  letter-spacing: 0.04em;
   text-transform: capitalize;
   cursor: pointer;
   transition: transform 0.15s ease;
 }
 
 .relationship-edge-label:hover {
-  transform: translate(-50%, -50%) scale(1.1);
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+/* Drag ghosting fix. Some browsers leave a stale frame behind a
+   dragged node because of compositor transitions. Disable
+   transitions on the dragging node and its children so the visual
+   tracks the cursor exactly. */
+.react-flow__node-dragging,
+.react-flow__node-dragging * {
+  transition: none !important;
+}
+.react-flow__node {
+  will-change: transform;
+}
+
+/* Focal interaction (TheBrain-style). When a node is selected, the
+   selected node + its 1-hop neighbours stay full opacity, everything
+   else fades to a whisper so the local neighbourhood reads first. */
+.react-flow__node {
+  transition: opacity 0.18s ease;
+}
+.react-flow__node.focal-target {
+  opacity: 1;
+}
+.react-flow__node.focal-neighbour {
+  opacity: 0.85;
+}
+.react-flow__node.focal-faded {
+  opacity: 0.18;
 }
 
 /* Right Panel Container — collapsible to give the graph more room. */
@@ -1370,10 +1398,11 @@ input[type="checkbox"]:disabled {
 }
 
 .connection-edge-label {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0;
   font-size: 0.625rem;
   font-weight: 500;
+  letter-spacing: 0.04em;
   color: white;
   text-transform: capitalize;
   cursor: pointer;
