@@ -38,7 +38,7 @@ export interface LoraRef {
 }
 
 const CATEGORIES = [
-  { id: 'visual', label: 'Visual', surface: 'ComfyUI · Genoma' },
+  { id: 'visual', label: 'Visual', surface: 'Ikenga' },
   { id: 'voice', label: 'Voice', surface: 'Mmuo' },
   { id: 'writing', label: 'Writing', surface: 'Ibis' },
   { id: 'music', label: 'Music', surface: 'Swanblade' },
