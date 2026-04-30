@@ -75,6 +75,23 @@ export interface Character {
    *  { name, role?, characterId? } — full Character records are not
    *  required, just names. */
   groupMembers?: Array<{ name: string; role?: string; characterId?: string }>;
+  /** Agency mode. Determines how this character acts in the system.
+   *  manual = author-only (the human user); twin = paired AI version
+   *  (Ai-8O is twin to Ubani); espíritu = fully autonomous; relic =
+   *  frozen, will silent. */
+  mode?: 'manual' | 'twin' | 'espíritu' | 'relic';
+  /** When mode='twin', the Character.id of the manual character this
+   *  twin is paired with. */
+  twinOf?: string | null;
+  /** Goals + perimeter for autonomous entities. */
+  agencyScope?: {
+    goals?: string[];
+    cubes?: string[];
+    canInitiateWith?: string[];
+    canPublishTo?: string[];
+    rollbackEnabled?: boolean;
+  };
+  goals?: string[];
 }
 
 export async function getCharacters(): Promise<Character[]> {

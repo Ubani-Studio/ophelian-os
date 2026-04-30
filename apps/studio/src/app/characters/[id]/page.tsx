@@ -22,6 +22,7 @@ import { ArchetypeDynamics } from '@/components/genome';
 import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
 import { LoraPanel } from '@/components/LoraPanel';
+import { ModePill } from '@/components/ModePill';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
 export default function CharacterDetailPage() {
@@ -531,7 +532,7 @@ export default function CharacterDetailPage() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <h1
                 className="page-title"
                 style={{ margin: 0, cursor: 'pointer' }}
@@ -540,6 +541,7 @@ export default function CharacterDetailPage() {
               >
                 {character.name}
               </h1>
+              <ModePill mode={character.mode} twinOfName={character.twinOf ? 'Ubani' : null} />
               {character.tizitaPersonaId && <IkengaEmblem />}
             </div>
           )}

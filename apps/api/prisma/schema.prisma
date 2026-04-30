@@ -74,6 +74,33 @@ model Character {
   // without forcing each member to be a fully-fledged character row.
   groupMembers Json @default("[]")
 
+  // Agency mode. Determines how this Character acts in the system.
+  //   manual    — author-only (the human user). Cannot act
+  //               autonomously. Other entities can address them;
+  //               messages queue in the user's inbox.
+  //   twin      — paired AI version of a manual character. Bounded
+  //               autonomy inside agencyScope. Always tagged with
+  //               provenance ("Ai-8O speaking").
+  //   espíritu  — fully autonomous. Goals + memory + voice. The
+  //               bóveda altar holds espíritus.
+  //   relic     — frozen. Memory remains, will is silent. Default
+  //               posthumous state.
+  mode String @default("espíritu") // 'manual' | 'twin' | 'espíritu' | 'relic'
+
+  // For mode='twin', the Character.id of the manual character this
+  // twin is paired with (e.g. Ai-8O.twinOf = Ubani.id).
+  twinOf String?
+
+  // Goals + perimeter for autonomous entities (espíritu and twin).
+  // Shape:
+  //   { goals: string[], cubes: string[], canInitiateWith: string[],
+  //     canPublishTo: string[], rollbackEnabled: bool }
+  agencyScope Json @default("{}")
+
+  // Goals as a separate convenience field (mirrored from agencyScope
+  // for fast access).
+  goals Json @default("[]")
+
   // Òrò world membership. Carried over so worlds migrated from Òrò
   // (e.g. "Station 8") keep their character bindings.
   worldId String?
@@ -175,6 +202,13 @@ model CharacterRelationship {
   // this relationship reads as active: "trust > 5", "post-revelation",
   // "wartime". No runtime parser yet — author + reader interpret.
   condition         String?
+  // Time-aware edge log. Append-only timeline of events between the
+  // two characters. Each entry is { ts, kind, summary, body,
+  // retention: 'ephemeral' | 'canonical', rolled_back }. Ephemeral
+  // entries auto-prune after 90 days; canonical persist indefinitely
+  // until the user demotes them. The bóveda altar is curated, not
+  // accumulated.
+  eventLog          Json                 @default("[]")
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
