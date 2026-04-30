@@ -17,7 +17,8 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
-    "@lcos/shared": "workspace:*"
+    "@lcos/shared": "workspace:*",
+    "@lcos/rights": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

@@ -440,6 +440,16 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
   const [_lcosShowDetails, setLcosShowDetails] = useState(false);
   const [lcosAdminMode, setLcosAdminMode] = useState(false);
   const [lcosMode, setLcosMode] = useState<'character' | 'relic'>('character');
+  // Òrò cultural-mode state. When enabled, the name comes from the
+  // diasporic naming engine (@violet-sphinx/names) and replaces the
+  // heritage-pool name. Backstory + arcana + relics still come from
+  // Bóveda's engine.
+  const [oroCulturalEnabled, setOroCulturalEnabled] = useState(false);
+  const [oroCultures, setOroCultures] = useState<string[]>(['yoruba', 'igbo', 'akan', 'vodou']);
+  const [oroForm, setOroForm] = useState<'first' | 'first_surname' | 'mononym' | 'full_with_epithet'>('first_surname');
+  const [oroOrnament, setOroOrnament] = useState<0 | 0.5 | 1>(0.5);
+  const [oroWithTitle, setOroWithTitle] = useState(false);
+  const [oroSurnameRegister, setOroSurnameRegister] = useState<'auto' | 'colonial' | 'reclaimed' | 'compound'>('auto');
   const [imprintExpanded, setGenomeExpanded] = useState(false);
   const [lcosSettingsExpanded, setLcosSettingsExpanded] = useState(true);
   const [lcosClassExpanded, setLcosClassExpanded] = useState(false);
@@ -587,6 +597,25 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
           lockedRelic: lcosLockedRelic || undefined,
           core: lcosCore || undefined,
           variance: lcosVariance > 0 ? lcosVariance : undefined,
+          // Cultural mode: Òrò engine takes the name surface, Bóveda
+          // keeps backstory / arcana / relics.
+          cultural: oroCulturalEnabled || undefined,
+          culturalCultures: oroCulturalEnabled ? oroCultures : undefined,
+          culturalForm: oroCulturalEnabled ? oroForm : undefined,
+          culturalOrnament: oroCulturalEnabled ? oroOrnament : undefined,
+          culturalWithTitle: oroCulturalEnabled && oroWithTitle ? true : undefined,
+          culturalSurnameRegister:
+            oroCulturalEnabled && oroSurnameRegister !== 'auto'
+              ? oroSurnameRegister
+              : undefined,
+          culturalGender:
+            oroCulturalEnabled && lcosGender
+              ? lcosGender === 'feminine'
+                ? 'f'
+                : lcosGender === 'masculine'
+                  ? 'm'
+                  : 'a'
+              : undefined,
         },
         { signal: controller.signal }
       );
@@ -1068,6 +1097,128 @@ export function NewCharacterModal({ isOpen, onClose, onCreated }: NewCharacterMo
                 </div>
               </div>
             </CollapsibleSection>
+
+            {/* Òrò cultural mode toggle. When on, the name comes from the
+                diasporic naming engine; backstory + arcana + relics still
+                from Bóveda's engine. */}
+            {lcosMode === 'character' && (
+              <div style={{
+                marginTop: '0.5rem',
+                padding: '0.625rem 0.75rem',
+                background: oroCulturalEnabled ? 'rgba(255,200,140,0.06)' : 'rgba(0,0,0,0.25)',
+                borderRadius: '0.375rem',
+                border: oroCulturalEnabled ? '1px solid rgba(255,200,140,0.2)' : '1px solid rgba(255,255,255,0.06)',
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={oroCulturalEnabled}
+                    onChange={(e) => setOroCulturalEnabled(e.target.checked)}
+                    style={{ accentColor: 'rgba(255,200,140,0.9)' }}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--foreground)', fontWeight: 500 }}>
+                    Òrò cultural names
+                  </span>
+                  <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', marginLeft: '0.25rem' }}>
+                    diasporic / decolonial · lineage-aware
+                  </span>
+                </label>
+
+                {oroCulturalEnabled && (
+                  <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                        Cultures
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                        {(['yoruba', 'igbo', 'akan', 'egyptian', 'vodou', 'rastafari', 'maroon', 'lucumi', 'taino'] as const).map((c) => {
+                          const active = oroCultures.includes(c);
+                          return (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() =>
+                                setOroCultures((prev) =>
+                                  prev.includes(c)
+                                    ? prev.filter((x) => x !== c)
+                                    : [...prev, c]
+                                )
+                              }
+                              style={{
+                                padding: '0.2rem 0.55rem',
+                                fontSize: '0.65rem',
+                                borderRadius: '0.2rem',
+                                border: active ? '1px solid rgba(255,200,140,0.5)' : '1px solid rgba(255,255,255,0.12)',
+                                background: active ? 'rgba(255,200,140,0.1)' : 'transparent',
+                                color: active ? 'rgba(255,220,180,0.95)' : 'rgba(255,255,255,0.55)',
+                                cursor: 'pointer',
+                                textTransform: 'capitalize',
+                              }}
+                            >
+                              {c}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                          Form
+                        </div>
+                        <select
+                          value={oroForm}
+                          onChange={(e) => setOroForm(e.target.value as typeof oroForm)}
+                          style={{ width: '100%', padding: '0.3rem 0.4rem', fontSize: '0.7rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '0.2rem', color: 'var(--foreground)' }}
+                        >
+                          <option value="first">First only</option>
+                          <option value="first_surname">First + surname</option>
+                          <option value="mononym">Mononym</option>
+                          <option value="full_with_epithet">Full + epithet</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                          Surname register
+                        </div>
+                        <select
+                          value={oroSurnameRegister}
+                          onChange={(e) => setOroSurnameRegister(e.target.value as typeof oroSurnameRegister)}
+                          style={{ width: '100%', padding: '0.3rem 0.4rem', fontSize: '0.7rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '0.2rem', color: 'var(--foreground)' }}
+                        >
+                          <option value="auto">Auto</option>
+                          <option value="colonial">Colonial</option>
+                          <option value="reclaimed">Reclaimed</option>
+                          <option value="compound">Compound</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.55rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: 'monospace' }}>
+                          Ornament
+                        </div>
+                        <select
+                          value={oroOrnament}
+                          onChange={(e) => setOroOrnament(Number(e.target.value) as 0 | 0.5 | 1)}
+                          style={{ width: '100%', padding: '0.3rem 0.4rem', fontSize: '0.7rem', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '0.2rem', color: 'var(--foreground)' }}
+                        >
+                          <option value="0">Clean ASCII</option>
+                          <option value="0.5">Diacritics</option>
+                          <option value="1">Avant-garde</option>
+                        </select>
+                      </div>
+                    </div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={oroWithTitle}
+                        onChange={(e) => setOroWithTitle(e.target.checked)}
+                      />
+                      Attach title (Eze, Mmuo, Ras, the Quiet Door)
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Loading state */}
             {lcosGenerating && !lcosGenerated && (

@@ -425,6 +425,9 @@ export interface LCOSGeneratedCharacter {
   name: string;
   gender: 'masculine' | 'feminine' | 'neutral';
   heritage: string;
+  /** Present when cultural mode was used. Carries the Òrò engine
+   *  metadata (sacred flag, lineage thread, source, rationale). */
+  cultural?: CulturalMeta;
   order: {
     name: string;
     ideology: string;
@@ -489,6 +492,54 @@ export interface LCOSGenerateOptions {
   lockedRelic?: Relic;      // When provided, keeps this relic but regenerates the pseudonym
   core?: string;  // Aesthetic symbol adornments (drowned_mall, hex_garden, sugar_rot, dead_channel, spore_drift, wrong_room, bone_clean, lambda, or legacy names)
   variance?: number;  // 0-100 glitch distortion percentage
+
+  // Cultural mode: routes the name through @violet-sphinx/names — the
+  // diasporic / decolonial engine. Bóveda still owns backstory,
+  // arcana, relics, personality. Only the name surface changes.
+  cultural?: boolean;
+  culturalCultures?: string[];  // ['yoruba', 'vodou', 'akan', ...]
+  culturalMode?: 'real' | 'fictional' | 'mythic' | 'archetype' | 'internet';
+  culturalForm?: 'mononym' | 'first' | 'surname' | 'first_surname' | 'full_with_epithet';
+  culturalGender?: 'm' | 'f' | 'a';
+  culturalArchetype?: string;
+  culturalOrnament?: 0 | 0.5 | 1;
+  culturalWithTitle?: boolean;
+  culturalSurnameRegister?: 'auto' | 'colonial' | 'reclaimed' | 'compound';
+  culturalSurnameCulture?: string;
+}
+
+// Cultural metadata returned alongside the LCOS character when
+// cultural mode is on. Mirrors the @violet-sphinx/names result shape.
+export interface CulturalMeta {
+  cultureId: string;
+  region: string;
+  era: string;
+  source: 'real' | 'markov' | 'starter_pool' | 'internet' | 'mythic';
+  sacred?: boolean;
+  lineage?: {
+    threadId: string;
+    rootMeaning: string;
+    otherShores: Array<{ culture: string; name: string }>;
+  };
+  rationale?: string;
+}
+
+export interface OroCultureSummary {
+  id: string;
+  label: string;
+  region: string;
+}
+
+export async function listOroCultures(
+  fetchOptions?: { signal?: AbortSignal }
+): Promise<{ cultures: OroCultureSummary[] }> {
+  return fetchJson<{ cultures: OroCultureSummary[] }>(
+    `${LCOS_API_URL}/characters/oro-cultures`,
+    {
+      headers: { 'x-api-key': LCOS_API_KEY },
+      signal: fetchOptions?.signal,
+    }
+  );
 }
 
 export async function generateLCOSCharacter(
@@ -513,6 +564,16 @@ export async function generateLCOSCharacter(
       lockedRelic: options?.lockedRelic,
       core: options?.core,
       variance: options?.variance,
+      cultural: options?.cultural,
+      culturalCultures: options?.culturalCultures,
+      culturalMode: options?.culturalMode,
+      culturalForm: options?.culturalForm,
+      culturalGender: options?.culturalGender,
+      culturalArchetype: options?.culturalArchetype,
+      culturalOrnament: options?.culturalOrnament,
+      culturalWithTitle: options?.culturalWithTitle,
+      culturalSurnameRegister: options?.culturalSurnameRegister,
+      culturalSurnameCulture: options?.culturalSurnameCulture,
     }),
     signal: fetchOptions?.signal,
   });

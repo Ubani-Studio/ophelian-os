@@ -363,6 +363,9 @@ importers:
 
   packages/voice:
     dependencies:
+      '@lcos/rights':
+        specifier: workspace:*
+        version: link:../rights
       '@lcos/shared':
         specifier: workspace:*
         version: link:../shared
