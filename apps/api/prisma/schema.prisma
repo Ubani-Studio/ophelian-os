@@ -7,6 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Character source type - where the identity came from
+enum CharacterSourceEnum {
+  GENERATED  // Created by Oripheon generator (fictional)
+  PERSONA    // Real person's public identity (from Sembla/o8)
+  TWIN       // Imported from Starforge Twin OS
+}
+
+// Consent record types for audit trail
+enum ConsentRecordTypeEnum {
+  CREATION        // Character/genome created with consent
+  SYNTHESIS       // Voice/visual synthesis consent
+  TRAINING        // AI training consent
+  COMMERCIAL_USE  // Commercial licensing consent
+  MODIFICATION    // Character modified
+  PERSONA_IMPORT  // Imported from real identity
+  REVOCATION      // Consent revoked
+}
+
 model Character {
   id              String   @id @default(cuid())
   name            String
@@ -15,15 +33,105 @@ model Character {
   avatarUrl       String?
   avatarPosition  String   @default("50% 50%")
   personaTags     String[]
-  toneAllowed   String[]
-  toneForbidden String[]
-  systemPrompt  String   @default("")
-  currentArc    String?
-  timelineState Json     @default("{}")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  position      CharacterPosition?
-  genome        CharacterGenome?
+  toneAllowed     String[]
+  toneForbidden   String[]
+  systemPrompt    String   @default("")
+  currentArc      String?
+  timelineState   Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Identity & source tracking
+  source          CharacterSourceEnum @default(GENERATED)
+  realIdentityId  String?             // Link to o8/Starforge/Sembla identity
+  biometricHash   String?             // SHA256 of facial/voice biometric
+
+  // External persona link (Tizita's Persona table). Lets Tizita's
+  // face-clustered persona row anchor to this Boveda character so
+  // photo links flow without duplicating face data here.
+  tizitaPersonaId String?
+
+  // Pre-computed SigLIP text embedding of the bio, used for
+  // text-to-image search across the photo library. Stored as a JSON
+  // array of floats. Recomputed when bio changes.
+  bioTextEmbedding Json?
+
+  // LoRA references attached to this character. Each entry is a
+  // structured record: { id, name, source, trigger, weights, baseModel,
+  // trainedFrom, etc. }. The actual LoRA files live elsewhere (Tizita
+  // / shared storage / S3); this field carries identifiers + metadata
+  // so image generation surfaces (Genoma, ComfyUI, the thumbnail
+  // compositor) can pick the right adapter when rendering this
+  // character.
+  loras Json @default("[]")
+
+  // Òrò world membership. Carried over so worlds migrated from Òrò
+  // (e.g. "Station 8") keep their character bindings.
+  worldId String?
+  world   World?  @relation(fields: [worldId], references: [id])
+
+  // Relations
+  position         CharacterPosition?
+  genome           CharacterGenome?
+  consentRecords   ConsentRecord[]
+  memberships      EnsembleMember[]
+
+  @@index([tizitaPersonaId])
+}
+
+// An Ensemble groups multiple Characters as a unit (a band, a duo,
+// a coven). Distinct from a relationship-pair because it has its own
+// identity, bio, and visual signature that's more than the sum of
+// its members. Triarch (3-piece band) is one Ensemble; the three
+// individual band members are Characters who happen to also exist
+// as members of this ensemble.
+//
+// Why both Character and Ensemble: matching against an Ensemble's
+// description ("three-piece band, gritty rock energy") catches group
+// shots; matching against an individual Character's description
+// catches solo shots. Both signals stack.
+model Ensemble {
+  id               String   @id @default(cuid())
+  name             String
+  aliases          String[]
+  bio              String   @default("")
+  avatarUrl        String?
+  avatarPosition   String   @default("50% 50%")
+  // Ensemble kind hints at what it represents: band, duo, troupe,
+  // family, council, etc. Free-text so writers can coin their own.
+  kind             String?
+  personaTags      String[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Pre-computed SigLIP text embedding of the bio. Powers
+  // ensemble-aware photo retrieval ("find more group shots like
+  // this") even when individual face matches are weak.
+  bioTextEmbedding Json?
+
+  // Relations
+  members          EnsembleMember[]
+
+  @@index([name])
+}
+
+// Many-to-many link between Characters and Ensembles, with a per-
+// member role label (lead, drummer, bassist; or trickster, anchor,
+// child). Roles are free-text so writers can coin their own.
+model EnsembleMember {
+  ensembleId   String
+  characterId  String
+  role         String?
+  // Display order so an Ensemble's members render in a meaningful
+  // sequence (lead first, etc.) rather than arbitrary insertion order.
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  ensemble     Ensemble  @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([ensembleId, characterId])
+  @@index([characterId])
 }
 
 enum RelationshipTypeEnum {
@@ -62,7 +170,16 @@ model CharacterRelationship {
 
 enum VoiceProviderEnum {
   ELEVENLABS
+  CHROMOX
+  OPENAI
   NONE
+}
+
+enum VoiceSourceEnum {
+  UPLOADED       // User uploaded voice sample
+  PERSONA        // Imported from real identity (Sembla/o8)
+  CLONED         // Voice cloned via provider
+  SYNTHESIZED    // Pure AI synthesis
 }
 
 model VoiceProfile {
@@ -73,6 +190,17 @@ model VoiceProfile {
   meta            Json              @default("{}")
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+
+  // Identity & source tracking
+  source          VoiceSourceEnum   @default(SYNTHESIZED)
+  realIdentityId  String?           // Link to o8/Sembla identity
+  biometricHash   String?           // Voice fingerprint hash
+
+  // Consent
+  consentRecords  ConsentRecord[]
+
+  @@index([realIdentityId])
+  @@index([biometricHash])
 }
 
 enum SubjectTypeEnum {
@@ -100,8 +228,15 @@ model License {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
+  // Public-facing token (short, memorable - e.g., "FX-91A")
+  publicToken      String?         @unique
+
+  // Consent chain
+  consentRecords   ConsentRecord[]
+
   @@index([subjectId])
   @@index([ownerId])
+  @@index([publicToken])
 }
 
 enum PlatformEnum {
@@ -194,6 +329,10 @@ model World {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   position    WorldPosition?
+  // Characters that live in this world. Carried over from Òrò's
+  // worldId-on-character pattern so Òrò → Bóveda migrations preserve
+  // bindings.
+  characters  Character[]
 }
 
 model WorldPosition {
@@ -265,6 +404,113 @@ model CharacterGenome {
   characterId String?    @unique
   character   Character? @relation(fields: [characterId], references: [id])
 
+  // Source tracking (for personas/twins)
+  generationMethod String  @default("oripheon") // "oripheon" | "persona_import" | "twin_import"
+  sourceIdentityId String? // If derived from real identity
+
+  // Consent
+  consentToken     String? // Proof of consent for this genome
+  consentRecords   ConsentRecord[]
+
   @@index([name])
   @@index([characterId])
+  @@index([sourceIdentityId])
+}
+
+// Consent Record - immutable audit trail with hash chain
+model ConsentRecord {
+  id            String                @id @default(cuid())
+  type          ConsentRecordTypeEnum
+  timestamp     DateTime              @default(now())
+
+  // Hash chain for tamper-proof audit trail
+  previousHash  String?               // SHA256 of previous record
+  hash          String                // SHA256 of this record
+
+  // Source of consent
+  source        String                // "user" | "o8" | "starforge" | "sembla" | "api"
+  sourceId      String?               // ID from external system
+  grantedBy     String?               // Email or user ID who granted
+
+  // What was consented to
+  permissions   Json                  // { synthesis: bool, training: bool, commercial: bool, ... }
+  terms         String?               // Link to terms accepted
+  metadata      Json                  @default("{}")
+
+  // Relations (a record belongs to one of these)
+  characterId       String?
+  character         Character?        @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  voiceProfileId    String?
+  voiceProfile      VoiceProfile?     @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+
+  licenseId         String?
+  license           License?          @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  genomeId          String?
+  genome            CharacterGenome?  @relation(fields: [genomeId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
+  @@index([voiceProfileId])
+  @@index([licenseId])
+  @@index([genomeId])
+  @@index([timestamp])
+  @@index([hash])
+}
+
+// Invite Code System for Exclusivity Gate
+model InviteCode {
+  id          String    @id @default(cuid())
+  code        String    @unique  // e.g., "SEMBLA-ELITE-2026"
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  maxUses     Int       @default(1)
+  currentUses Int       @default(0)
+  isActive    Boolean   @default(true)
+
+  // Who created this code
+  createdBy   String?   // Admin email or "system"
+
+  // Metadata
+  tier        String    @default("registry")  // "registry" | "pro" | "legacy"
+  notes       String?
+
+  // Track who used it
+  usedBy      InviteCodeUsage[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model InviteCodeUsage {
+  id           String     @id @default(cuid())
+  inviteCodeId String
+  inviteCode   InviteCode @relation(fields: [inviteCodeId], references: [id], onDelete: Cascade)
+  usedAt       DateTime   @default(now())
+  usedByEmail  String
+  characterId  String?    // Link to created persona
+
+  @@index([inviteCodeId])
+  @@index([usedByEmail])
+}
+
+// Waitlist for those without invite codes
+model WaitlistRequest {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  instagram   String?  // For verification
+  agency      String?  // Agency representation
+  reason      String?  // Why they want access
+  createdAt   DateTime @default(now())
+  status      String   @default("pending")  // "pending" | "approved" | "rejected"
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  notes       String?
+
+  // If approved, which invite code was sent
+  inviteCodeSent String?
+
+  @@index([status])
+  @@index([createdAt])
 }

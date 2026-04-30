@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './landing.module.css';
 
-const BRAND_NAMES = ['ZÀNÀ', 'SÉLÒ', 'ÒRÍX'] as const;
+const BRAND_NAMES = ['Bóveda'] as const;
 
 export default function LandingPage() {
   const router = useRouter();

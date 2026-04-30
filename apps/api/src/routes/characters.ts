@@ -254,6 +254,140 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ lineages: LINEAGES });
   });
 
+  // POST /characters/from-persona - Create a Bóveda character from a
+  // Tizita persona. Idempotent: if a character already exists in
+  // Bóveda bound to the same persona, return that instead. The
+  // tizitaPersonaId field on Character is the persistent link, so
+  // photo-library lookups and avatar fetches keep working.
+  fastify.post('/characters/from-persona', async (request, reply) => {
+    const body = request.body as {
+      personaId?: string;
+      nameOverride?: string;
+      worldId?: string;
+    } | undefined;
+    if (!body?.personaId?.trim()) {
+      return reply.code(400).send({ error: 'personaId is required' });
+    }
+
+    // Idempotence
+    const existing = await prisma.character.findFirst({
+      where: { tizitaPersonaId: body.personaId },
+    });
+    if (existing) {
+      return reply.send({
+        id: existing.id,
+        character: existing,
+        created: false,
+        reused: true,
+      });
+    }
+
+    // Optionally fetch persona details from Tizita
+    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+    let displayName: string | null = null;
+    let photoCount = 0;
+    let tizitaReachable = false;
+    try {
+      const res = await fetch(`${TIZITA_API_URL}/personas/${body.personaId}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const persona = await res.json() as { display_name?: string | null; photo_count?: number };
+        displayName = persona.display_name?.trim() ?? null;
+        photoCount = persona.photo_count ?? 0;
+        tizitaReachable = true;
+      } else if (res.status === 404) {
+        return reply.code(404).send({ error: `persona ${body.personaId} not found in Tizita` });
+      }
+    } catch {
+      // Tizita unreachable; we can still proceed with nameOverride
+    }
+
+    const inferredName =
+      body.nameOverride?.trim() ||
+      displayName ||
+      (tizitaReachable ? `Unnamed · ${body.personaId.slice(0, 8)}` : null);
+    if (!inferredName) {
+      return reply.code(503).send({
+        error: 'Tizita is unreachable and no nameOverride was provided. Start Tizita on :8001 or pass nameOverride in the body.',
+      });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const bioStub = tizitaReachable
+      ? `Stubbed from Tizita persona ${body.personaId} on ${today}.${photoCount ? ` ${photoCount} photo${photoCount === 1 ? '' : 's'} on file.` : ''}`
+      : `Stubbed from Tizita persona ${body.personaId} on ${today}.`;
+
+    const character = await prisma.character.create({
+      data: {
+        name: inferredName,
+        bio: bioStub,
+        tizitaPersonaId: body.personaId,
+        source: 'PERSONA',
+        ...(body.worldId ? { worldId: body.worldId } : {}),
+      },
+    });
+
+    return reply.send({
+      id: character.id,
+      character,
+      created: true,
+      reused: false,
+      persona: tizitaReachable
+        ? { id: body.personaId, display_name: displayName, photo_count: photoCount }
+        : null,
+    });
+  });
+
+  // POST /characters/:id/loras - Attach a LoRA to a character. The
+  // LoRA file lives elsewhere (Tizita / S3 / shared storage); this
+  // attaches its identifier + metadata to the character so image-gen
+  // surfaces (Genoma, ComfyUI, thumbnail compositor) can pick the
+  // right adapter when rendering.
+  fastify.post<{ Params: { id: string } }>('/characters/:id/loras', async (request, reply) => {
+    const lora = request.body as {
+      id: string;            // LoRA identifier (Tizita ref, civitai id, etc.)
+      name?: string;         // Display name (e.g. "Ubani v3")
+      source?: string;       // "tizita" | "civitai" | "local" | "starforge"
+      trigger?: string;      // The trigger word(s) that activate it
+      weight?: number;       // Default weight, 0.0-1.0
+      baseModel?: string;    // "sdxl" | "sd15" | "flux" | etc.
+      trainedFromPersonaId?: string; // Tizita persona this was trained from
+      thumbnailUrl?: string;
+      metadata?: Record<string, unknown>;
+    };
+    if (!lora?.id) return reply.code(400).send({ error: 'lora.id is required' });
+
+    const char = await prisma.character.findUnique({ where: { id: request.params.id } });
+    if (!char) return reply.code(404).send({ error: 'character not found' });
+
+    const existing = Array.isArray(char.loras) ? (char.loras as unknown[]) : [];
+    const filtered = existing.filter((x) => (x as { id?: string })?.id !== lora.id);
+    const next = [...filtered, lora];
+
+    const updated = await prisma.character.update({
+      where: { id: request.params.id },
+      data: { loras: next as never },
+    });
+    return reply.send({ id: updated.id, loras: updated.loras });
+  });
+
+  // DELETE /characters/:id/loras/:loraId - Detach a LoRA from a character.
+  fastify.delete<{ Params: { id: string; loraId: string } }>(
+    '/characters/:id/loras/:loraId',
+    async (request, reply) => {
+      const char = await prisma.character.findUnique({ where: { id: request.params.id } });
+      if (!char) return reply.code(404).send({ error: 'character not found' });
+      const existing = Array.isArray(char.loras) ? (char.loras as unknown[]) : [];
+      const next = existing.filter((x) => (x as { id?: string })?.id !== request.params.loraId);
+      const updated = await prisma.character.update({
+        where: { id: request.params.id },
+        data: { loras: next as never },
+      });
+      return reply.send({ id: updated.id, loras: updated.loras });
+    }
+  );
+
   // POST /characters/generate/:seed - Generate a character with specific seed
   fastify.post<{ Params: { seed: string } }>('/characters/generate/:seed', async (request, reply) => {
     const seed = parseInt(request.params.seed, 10);

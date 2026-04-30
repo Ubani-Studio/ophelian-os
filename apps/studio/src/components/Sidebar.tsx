@@ -51,7 +51,7 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const BRAND_NAMES = ['ZÀNÀ', 'SÉLÒ', 'ÒRÍX'] as const;
+const BRAND_NAMES = ['Bóveda'] as const;
 
 export function Sidebar() {
   const pathname = usePathname();
