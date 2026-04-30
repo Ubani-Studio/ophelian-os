@@ -100,6 +100,29 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: 'Character not found' });
     }
 
+    // Enrich with Tizita representative URL when bound, mirroring the
+    // list endpoint so the detail page's avatar fallback works without
+    // a second round-trip.
+    if (character.tizitaPersonaId) {
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      try {
+        const res = await fetch(`${TIZITA_API_URL}/personas/${character.tizitaPersonaId}`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        if (res.ok) {
+          const persona = await res.json() as { representative_photo_url?: string | null };
+          const repUrl = persona.representative_photo_url;
+          if (repUrl) {
+            const tizitaBase = TIZITA_API_URL.replace(/\/api\/v1$/, '');
+            const fullUrl = repUrl.startsWith('http') ? repUrl : `${tizitaBase}${repUrl}`;
+            return reply.send({ ...character, tizitaRepresentativeUrl: fullUrl });
+          }
+        }
+      } catch {
+        // Tizita unreachable; fall through with the unenriched character
+      }
+    }
+
     return reply.send(character);
   });
 
@@ -138,6 +161,24 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         }),
       },
     });
+
+    // Bidirectional bio sync: when this character is bound to a
+    // Tizita persona and the bio just changed, push it to Tizita's
+    // appearance_notes so the brief stays in lockstep across the
+    // ecosystem. Fire-and-forget; failure here doesn't fail the
+    // Bóveda update.
+    if (typeof body.bio === 'string' && updated.tizitaPersonaId) {
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      void fetch(`${TIZITA_API_URL}/personas/${updated.tizitaPersonaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appearance_notes: body.bio }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {
+        // Tizita unreachable or rejected; the Bóveda write succeeded
+        // and the next bulk-import will reconcile.
+      });
+    }
 
     return reply.send(updated);
   });
@@ -418,7 +459,9 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // PATCH /characters/:id/bio - Update the bio (brief) inline. Used
-  // by the character detail page editable brief field.
+  // by the character detail page editable brief field. When the
+  // character is bound to a Tizita persona, the brief is mirrored
+  // into Tizita's appearance_notes so both sides stay in sync.
   fastify.patch<{ Params: { id: string } }>('/characters/:id/bio', async (request, reply) => {
     const body = request.body as { bio?: string };
     if (typeof body?.bio !== 'string') {
@@ -428,6 +471,15 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       where: { id: request.params.id },
       data: { bio: body.bio },
     });
+    if (updated.tizitaPersonaId) {
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      void fetch(`${TIZITA_API_URL}/personas/${updated.tizitaPersonaId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appearance_notes: body.bio }),
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {});
+    }
     return reply.send({ id: updated.id, bio: updated.bio });
   });
 
@@ -550,6 +602,51 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     });
     return reply.send({ id: updated.id, loras: updated.loras });
   });
+
+  // POST /characters/:id/group-members - Add a member to a group
+  // character. Members are lightweight {name, role?, characterId?}
+  // entries; full character records are not required.
+  fastify.post<{ Params: { id: string } }>('/characters/:id/group-members', async (request, reply) => {
+    const body = request.body as { name?: string; role?: string; characterId?: string };
+    if (!body?.name?.trim()) return reply.code(400).send({ error: 'name is required' });
+    const char = await prisma.character.findUnique({ where: { id: request.params.id } });
+    if (!char) return reply.code(404).send({ error: 'character not found' });
+    const existing = Array.isArray(char.groupMembers) ? (char.groupMembers as unknown[]) : [];
+    const member = {
+      name: body.name.trim(),
+      role: body.role?.trim() || undefined,
+      characterId: body.characterId || undefined,
+    };
+    const next = [...existing, member];
+    const updated = await prisma.character.update({
+      where: { id: request.params.id },
+      data: { groupMembers: next as never },
+    });
+    return reply.send({ id: updated.id, groupMembers: updated.groupMembers });
+  });
+
+  // DELETE /characters/:id/group-members/:index - Remove a member by
+  // its position in the array. The array is intentionally unkeyed
+  // (members may share names) so index-based removal keeps it simple.
+  fastify.delete<{ Params: { id: string; index: string } }>(
+    '/characters/:id/group-members/:index',
+    async (request, reply) => {
+      const idx = parseInt(request.params.index, 10);
+      if (Number.isNaN(idx) || idx < 0) {
+        return reply.code(400).send({ error: 'invalid index' });
+      }
+      const char = await prisma.character.findUnique({ where: { id: request.params.id } });
+      if (!char) return reply.code(404).send({ error: 'character not found' });
+      const existing = Array.isArray(char.groupMembers) ? (char.groupMembers as unknown[]) : [];
+      if (idx >= existing.length) return reply.code(404).send({ error: 'member not found' });
+      const next = [...existing.slice(0, idx), ...existing.slice(idx + 1)];
+      const updated = await prisma.character.update({
+        where: { id: request.params.id },
+        data: { groupMembers: next as never },
+      });
+      return reply.send({ id: updated.id, groupMembers: updated.groupMembers });
+    },
+  );
 
   // DELETE /characters/:id/loras/:loraId - Detach a LoRA from a character.
   fastify.delete<{ Params: { id: string; loraId: string } }>(

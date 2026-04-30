@@ -20,6 +20,7 @@ import { DraggableAvatar } from '@/components/DraggableAvatar';
 import { RepositionableCircleAvatar } from '@/components/RepositionableCircleAvatar';
 import { ArchetypeDynamics } from '@/components/genome';
 import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
+import { GroupMembersPanel } from '@/components/GroupMembersPanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
 export default function CharacterDetailPage() {
@@ -702,7 +703,9 @@ export default function CharacterDetailPage() {
                 </h3>
               )}
 
-              {/* Avatar Circle */}
+              {/* Avatar Circle. Falls back to Tizita's representative
+                  photo when no explicit avatar is set, then to the
+                  initial-letter placeholder. */}
               {character.avatarUrl ? (
                 <RepositionableCircleAvatar
                   src={character.avatarUrl}
@@ -711,6 +714,15 @@ export default function CharacterDetailPage() {
                   size={120}
                   disabled={avatarUpdating}
                 />
+              ) : character.tizitaRepresentativeUrl ? (
+                <div className="character-info-avatar" style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={character.tizitaRepresentativeUrl}
+                    alt={character.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
               ) : (
                 <div className="character-info-avatar">
                   <span className="character-avatar-placeholder" style={{ fontSize: '3rem' }}>
@@ -826,6 +838,12 @@ export default function CharacterDetailPage() {
 
             {/* Tizita-bound photos + Ikenga emblem */}
             <TizitaPanel characterId={character.id} tizitaPersonaId={character.tizitaPersonaId} />
+
+            {/* Group / collective members (Triarch, councils, bands) */}
+            <GroupMembersPanel
+              characterId={character.id}
+              initialMembers={character.groupMembers ?? []}
+            />
 
             <div>
               {/* Aliases Section - Editable like Persona Tags */}

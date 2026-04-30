@@ -70,6 +70,11 @@ export interface Character {
     thumbnailUrl?: string;
   }>;
   worldId?: string | null;
+  /** Lightweight group / collective members. Populated when this
+   *  character is a group (band, council, ensemble). Each entry is
+   *  { name, role?, characterId? } — full Character records are not
+   *  required, just names. */
+  groupMembers?: Array<{ name: string; role?: string; characterId?: string }>;
 }
 
 export async function getCharacters(): Promise<Character[]> {

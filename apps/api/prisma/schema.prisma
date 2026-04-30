@@ -65,6 +65,15 @@ model Character {
   // character.
   loras Json @default("[]")
 
+  // Group / collective members. When this Character represents a
+  // group (band, council, ensemble, family unit), each entry here
+  // names a member. Each member is { name: string, role?: string,
+  // characterId?: string } where characterId optionally links to
+  // another full Character record. Lighter than the Ensemble model
+  // for the common case of "this is a group, here's who's in it"
+  // without forcing each member to be a fully-fledged character row.
+  groupMembers Json @default("[]")
+
   // Òrò world membership. Carried over so worlds migrated from Òrò
   // (e.g. "Station 8") keep their character bindings.
   worldId String?
