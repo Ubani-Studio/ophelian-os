@@ -687,9 +687,10 @@ export default function CharacterDetailPage() {
                   }}
                   style={{
                     fontSize: '1.125rem',
-                    fontWeight: '600',
+                    fontWeight: 600,
                     textAlign: 'center',
                     marginBottom: '0.5rem',
+                    borderRadius: 0,
                   }}
                 />
               ) : (
@@ -813,30 +814,35 @@ export default function CharacterDetailPage() {
               )}
             </div>
 
-            {/* Avatar Management */}
-            <div className="mt-4">
-              <strong style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', display: 'block', marginBottom: '0.5rem' }}>
-                Avatar
-              </strong>
-              {character.avatarUrl ? (
-                <DraggableAvatar
-                  src={character.avatarUrl}
-                  position={character.avatarPosition}
-                  onPositionChange={handleAvatarPositionChange}
-                  onRemove={() => handleAvatarChange(null)}
-                  onReplace={handleAvatarChange}
-                  disabled={avatarUpdating}
-                />
-              ) : (
-                <ImageUpload
-                  value={character.avatarUrl}
-                  onChange={handleAvatarChange}
-                  disabled={avatarUpdating}
-                />
-              )}
-            </div>
+            {/* Avatar Management. Hidden for Tizita-bound characters
+                because Tizita is the face authority — change the
+                representative photo there. Custom uploads remain for
+                non-Tizita operators. */}
+            {!character.tizitaPersonaId && (
+              <div className="mt-4" style={{ borderRadius: 0 }}>
+                <strong style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', display: 'block', marginBottom: '0.5rem' }}>
+                  Avatar
+                </strong>
+                {character.avatarUrl ? (
+                  <DraggableAvatar
+                    src={character.avatarUrl}
+                    position={character.avatarPosition}
+                    onPositionChange={handleAvatarPositionChange}
+                    onRemove={() => handleAvatarChange(null)}
+                    onReplace={handleAvatarChange}
+                    disabled={avatarUpdating}
+                  />
+                ) : (
+                  <ImageUpload
+                    value={character.avatarUrl}
+                    onChange={handleAvatarChange}
+                    disabled={avatarUpdating}
+                  />
+                )}
+              </div>
+            )}
 
-            {/* Tizita-bound photos + Ikenga emblem */}
+            {/* Tizita-bound photos + Ikenga emblem (collapsed by default) */}
             <TizitaPanel characterId={character.id} tizitaPersonaId={character.tizitaPersonaId} />
 
             {/* Group / collective members (Triarch, councils, bands) */}

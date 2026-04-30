@@ -121,8 +121,8 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         style={{
-          border: `2px dashed ${isDragging ? 'var(--primary)' : 'var(--border)'}`,
-          borderRadius: '8px',
+          border: `1px dashed ${isDragging ? 'var(--primary)' : 'var(--border)'}`,
+          borderRadius: 0,
           padding: '1.5rem',
           textAlign: 'center',
           cursor: disabled ? 'not-allowed' : 'pointer',
@@ -154,7 +154,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
               style={{
                 maxWidth: '150px',
                 maxHeight: '150px',
-                borderRadius: '8px',
+                borderRadius: 0,
                 objectFit: 'cover',
               }}
             />

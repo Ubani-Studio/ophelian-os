@@ -162,22 +162,42 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       },
     });
 
-    // Bidirectional bio sync: when this character is bound to a
-    // Tizita persona and the bio just changed, push it to Tizita's
-    // appearance_notes so the brief stays in lockstep across the
-    // ecosystem. Fire-and-forget; failure here doesn't fail the
-    // Bóveda update.
-    if (typeof body.bio === 'string' && updated.tizitaPersonaId) {
+    // Bidirectional sync to Tizita: bio → appearance_notes, name →
+    // display_name. Fire-and-forget; failure here doesn't fail the
+    // Bóveda update, and the next bulk-import will reconcile.
+    if (updated.tizitaPersonaId && (typeof body.bio === 'string' || typeof body.name === 'string')) {
       const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      const tizitaPatch: Record<string, string> = {};
+      if (typeof body.bio === 'string') tizitaPatch.appearance_notes = body.bio;
+      if (typeof body.name === 'string') tizitaPatch.display_name = body.name;
       void fetch(`${TIZITA_API_URL}/personas/${updated.tizitaPersonaId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ appearance_notes: body.bio }),
+        body: JSON.stringify(tizitaPatch),
         signal: AbortSignal.timeout(5000),
-      }).catch(() => {
-        // Tizita unreachable or rejected; the Bóveda write succeeded
-        // and the next bulk-import will reconcile.
-      });
+      }).catch(() => {});
+    }
+
+    // Re-enrich with tizitaRepresentativeUrl so the studio doesn't
+    // lose the rep photo on every PATCH (causing the avatar to
+    // revert to the initial-letter placeholder while editing bio).
+    if (updated.tizitaPersonaId) {
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      try {
+        const res = await fetch(`${TIZITA_API_URL}/personas/${updated.tizitaPersonaId}`, {
+          signal: AbortSignal.timeout(3000),
+        });
+        if (res.ok) {
+          const persona = await res.json() as { representative_photo_url?: string | null };
+          if (persona.representative_photo_url) {
+            const tizitaBase = TIZITA_API_URL.replace(/\/api\/v1$/, '');
+            const repUrl = persona.representative_photo_url.startsWith('http')
+              ? persona.representative_photo_url
+              : `${tizitaBase}${persona.representative_photo_url}`;
+            return reply.send({ ...updated, tizitaRepresentativeUrl: repUrl });
+          }
+        }
+      } catch {}
     }
 
     return reply.send(updated);

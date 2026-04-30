@@ -37,6 +37,16 @@ const QUICK_CULTURES = [
   { id: 'rastafari', label: 'Rastafari' },
 ];
 
+const ARCHETYPES = [
+  'trickster', 'sage', 'mystic', 'warrior', 'rebel',
+  'lover', 'sovereign', 'hermit', 'healer', 'magician',
+] as const;
+
+const FORMS = [
+  { id: 'first', label: 'First' },
+  { id: 'first_surname', label: 'First + surname' },
+] as const;
+
 export function GroupMembersPanel({
   characterId,
   initialMembers,
@@ -50,6 +60,10 @@ export function GroupMembersPanel({
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
   const [genCulture, setGenCulture] = useState('yoruba');
+  const [genForm, setGenForm] = useState<'first' | 'first_surname'>('first');
+  const [genArchetype, setGenArchetype] = useState<string>('');
+  const [genTitle, setGenTitle] = useState(false);
+  const [genOptionsOpen, setGenOptionsOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -105,8 +119,11 @@ export function GroupMembersPanel({
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
         body: JSON.stringify({
           cultures: [genCulture],
-          form: 'first',
+          form: genForm,
+          archetype: genArchetype || undefined,
+          mode: genArchetype ? 'archetype' : 'real',
           ornament: 0.5,
+          withTitle: genTitle,
           count: 1,
         }),
       });
@@ -209,9 +226,19 @@ export function GroupMembersPanel({
       </div>
 
       <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(0,0,0,0.25)', border: '1px solid var(--border)' }}>
-        <p style={{ fontSize: '0.55rem', letterSpacing: '0.25em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.5rem' }}>
-          Generate a name
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <p style={{ fontSize: '0.55rem', letterSpacing: '0.25em', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>
+            Generate a name
+          </p>
+          <button
+            type="button"
+            onClick={() => setGenOptionsOpen((v) => !v)}
+            style={{ fontSize: '0.65rem', color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+          >
+            {genOptionsOpen ? 'Less' : 'More'}
+          </button>
+        </div>
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
           {QUICK_CULTURES.map((c) => (
             <button
@@ -231,6 +258,59 @@ export function GroupMembersPanel({
             </button>
           ))}
         </div>
+
+        {genOptionsOpen && (
+          <div style={{ marginBottom: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div>
+              <p style={{ fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.25rem' }}>
+                Archetype (optional)
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setGenArchetype('')}
+                  style={pillStyle(genArchetype === '')}
+                >
+                  None
+                </button>
+                {ARCHETYPES.map((a) => (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setGenArchetype(a)}
+                    style={pillStyle(genArchetype === a)}
+                  >
+                    {a.charAt(0).toUpperCase() + a.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontSize: '0.5rem', letterSpacing: '0.25em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.25rem' }}>
+                  Form
+                </p>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  {FORMS.map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setGenForm(f.id)}
+                      style={pillStyle(genForm === f.id)}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: 'var(--muted-foreground)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={genTitle} onChange={(e) => setGenTitle(e.target.checked)} />
+                Attach title
+              </label>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             type="button"
@@ -265,4 +345,16 @@ export function GroupMembersPanel({
       )}
     </section>
   );
+}
+
+function pillStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: '0.2rem 0.55rem',
+    fontSize: '0.65rem',
+    border: active ? '1px solid var(--foreground)' : '1px solid var(--border)',
+    background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
+    color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
+    cursor: 'pointer',
+    borderRadius: 0,
+  };
 }
