@@ -21,6 +21,16 @@ interface LoraImportResult {
   errors: Array<{ file: string; error: string }>;
 }
 
+interface OroMigrationResult {
+  oro_worlds: number;
+  oro_characters_with_world: number;
+  worlds_created: number;
+  worlds_reused: number;
+  characters_attached: number;
+  characters_created: number;
+  errors: Array<{ kind: string; id: string; error: string }>;
+}
+
 const LORA_CATEGORIES = [
   { id: 'visual', label: 'Visual', note: 'Diffusion adapters for image / video generation. Ikenga.' },
   { id: 'voice', label: 'Voice', note: 'Voice clones for TTS / vocal synthesis. Mmuo.' },
@@ -38,6 +48,29 @@ export default function SettingsPage() {
   const [loraImporting, setLoraImporting] = useState(false);
   const [loraResult, setLoraResult] = useState<LoraImportResult | null>(null);
   const [loraError, setLoraError] = useState<string | null>(null);
+
+  const [oroMigrating, setOroMigrating] = useState(false);
+  const [oroResult, setOroResult] = useState<OroMigrationResult | null>(null);
+  const [oroError, setOroError] = useState<string | null>(null);
+
+  const handleMigrateOro = async () => {
+    setOroMigrating(true);
+    setOroError(null);
+    setOroResult(null);
+    try {
+      const res = await fetch(`${API_URL}/characters/migrate-from-oro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Migration failed');
+      setOroResult(json);
+    } catch (e) {
+      setOroError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setOroMigrating(false);
+    }
+  };
 
   const handleImportLoras = async () => {
     setLoraImporting(true);
@@ -131,6 +164,46 @@ export default function SettingsPage() {
                 </Link>
               </p>
             )}
+          </div>
+        )}
+      </section>
+
+      <section style={{ border: '1px solid var(--border)', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', marginTop: '1.5rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem', fontWeight: 400, marginBottom: '0.5rem' }}>
+          Òrò migration
+        </h2>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '1rem', lineHeight: 1.6, maxWidth: '60ch' }}>
+          Read worlds and characters from Òrò&apos;s SQLite at <code style={{ background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.3rem' }}>~/oro/prisma/oro.db</code>{' '}
+          and copy them into Bóveda. World name + format makes a unique key (won&apos;t duplicate Station 8 if run twice). Character names are matched against existing Bóveda characters first, then created as stubs if no match.
+        </p>
+        <button
+          type="button"
+          onClick={handleMigrateOro}
+          disabled={oroMigrating}
+          className="btn btn-primary"
+        >
+          {oroMigrating ? 'Migrating' : 'Migrate from Òrò'}
+        </button>
+
+        {oroError && (
+          <p style={{ marginTop: '1rem', color: 'var(--error)', fontSize: '0.8rem' }}>
+            {oroError}
+          </p>
+        )}
+
+        {oroResult && (
+          <div style={{ marginTop: '1rem', padding: '0.75rem', border: '1px solid var(--border)', background: 'rgba(0,0,0,0.3)' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--foreground)', marginBottom: '0.4rem' }}>
+              Migration complete.
+            </p>
+            <ul style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', lineHeight: 1.7, listStyle: 'none', padding: 0 }}>
+              <li>{oroResult.oro_worlds} worlds in Òrò ({oroResult.oro_characters_with_world} characters with world bindings)</li>
+              <li>{oroResult.worlds_created} worlds created · {oroResult.worlds_reused} reused</li>
+              <li>{oroResult.characters_attached} characters attached to migrated worlds · {oroResult.characters_created} new stubs created</li>
+              {oroResult.errors.length > 0 && (
+                <li style={{ color: 'var(--error)' }}>{oroResult.errors.length} errors</li>
+              )}
+            </ul>
           </div>
         )}
       </section>

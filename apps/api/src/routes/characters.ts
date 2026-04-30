@@ -623,6 +623,150 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ id: updated.id, loras: updated.loras });
   });
 
+  // POST /characters/migrate-from-oro - Read Òrò's SQLite at
+  // /home/sphinxy/oro/prisma/oro.db, copy worlds and (optionally)
+  // characters into Bóveda. Idempotent on world name + format
+  // (won't duplicate Station 8 if run twice).
+  //
+  // For each Òrò character with a worldId:
+  //   - If a Bóveda character with the same name already exists, just
+  //     attach it to the migrated world.
+  //   - Otherwise create a stub Bóveda character with the Òrò name +
+  //     bio + role and attach to the world.
+  fastify.post('/characters/migrate-from-oro', async (_request, reply) => {
+    const Database = (await import('better-sqlite3')).default;
+    const ORO_DB_PATH = process.env.ORO_DB_PATH || '/home/sphinxy/oro/prisma/oro.db';
+
+    let db: import('better-sqlite3').Database;
+    try {
+      db = new Database(ORO_DB_PATH, { readonly: true, fileMustExist: true });
+    } catch (e) {
+      return reply.code(503).send({
+        error: `Cannot read Òrò db at ${ORO_DB_PATH}`,
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    interface OroWorld {
+      id: string;
+      userId: string;
+      name: string;
+      logline: string | null;
+      format: string;
+      status: string;
+      culturalLineage: string | null;
+    }
+    interface OroCharacter {
+      id: string;
+      worldId: string;
+      name: string;
+      role: string | null;
+      biography: string | null;
+      culturalLineage: string | null;
+    }
+
+    const oroWorlds = db.prepare('SELECT id, userId, name, logline, format, status, culturalLineage FROM World').all() as OroWorld[];
+    const oroChars = db.prepare("SELECT id, worldId, name, role, biography, culturalLineage FROM Character WHERE worldId IS NOT NULL AND worldId != ''").all() as OroCharacter[];
+    db.close();
+
+    const results = {
+      oro_worlds: oroWorlds.length,
+      oro_characters_with_world: oroChars.length,
+      worlds_created: 0,
+      worlds_reused: 0,
+      characters_attached: 0,
+      characters_created: 0,
+      errors: [] as Array<{ kind: string; id: string; error: string }>,
+      mapping: [] as Array<{ oro_world_id: string; bóveda_world_id: string; name: string }>,
+    };
+
+    // Worlds: name + format match makes a unique key. Òrò has two
+    // 'Station 8's (one game, one mythos), each becomes its own
+    // Bóveda World.
+    const worldMap = new Map<string, string>();
+    for (const w of oroWorlds) {
+      try {
+        const existing = await prisma.world.findFirst({
+          where: { name: w.name, type: w.format },
+        });
+        let bovedaId: string;
+        if (existing) {
+          bovedaId = existing.id;
+          results.worlds_reused++;
+        } else {
+          const created = await prisma.world.create({
+            data: {
+              name: w.name,
+              description: w.logline ?? null,
+              type: w.format,
+              metadata: {
+                source: 'oro-migration',
+                oroWorldId: w.id,
+                oroUserId: w.userId,
+                oroStatus: w.status,
+                culturalLineage: w.culturalLineage ?? null,
+              },
+            },
+          });
+          bovedaId = created.id;
+          results.worlds_created++;
+        }
+        worldMap.set(w.id, bovedaId);
+        results.mapping.push({ oro_world_id: w.id, bóveda_world_id: bovedaId, name: w.name });
+      } catch (e) {
+        results.errors.push({
+          kind: 'world',
+          id: w.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    // Characters: try to match by name first (so Òrò's 'Ubani' lands
+    // on the existing Tizita-bound Bóveda Ubani, etc.). If no match,
+    // create a stub.
+    for (const c of oroChars) {
+      try {
+        const bovedaWorldId = worldMap.get(c.worldId);
+        if (!bovedaWorldId) continue;
+        const existing = await prisma.character.findFirst({
+          where: { name: c.name },
+        });
+        if (existing) {
+          await prisma.character.update({
+            where: { id: existing.id },
+            data: { worldId: bovedaWorldId },
+          });
+          results.characters_attached++;
+        } else {
+          await prisma.character.create({
+            data: {
+              name: c.name,
+              bio: c.biography ?? '',
+              worldId: bovedaWorldId,
+              source: 'GENERATED',
+              timelineState: {
+                source: 'oro-migration',
+                oroCharacterId: c.id,
+                oroRole: c.role,
+                culturalLineage: c.culturalLineage,
+              },
+            },
+          });
+          results.characters_created++;
+        }
+      } catch (e) {
+        results.errors.push({
+          kind: 'character',
+          id: c.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    return reply.send(results);
+  });
+
   // POST /characters/import-lora-registry - Read the user's
   // ~/boveda/characters/*.json registry and attach the LoRAs to
   // matching Bóveda characters by display_name.

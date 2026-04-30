@@ -25,8 +25,9 @@
     "@lcos/shared": "workspace:*",
     "@lcos/social-connectors": "workspace:*",
     "@lcos/voice": "workspace:*",
-    "@violet-sphinx/names": "file:../../../violet-sphinx-names",
     "@prisma/client": "^5.7.0",
+    "@violet-sphinx/names": "file:../../../violet-sphinx-names",
+    "better-sqlite3": "^12.9.0",
     "cloudinary": "^2.9.0",
     "dotenv": "^16.3.1",
     "fastify": "^4.25.0",
@@ -34,6 +35,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
