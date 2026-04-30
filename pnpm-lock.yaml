@@ -74,6 +74,9 @@ importers:
       fastify:
         specifier: ^4.25.0
         version: 4.29.1
+      nanoid:
+        specifier: ^5.1.6
+        version: 5.1.6
       zod:
         specifier: ^3.22.4
         version: 3.25.76
@@ -275,6 +278,9 @@ importers:
       '@lcos/shared':
         specifier: workspace:*
         version: link:../shared
+      '@violet-sphinx/names':
+        specifier: file:../../../violet-sphinx-names
+        version: file:../violet-sphinx-names
     devDependencies:
       typescript:
         specifier: ^5.3.0
@@ -1058,6 +1064,9 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
+
+  '@violet-sphinx/names@file:../violet-sphinx-names':
+    resolution: {directory: ../violet-sphinx-names, type: directory}
 
   abstract-logging@2.0.1:
     resolution: {integrity: sha512-2BjRTZxTPvheOvGbBslFSYOUkr+SjPtOnrLP33f+VIWLzezQpZcqVg7ja3L4dBXmzzgwT+a029jRx5PCi3JuiA==}
@@ -1978,6 +1987,11 @@ packages:
   nanoid@3.3.11:
     resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
+    hasBin: true
+
+  nanoid@5.1.6:
+    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==}
+    engines: {node: ^18 || >=20}
     hasBin: true
 
   napi-postinstall@0.3.4:
@@ -3251,6 +3265,8 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
+  '@violet-sphinx/names@file:../violet-sphinx-names': {}
+
   abstract-logging@2.0.1: {}
 
   acorn-jsx@5.3.2(acorn@8.15.0):
@@ -4385,6 +4401,8 @@ snapshots:
   ms@2.1.3: {}
 
   nanoid@3.3.11: {}
+
+  nanoid@5.1.6: {}
 
   napi-postinstall@0.3.4: {}
 

@@ -2739,3 +2739,9 @@ export * from './data/compatibility-data.js';
 export * from './data/symbol-mapping.js';
 export * from './data/gateway-hints.js';
 export * from './lib/progressive-disclosure.js';
+
+// Cultural-Òrò mode: federates with @violet-sphinx/names for the
+// tradition-based diasporic naming engine. Sits alongside Oripheon's
+// existing modes (standard, blended, aminal, squishe, simple) as
+// step one of the Bóveda + Òrò merger.
+export * from './lib/oro-cultural.js';

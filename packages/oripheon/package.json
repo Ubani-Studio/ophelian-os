@@ -9,7 +9,8 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@lcos/shared": "workspace:*"
+    "@lcos/shared": "workspace:*",
+    "@violet-sphinx/names": "file:../../../violet-sphinx-names"
   },
   "devDependencies": {
     "typescript": "^5.3.0"
