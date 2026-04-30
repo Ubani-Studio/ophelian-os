@@ -335,6 +335,48 @@ input[type="checkbox"]:disabled {
   cursor: not-allowed;
 }
 
+/* React Flow controls: dark-theme to match the brutalist surface.
+   Default RF ships white controls; override the button + container
+   styling so the zoom / fit-view / lock buttons read as part of
+   the studio rather than a foreign white widget. */
+.react-flow__controls {
+  background: #000 !important;
+  border: 1px solid #1A1A1A !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.react-flow__controls-button {
+  background: #000 !important;
+  border: none !important;
+  border-bottom: 1px solid #1A1A1A !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+.react-flow__controls-button:hover {
+  background: #1A1A1A !important;
+  color: #fff !important;
+}
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+}
+
+.react-flow__minimap {
+  background: #000 !important;
+  border: 1px solid #1A1A1A !important;
+  border-radius: 0 !important;
+}
+.react-flow__attribution {
+  background: transparent !important;
+  color: rgba(255,255,255,0.25) !important;
+}
+.react-flow__attribution a {
+  color: rgba(255,255,255,0.4) !important;
+}
+
 .input:focus {
   outline: none;
   border-color: var(--primary);

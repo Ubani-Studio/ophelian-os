@@ -101,6 +101,7 @@ export default function WorldBuilderPage() {
   // Snapshot UI state
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
+  const [overviewOpen, setOverviewOpen] = useState(true);
   const [savingSnapshot, setSavingSnapshot] = useState(false);
   const [restoringSnapshot, setRestoringSnapshot] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
@@ -976,32 +977,62 @@ export default function WorldBuilderPage() {
         )}
         {!hasSelection && (
           <div className="default-panel">
-            <h2 className="panel-title">Nexus Overview</h2>
-            <div className="default-panel-content">
-              <div className="stat-item">
-                <span className="stat-label">Characters</span>
-                <span className="stat-value">{characters.length}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Scenes</span>
-                <span className="stat-value">{scenes.length}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Globes</span>
-                <span className="stat-value">{worlds.length}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Relationships</span>
-                <span className="stat-value">{relationships.length}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Connections</span>
-                <span className="stat-value">{connections.length}</span>
-              </div>
-            </div>
-            <p className="panel-hint">
-              Select a node or edge to view details. Drag between nodes to create connections.
-            </p>
+            <button
+              type="button"
+              onClick={() => setOverviewOpen((v) => !v)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.5rem 0',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'inherit',
+              }}
+            >
+              <h2 className="panel-title" style={{ margin: 0 }}>Overview</h2>
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--muted-foreground)',
+                  transform: overviewOpen ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.15s',
+                }}
+              >
+                ▾
+              </span>
+            </button>
+            {overviewOpen && (
+              <>
+                <div className="default-panel-content">
+                  <div className="stat-item">
+                    <span className="stat-label">Characters</span>
+                    <span className="stat-value">{characters.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Scenes</span>
+                    <span className="stat-value">{scenes.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Cubes</span>
+                    <span className="stat-value">{worlds.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Relationships</span>
+                    <span className="stat-value">{relationships.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Connections</span>
+                    <span className="stat-value">{connections.length}</span>
+                  </div>
+                </div>
+                <p className="panel-hint">
+                  Select a node or edge to view details. Drag between nodes to create connections.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>
