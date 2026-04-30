@@ -49,6 +49,12 @@ const navGroups: NavGroup[] = [
       { href: '/ledger', label: 'Ledger', icon: 'L' },
     ],
   },
+  {
+    title: 'System',
+    items: [
+      { href: '/settings', label: 'Settings', icon: '◇' },
+    ],
+  },
 ];
 
 const BRAND_NAMES = ['Bóveda'] as const;

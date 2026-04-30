@@ -254,6 +254,72 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ lineages: LINEAGES });
   });
 
+  // POST /characters/bulk-import-tizita - Bulk import all named
+  // (sorted) Tizita personas as Bóveda characters. Skips unsorted
+  // (display_name = null/empty). Idempotent: existing
+  // tizitaPersonaId-bound characters are reused, not duplicated.
+  fastify.post('/characters/bulk-import-tizita', async (_request, reply) => {
+    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+
+    let tizitaPayload: { personas: Array<{ id: string; display_name: string | null; photo_count: number; kind?: string }>; total: number };
+    try {
+      const res = await fetch(`${TIZITA_API_URL}/personas/?kind=real`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) {
+        return reply.code(502).send({ error: `Tizita returned ${res.status}` });
+      }
+      tizitaPayload = await res.json() as typeof tizitaPayload;
+    } catch (e) {
+      return reply.code(503).send({
+        error: 'Tizita is unreachable. Start Tizita on :8001.',
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    const namedPersonas = tizitaPayload.personas.filter(
+      (p) => p.display_name && p.display_name.trim().length > 0
+    );
+
+    const results = {
+      total_in_tizita: tizitaPayload.total,
+      named_in_tizita: namedPersonas.length,
+      imported: 0,
+      reused: 0,
+      errors: [] as Array<{ personaId: string; error: string }>,
+    };
+
+    const today = new Date().toISOString().split('T')[0];
+    for (const persona of namedPersonas) {
+      try {
+        const existing = await prisma.character.findFirst({
+          where: { tizitaPersonaId: persona.id },
+        });
+        if (existing) {
+          results.reused++;
+          continue;
+        }
+        const bioStub = `Stubbed from Tizita persona ${persona.id} on ${today}.${persona.photo_count ? ` ${persona.photo_count} photo${persona.photo_count === 1 ? '' : 's'} on file.` : ''}`;
+        await prisma.character.create({
+          data: {
+            name: persona.display_name!.trim(),
+            bio: bioStub,
+            tizitaPersonaId: persona.id,
+            source: 'PERSONA',
+          },
+        });
+        results.imported++;
+      } catch (e) {
+        results.errors.push({
+          personaId: persona.id,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    return reply.send(results);
+  });
+
   // POST /characters/from-persona - Create a Bóveda character from a
   // Tizita persona. Idempotent: if a character already exists in
   // Bóveda bound to the same persona, return that instead. The
