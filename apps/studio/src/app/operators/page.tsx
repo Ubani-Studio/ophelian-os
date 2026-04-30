@@ -61,6 +61,16 @@ function CharacterCard({ character }: { character: Character }) {
                   transform: `scale(${zoom})`,
                 }}
               />
+            ) : character.tizitaRepresentativeUrl ? (
+              <img
+                src={character.tizitaRepresentativeUrl}
+                alt={character.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
             ) : (
               <span className="character-avatar-placeholder">
                 {character.name.charAt(0).toUpperCase()}

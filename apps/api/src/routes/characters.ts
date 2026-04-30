@@ -37,14 +37,54 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
-  // GET /characters - List all characters
+  // GET /characters - List all characters. Enriches Tizita-bound
+  // characters with their representative photo URL so list views
+  // (e.g. operators cards) can render real faces without each card
+  // fanning out to Tizita on its own.
   fastify.get('/characters', async (_request, reply) => {
     const characters = await prisma.character.findMany({
       orderBy: { createdAt: 'desc' },
       include: { position: true },
     });
 
-    return reply.send(characters);
+    const tizitaBound = characters.filter((c) => c.tizitaPersonaId);
+    let repByPersonaId: Map<string, string> | null = null;
+    let tizitaBase = '';
+    if (tizitaBound.length > 0) {
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      tizitaBase = TIZITA_API_URL.replace(/\/api\/v1$/, '');
+      try {
+        const res = await fetch(`${TIZITA_API_URL}/personas/`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (res.ok) {
+          const json = await res.json() as { personas?: Array<{ id: string; representative_photo_url?: string | null }> };
+          repByPersonaId = new Map();
+          for (const p of json.personas ?? []) {
+            if (p.representative_photo_url) {
+              const fullUrl = p.representative_photo_url.startsWith('http')
+                ? p.representative_photo_url
+                : `${tizitaBase}${p.representative_photo_url}`;
+              repByPersonaId.set(p.id, fullUrl);
+            }
+          }
+        }
+      } catch {
+        // Tizita unreachable; characters render without representative photos
+      }
+    }
+
+    const enriched = characters.map((c) => {
+      if (c.tizitaPersonaId && repByPersonaId) {
+        const repUrl = repByPersonaId.get(c.tizitaPersonaId);
+        if (repUrl) {
+          return { ...c, tizitaRepresentativeUrl: repUrl };
+        }
+      }
+      return c;
+    });
+
+    return reply.send(enriched);
   });
 
   // GET /characters/:id - Get a character by ID
@@ -263,7 +303,11 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
 
     let tizitaPayload: { personas: Array<{ id: string; display_name: string | null; photo_count: number; kind?: string; appearance_notes?: string | null; representative_photo_url?: string | null }>; total: number };
     try {
-      const res = await fetch(`${TIZITA_API_URL}/personas/?kind=real`, {
+      // No kind filter: import both real (face-clustered) and
+      // character (author-archetype) personas so the user gets every
+      // sorted entry, e.g. Triarch (kind=character) alongside Ubani
+      // (kind=real). Skipping by kind would silently drop characters.
+      const res = await fetch(`${TIZITA_API_URL}/personas/`, {
         signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) {
@@ -289,29 +333,33 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       errors: [] as Array<{ personaId: string; error: string }>,
     };
 
-    const today = new Date().toISOString().split('T')[0];
     for (const persona of namedPersonas) {
       try {
         const existing = await prisma.character.findFirst({
           where: { tizitaPersonaId: persona.id },
         });
         // Tizita's appearance_notes is the writer's free-text brief.
-        // Use it directly as the bio when present so the imported
-        // character reads as more than a stub. Fall back to the
-        // dated stub otherwise.
+        // Use it directly as the bio when present. When absent, leave
+        // the bio empty so the user can enter their own brief in
+        // Bóveda — better than a verbose dated stub that everyone has
+        // to clear before writing.
         const tizitaBrief = persona.appearance_notes?.trim() || null;
-        const bio = tizitaBrief
-          ? tizitaBrief
-          : `Imported from Tizita on ${today}.${persona.photo_count ? ` ${persona.photo_count} photo${persona.photo_count === 1 ? '' : 's'} on file.` : ''}`;
+        const bio = tizitaBrief ?? '';
 
         if (existing) {
-          // Refresh stub bios with Tizita's brief if Tizita has one
-          // and the existing bio is still our placeholder.
-          const isStub = !existing.bio || existing.bio.startsWith('Stubbed from Tizita') || existing.bio.startsWith('Imported from Tizita');
-          if (tizitaBrief && isStub) {
+          // Refresh bios that are still our old placeholder text or
+          // that haven't been edited; pull Tizita's brief if it's
+          // newly written, or clear stale stubs so the field is open.
+          const looksLikeStub = !existing.bio || existing.bio.startsWith('Stubbed from Tizita') || existing.bio.startsWith('Imported from Tizita');
+          if (tizitaBrief && looksLikeStub) {
             await prisma.character.update({
               where: { id: existing.id },
               data: { bio: tizitaBrief },
+            });
+          } else if (!tizitaBrief && looksLikeStub && existing.bio) {
+            await prisma.character.update({
+              where: { id: existing.id },
+              data: { bio: '' },
             });
           }
           results.reused++;
@@ -444,14 +492,10 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    // Prefer Tizita's appearance_notes (the writer's free-text brief)
-    // when available; fall back to the dated stub.
-    const bio = appearanceNotes
-      ? appearanceNotes
-      : tizitaReachable
-        ? `Imported from Tizita on ${today}.${photoCount ? ` ${photoCount} photo${photoCount === 1 ? '' : 's'} on file.` : ''}`
-        : `Imported from Tizita on ${today}.`;
+    // Prefer Tizita's appearance_notes (the writer's free-text brief).
+    // When absent, leave bio empty so the user can write their own
+    // in Bóveda rather than starting from a stub they have to clear.
+    const bio = appearanceNotes ?? '';
 
     const character = await prisma.character.create({
       data: {

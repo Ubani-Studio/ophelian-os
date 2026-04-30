@@ -50,6 +50,10 @@ export interface Character {
    *  to a real-life face cluster in Tizita and federates photos +
    *  brief from there. */
   tizitaPersonaId?: string | null;
+  /** Representative photo URL fetched from Tizita on list responses
+   *  for tizitaPersonaId-bound characters. Used by card avatars
+   *  when the character has no explicit avatarUrl set. */
+  tizitaRepresentativeUrl?: string | null;
   /** LoRA references attached to this character. Each entry is a
    *  structured record with category (visual / voice / writing /
    *  music / motion / style) so downstream surfaces pick the right
