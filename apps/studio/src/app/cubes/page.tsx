@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   getWorlds,
   createWorld,
   updateWorld,
   deleteWorld,
+  getCharacters,
   type World,
+  type Character,
   type CreateWorldInput,
   type UpdateWorldInput,
 } from '@/lib/api';
@@ -14,6 +17,8 @@ import styles from './globes.module.css';
 
 export default function GlobesPage() {
   const [globes, setGlobes] = useState<World[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [selectedCubeId, setSelectedCubeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingGlobe, setEditingGlobe] = useState<World | null>(null);
@@ -36,7 +41,13 @@ export default function GlobesPage() {
 
   useEffect(() => {
     loadGlobes();
+    getCharacters().then(setCharacters).catch(() => {});
   }, []);
+
+  const selectedCube = selectedCubeId ? globes.find((g) => g.id === selectedCubeId) : null;
+  const selectedCubeCharacters = selectedCubeId
+    ? characters.filter((c) => c.worldId === selectedCubeId)
+    : [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,39 +120,179 @@ export default function GlobesPage() {
           <p>No cubes yet. Create one or migrate from Òrò in Settings.</p>
         </div>
       ) : (
-        <div className={styles.grid}>
-          {globes.map((globe) => (
-            <div key={globe.id} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <div className={styles.cardIcon}>
-                  {getTypeIcon(globe.type)}
+        <div style={{ display: 'grid', gridTemplateColumns: selectedCube ? '1fr 360px' : '1fr', gap: '1.5rem' }}>
+          <div className={styles.grid}>
+            {globes.map((globe) => {
+              const isSelected = selectedCubeId === globe.id;
+              return (
+                <div
+                  key={globe.id}
+                  className={styles.card}
+                  onClick={() => setSelectedCubeId(isSelected ? null : globe.id)}
+                  style={{
+                    cursor: 'pointer',
+                    borderColor: isSelected ? '#66023C' : undefined,
+                  }}
+                >
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardIcon}>{getTypeIcon(globe.type)}</div>
+                    <span className={styles.cardBadge}>{globe.type}</span>
+                  </div>
+
+                  <div className={styles.cardContent}>
+                    <h3 className={styles.cardTitle}>{globe.name}</h3>
+                    {globe.description && (
+                      <p className={styles.cardDescription}>{globe.description}</p>
+                    )}
+                  </div>
+
+                  <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                    <button className={styles.actionButton} onClick={() => openModal(globe)}>
+                      Edit
+                    </button>
+                    <button
+                      className={`${styles.actionButton} ${styles.danger}`}
+                      onClick={() => handleDelete(globe.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <span className={styles.cardBadge}>{globe.type}</span>
+              );
+            })}
+          </div>
+
+          {selectedCube && (
+            <aside
+              style={{
+                border: '1px solid var(--border)',
+                background: 'rgba(255,255,255,0.02)',
+                padding: '1.25rem',
+                position: 'sticky',
+                top: '1rem',
+                alignSelf: 'start',
+                maxHeight: 'calc(100vh - 2rem)',
+                overflowY: 'auto',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '0.55rem', letterSpacing: '0.3em', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>
+                  {selectedCube.type}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCubeId(null)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--muted-foreground)', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  ×
+                </button>
+              </div>
+              <h2 style={{ fontFamily: '"Canela", serif', fontWeight: 300, fontSize: '1.4rem', marginBottom: '0.4rem' }}>
+                {selectedCube.name}
+              </h2>
+              {selectedCube.description && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+                  {selectedCube.description}
+                </p>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <Link
+                  href={`/cubes/${selectedCube.id}/nexus`}
+                  style={{
+                    display: 'block',
+                    padding: '0.55rem 0.8rem',
+                    fontSize: '0.7rem',
+                    letterSpacing: '0.15em',
+                    background: '#66023C',
+                    color: '#fff',
+                    border: '1px solid #66023C',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    textTransform: 'lowercase',
+                  }}
+                >
+                  open nexus
+                </Link>
+                <Link
+                  href={`/cubes/${selectedCube.id}/scenes`}
+                  style={{
+                    display: 'block',
+                    padding: '0.55rem 0.8rem',
+                    fontSize: '0.7rem',
+                    letterSpacing: '0.15em',
+                    background: 'transparent',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    textTransform: 'lowercase',
+                  }}
+                >
+                  scenes
+                </Link>
               </div>
 
-              <div className={styles.cardContent}>
-                <h3 className={styles.cardTitle}>{globe.name}</h3>
-                {globe.description && (
-                  <p className={styles.cardDescription}>{globe.description}</p>
+              <div>
+                <p style={{ fontSize: '0.55rem', letterSpacing: '0.3em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.5rem' }}>
+                  inhabitants · {selectedCubeCharacters.length}
+                </p>
+                {selectedCubeCharacters.length === 0 && (
+                  <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
+                    No characters bound to this cube yet.
+                  </p>
                 )}
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  {selectedCubeCharacters.map((c) => (
+                    <li key={c.id}>
+                      <Link
+                        href={`/characters/${c.id}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.55rem',
+                          padding: '0.35rem 0.4rem',
+                          textDecoration: 'none',
+                          color: 'var(--foreground)',
+                          background: 'transparent',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 24,
+                            height: 24,
+                            background: 'rgba(0,0,0,0.4)',
+                            border: '1px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.55rem',
+                            color: 'var(--muted-foreground)',
+                            fontFamily: 'monospace',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {c.avatarUrl || c.tizitaRepresentativeUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={c.avatarUrl || c.tizitaRepresentativeUrl || ''}
+                              alt={c.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            c.name.charAt(0)
+                          )}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', fontFamily: '"Canela", serif', fontWeight: 300 }}>
+                          {c.name}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <div className={styles.cardActions}>
-                <button
-                  className={styles.actionButton}
-                  onClick={() => openModal(globe)}
-                >
-                  Edit
-                </button>
-                <button
-                  className={`${styles.actionButton} ${styles.danger}`}
-                  onClick={() => handleDelete(globe.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            </aside>
+          )}
         </div>
       )}
 
