@@ -150,15 +150,18 @@ export function LoraPanel({
                 borderTop: i === 0 ? 'none' : '1px solid var(--border)',
               }}
             >
-              {/* Category header — single thin row */}
+              {/* Category header — single thin row.
+                  Grid 1fr / 24px so the trailing indicator sits in
+                  the same column as the row × buttons below. */}
               <button
                 type="button"
                 onClick={() => setOpenCategory(isOpen ? null : cat.id)}
                 style={{
                   width: '100%',
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 24px',
+                  alignItems: 'center',
+                  gap: '0.6rem',
                   padding: '0.7rem 1rem',
                   background: 'transparent',
                   border: 'none',
@@ -193,132 +196,183 @@ export function LoraPanel({
                 </span>
                 <span
                   style={{
-                    fontSize: '0.65rem',
+                    width: '24px',
+                    textAlign: 'center',
+                    fontSize: '0.7rem',
+                    lineHeight: 1,
                     color: 'var(--muted-foreground)',
                     fontFamily: 'monospace',
                     fontVariantNumeric: 'tabular-nums',
                     opacity: hasContent ? 0.7 : 0.4,
                   }}
                 >
-                  {hasContent ? `${String(inCategory.length).padStart(2, '0')}` : isOpen ? '×' : '+'}
+                  {hasContent ? String(inCategory.length).padStart(2, '0') : isOpen ? '×' : '+'}
                 </span>
               </button>
 
-              {/* LoRA rows */}
+              {/* LoRA rows. Same 1fr / 24px column structure as the
+                  category header so the × buttons line up vertically
+                  with the +/count indicators above them.
+                  Optional thumbnail (40px) prepended when set. */}
               {hasContent && (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {inCategory.map((l) => (
-                    <li
-                      key={l.id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto',
-                        alignItems: 'center',
-                        gap: '0.6rem',
-                        padding: '0.55rem 1rem',
-                        borderTop: '1px solid var(--border)',
-                      }}
-                    >
-                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <span
+                  {inCategory.map((l) => {
+                    const hasThumb = Boolean(l.thumbnailUrl);
+                    const showRawId = (l.name ?? '').toLowerCase() !== l.id.toLowerCase();
+                    return (
+                      <li
+                        key={l.id}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: hasThumb
+                            ? '40px 1fr 24px'
+                            : '1fr 24px',
+                          alignItems: 'center',
+                          gap: '0.7rem',
+                          padding: '0.55rem 1rem',
+                          borderTop: '1px solid var(--border)',
+                        }}
+                      >
+                        {hasThumb && (
+                          <div
+                            style={{
+                              width: 40,
+                              height: 40,
+                              background: 'rgba(0,0,0,0.4)',
+                              border: '1px solid var(--border)',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={l.thumbnailUrl}
+                              alt=""
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.18rem' }}>
+                          <span
+                            style={{
+                              fontFamily: '"Canela", serif',
+                              fontWeight: 300,
+                              fontSize: '0.95rem',
+                              color: 'var(--foreground)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              lineHeight: 1.15,
+                            }}
+                          >
+                            {l.name ?? l.id}
+                          </span>
+                          {showRawId && (
+                            <span
+                              style={{
+                                fontSize: '0.5rem',
+                                letterSpacing: '0.16em',
+                                color: 'var(--muted-foreground)',
+                                fontFamily: 'monospace',
+                                textTransform: 'lowercase',
+                                opacity: 0.5,
+                              }}
+                            >
+                              {l.id}
+                            </span>
+                          )}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.55rem',
+                              flexWrap: 'wrap',
+                              marginTop: '0.05rem',
+                            }}
+                          >
+                            {l.trigger && (
+                              <code
+                                style={{
+                                  fontSize: '0.6rem',
+                                  color: TYRIAN,
+                                  background: 'rgba(102, 2, 60, 0.08)',
+                                  padding: '0.08rem 0.35rem',
+                                  fontFamily: 'monospace',
+                                  letterSpacing: '0.02em',
+                                }}
+                              >
+                                {l.trigger}
+                              </code>
+                            )}
+                            {typeof l.weight === 'number' && (
+                              <span
+                                style={{
+                                  fontSize: '0.55rem',
+                                  color: 'var(--muted-foreground)',
+                                  fontFamily: 'monospace',
+                                  fontVariantNumeric: 'tabular-nums',
+                                  opacity: 0.7,
+                                }}
+                              >
+                                w {l.weight.toFixed(2)}
+                              </span>
+                            )}
+                            {l.baseModel && (
+                              <span
+                                style={{
+                                  fontSize: '0.5rem',
+                                  letterSpacing: '0.18em',
+                                  color: 'var(--muted-foreground)',
+                                  fontFamily: 'monospace',
+                                  textTransform: 'lowercase',
+                                  opacity: 0.55,
+                                }}
+                              >
+                                {l.baseModel}
+                              </span>
+                            )}
+                            {l.source && (
+                              <span
+                                style={{
+                                  fontSize: '0.5rem',
+                                  letterSpacing: '0.18em',
+                                  color: 'var(--muted-foreground)',
+                                  fontFamily: 'monospace',
+                                  textTransform: 'lowercase',
+                                  opacity: 0.55,
+                                }}
+                              >
+                                · {l.source}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => detach(l.id)}
+                          title="Detach"
                           style={{
-                            fontFamily: '"Canela", serif',
-                            fontWeight: 300,
-                            fontSize: '0.95rem',
-                            color: 'var(--foreground)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {l.name ?? l.id}
-                        </span>
-                        <div
-                          style={{
+                            width: '24px',
+                            height: '24px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '0.55rem',
-                            flexWrap: 'wrap',
+                            justifyContent: 'center',
+                            fontSize: '0.85rem',
+                            lineHeight: 1,
+                            color: 'var(--muted-foreground)',
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 0,
+                            opacity: 0.5,
                           }}
+                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; }}
                         >
-                          {l.trigger && (
-                            <code
-                              style={{
-                                fontSize: '0.6rem',
-                                color: TYRIAN,
-                                background: 'rgba(102, 2, 60, 0.08)',
-                                padding: '0.08rem 0.35rem',
-                                fontFamily: 'monospace',
-                                letterSpacing: '0.02em',
-                              }}
-                            >
-                              {l.trigger}
-                            </code>
-                          )}
-                          {typeof l.weight === 'number' && (
-                            <span
-                              style={{
-                                fontSize: '0.55rem',
-                                color: 'var(--muted-foreground)',
-                                fontFamily: 'monospace',
-                                fontVariantNumeric: 'tabular-nums',
-                                opacity: 0.7,
-                              }}
-                            >
-                              w {l.weight.toFixed(2)}
-                            </span>
-                          )}
-                          {l.baseModel && (
-                            <span
-                              style={{
-                                fontSize: '0.5rem',
-                                letterSpacing: '0.18em',
-                                color: 'var(--muted-foreground)',
-                                fontFamily: 'monospace',
-                                textTransform: 'lowercase',
-                                opacity: 0.55,
-                              }}
-                            >
-                              {l.baseModel}
-                            </span>
-                          )}
-                          {l.source && (
-                            <span
-                              style={{
-                                fontSize: '0.5rem',
-                                letterSpacing: '0.18em',
-                                color: 'var(--muted-foreground)',
-                                fontFamily: 'monospace',
-                                textTransform: 'lowercase',
-                                opacity: 0.55,
-                              }}
-                            >
-                              · {l.source}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => detach(l.id)}
-                        title="Detach"
-                        style={{
-                          fontSize: '0.7rem',
-                          lineHeight: 1,
-                          color: 'var(--muted-foreground)',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '0.3rem',
-                          opacity: 0.5,
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; }}
-                      >
-                        ×
-                      </button>
-                    </li>
-                  ))}
+                          ×
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
 

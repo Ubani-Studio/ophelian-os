@@ -57,23 +57,17 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const BRAND_NAMES = ['Bóveda'] as const;
+const BRAND = 'Bóveda';
+const BRAND_INITIAL = 'B';
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [brandIndex, setBrandIndex] = useState(0);
 
-  const currentBrand = BRAND_NAMES[brandIndex];
-  const brandInitial = currentBrand.charAt(0);
 
   const handleBrandClick = () => {
     router.push('/');
-  };
-
-  const cycleBrand = () => {
-    setBrandIndex((prev) => (prev + 1) % BRAND_NAMES.length);
   };
 
   // Sync collapsed state with body class for main content offset
@@ -89,21 +83,14 @@ export function Sidebar() {
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
       {/* Brand */}
       <div className={styles.brand}>
-        <div className={styles.brandGroup}>
-          <span className={styles.brandText} onClick={handleBrandClick} style={{ cursor: 'pointer' }} title="Click to go home">
-            {collapsed ? brandInitial : currentBrand}
-          </span>
-          {!collapsed && (
-            <button
-              className={styles.brandToggle}
-              onClick={cycleBrand}
-              aria-label="Cycle brand names"
-              title="Switch name"
-            >
-              ↻
-            </button>
-          )}
-        </div>
+        <span
+          className={styles.brandText}
+          onClick={handleBrandClick}
+          style={{ cursor: 'pointer' }}
+          title="Click to go home"
+        >
+          {collapsed ? BRAND_INITIAL : BRAND}
+        </span>
         <button
           className={styles.collapseBtn}
           onClick={() => setCollapsed(!collapsed)}
@@ -130,8 +117,11 @@ export function Sidebar() {
                       className={`${styles.navLink} ${isActive ? styles.active : ''}`}
                       title={collapsed ? item.label : undefined}
                     >
-                      <span className={styles.navIcon}>{item.icon}</span>
-                      {!collapsed && (
+                      {collapsed ? (
+                        <span className={styles.navLabel} style={{ textAlign: 'center', width: '100%' }}>
+                          {item.label.charAt(0)}
+                        </span>
+                      ) : (
                         <span className={styles.navLabel}>{item.label}</span>
                       )}
                     </Link>
