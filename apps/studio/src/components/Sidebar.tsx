@@ -21,6 +21,7 @@ const navGroups: NavGroup[] = [
     title: 'Create',
     items: [
       { href: '/operators', label: 'Operators', icon: 'O' },
+      { href: '/names', label: 'Names', icon: 'N' },
       { href: '/imprint', label: 'Imprint', icon: 'I' },
     ],
   },

@@ -213,6 +213,47 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ cultures: listOroCultures() });
   });
 
+  // POST /characters/names - Names-only surface: returns a batch of
+  // generated names without creating characters. Used by the /names
+  // exploration page in the studio (the Òrò surface absorbed into
+  // Bóveda).
+  fastify.post('/characters/names', async (request, reply) => {
+    const body = request.body as {
+      cultures?: string[];
+      mode?: 'real' | 'fictional' | 'mythic' | 'archetype' | 'internet';
+      form?: 'mononym' | 'first' | 'surname' | 'first_surname' | 'full_with_epithet';
+      gender?: 'm' | 'f' | 'a';
+      archetype?: string;
+      ornament?: 0 | 0.5 | 1;
+      withTitle?: boolean;
+      surnameRegister?: 'auto' | 'colonial' | 'reclaimed' | 'compound';
+      surnameCulture?: string;
+      count?: number;
+    } | undefined;
+    const { generateOroBatch } = await import('@lcos/oripheon');
+    const results = generateOroBatch({
+      cultures: body?.cultures as OroCultureId[] | undefined,
+      mode: body?.mode as OroMode | undefined,
+      form: body?.form as OroForm | undefined,
+      gender: body?.gender as OroGender | undefined,
+      archetype: body?.archetype as OroArchetype | undefined,
+      ornament: body?.ornament,
+      withTitle: body?.withTitle,
+      surnameRegister: body?.surnameRegister,
+      surnameCulture: body?.surnameCulture as OroCultureId | undefined,
+      count: body?.count,
+    });
+    return reply.send({ names: results });
+  });
+
+  // GET /characters/oro-lineages - Cross-culture name lineage threads
+  // (Ogun → Ogou → Ogún, Kwasi → Quashie, etc.). Powers the /names/lineage
+  // page in the studio.
+  fastify.get('/characters/oro-lineages', async (_request, reply) => {
+    const { LINEAGES } = await import('@violet-sphinx/names');
+    return reply.send({ lineages: LINEAGES });
+  });
+
   // POST /characters/generate/:seed - Generate a character with specific seed
   fastify.post<{ Params: { seed: string } }>('/characters/generate/:seed', async (request, reply) => {
     const seed = parseInt(request.params.seed, 10);
