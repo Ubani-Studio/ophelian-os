@@ -102,6 +102,7 @@ export default function WorldBuilderPage() {
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
   const [overviewOpen, setOverviewOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [savingSnapshot, setSavingSnapshot] = useState(false);
   const [restoringSnapshot, setRestoringSnapshot] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
@@ -679,7 +680,7 @@ export default function WorldBuilderPage() {
               + Scene
             </button>
             <button className="btn btn-sm btn-world" onClick={() => setShowWorldModal(true)}>
-              + Globe
+              + Cube
             </button>
           </div>
         </div>
@@ -922,8 +923,37 @@ export default function WorldBuilderPage() {
         </ReactFlow>
       </div>
 
-      {/* Right Panel */}
-      <div className="right-panel-container">
+      {/* Right Panel — collapsible to give the graph more room */}
+      <div
+        className={`right-panel-container ${rightPanelOpen ? '' : 'collapsed'}`}
+        style={{ position: 'relative' }}
+      >
+        <button
+          type="button"
+          onClick={() => setRightPanelOpen((v) => !v)}
+          aria-label={rightPanelOpen ? 'Collapse panel' : 'Expand panel'}
+          title={rightPanelOpen ? 'Collapse panel' : 'Expand panel'}
+          style={{
+            position: 'absolute',
+            top: '0.6rem',
+            left: rightPanelOpen ? '0.5rem' : '50%',
+            transform: rightPanelOpen ? 'none' : 'translateX(-50%)',
+            zIndex: 10,
+            width: '24px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#000',
+            border: '1px solid #1A1A1A',
+            color: 'rgba(255,255,255,0.55)',
+            fontSize: '0.75rem',
+            cursor: 'pointer',
+          }}
+        >
+          {rightPanelOpen ? '›' : '‹'}
+        </button>
+        {rightPanelOpen && (<>
         {selectedCharacter && (
           <>
             <CharacterDetailPanel
@@ -1035,6 +1065,7 @@ export default function WorldBuilderPage() {
             )}
           </div>
         )}
+        </>)}
       </div>
 
       {/* Modals */}

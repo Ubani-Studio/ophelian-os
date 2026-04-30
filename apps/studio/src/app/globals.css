@@ -944,10 +944,16 @@ input[type="checkbox"]:disabled {
   transform: translate(-50%, -50%) scale(1.1);
 }
 
-/* Right Panel Container */
+/* Right Panel Container — collapsible to give the graph more room. */
 .right-panel-container {
   width: 320px;
   flex-shrink: 0;
+  transition: width 0.18s ease;
+  border-left: 1px solid var(--border);
+  position: relative;
+}
+.right-panel-container.collapsed {
+  width: 36px;
 }
 
 /* Detail Panel Styles - Brutalist */
@@ -1529,22 +1535,20 @@ input[type="checkbox"]:disabled {
   font-size: 0.75rem;
 }
 
-.btn-scene {
-  background: #14b8a6;
-  color: white;
-}
-
-.btn-scene:hover {
-  background: #0d9488;
-}
-
+/* Scene + cube/world add buttons. Restrained: hairline border on
+   transparent, never saturated. Hover lightens the border, no
+   filled background until the user actually presses. Same visual
+   weight as the rest of the brutalist UI. */
+.btn-scene,
 .btn-world {
-  background: #8b5cf6;
-  color: white;
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
-
+.btn-scene:hover,
 .btn-world:hover {
-  background: #7c3aed;
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.4);
 }
 
 .entity-list {

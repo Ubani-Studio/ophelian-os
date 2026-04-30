@@ -60,6 +60,12 @@ function CharacterNodeComponent({ data }: NodeProps<CharacterNodeData>) {
               alt={character.name}
               style={{ objectPosition: character.avatarPosition || '50% 50%' }}
             />
+          ) : character.tizitaRepresentativeUrl ? (
+            <img
+              src={character.tizitaRepresentativeUrl}
+              alt={character.name}
+              style={{ objectPosition: '50% 50%' }}
+            />
           ) : (
             <span className="character-node-initials">{getInitials(character.name)}</span>
           )}
