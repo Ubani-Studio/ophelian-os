@@ -23,9 +23,9 @@ interface LoraImportResult {
 
 const LORA_CATEGORIES = [
   { id: 'visual', label: 'Visual', note: 'Diffusion adapters for image / video generation. ComfyUI, Genoma.' },
-  { id: 'voice', label: 'Voice', note: 'Voice clones for TTS / vocal synthesis. Chromox.' },
+  { id: 'voice', label: 'Voice', note: 'Voice clones for TTS / vocal synthesis. Mmuo.' },
   { id: 'writing', label: 'Writing', note: 'Fine-tunes that write in this character\'s voice. Ibis.' },
-  { id: 'music', label: 'Music', note: 'Style / mood adapters for audio composition.' },
+  { id: 'music', label: 'Music', note: 'Style / mood adapters for audio composition. Swanblade.' },
   { id: 'motion', label: 'Motion', note: 'Animation / pose / video adapters.' },
   { id: 'style', label: 'Style', note: 'Aesthetic / lighting adapters layered atop visual.' },
 ] as const;

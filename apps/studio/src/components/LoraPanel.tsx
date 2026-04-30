@@ -1,22 +1,20 @@
 'use client';
 
 /**
- * LoraPanel
+ * LoraPanel — luxury minimal high tech.
  *
- * Category-grouped LoRA slots for a character. Each character can
- * carry adapters across six dimensions:
+ * Visual language: Linear / Vercel / Cursor data tables. Hairline
+ * dividers, monospace for technical metadata, Canela for LoRA names,
+ * tyrian purple only as the load-bearing accent (filled-state colour
+ * + trigger words). Empty categories collapse to a single thin row.
+ *
+ * Each character carries adapters across six dimensions:
  *   visual  → ComfyUI / Genoma / thumbnail compositor
  *   voice   → Chromox
  *   writing → Ibis
  *   music   → audio composition pipeline
  *   motion  → animation / pose / video
  *   style   → aesthetic overlays
- *
- * Each entry stores enough metadata for downstream surfaces to
- * pick the right adapter automatically: id, name, source (replicate /
- * comfyui / civitai / local / starforge), trigger word, weight,
- * baseModel (sdxl / sd15 / flux / etc.), and the optional
- * trainedFromPersonaId linking back to Tizita.
  */
 
 import { useState } from 'react';
@@ -25,6 +23,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5130';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'ophelian-dev-key-2026';
 
 const TYRIAN = '#66023C';
+const TYRIAN_SOFT = 'rgba(176, 60, 116, 0.75)';
 
 export interface LoraRef {
   id: string;
@@ -39,12 +38,12 @@ export interface LoraRef {
 }
 
 const CATEGORIES = [
-  { id: 'visual', label: 'Visual', note: 'ComfyUI / Genoma' },
-  { id: 'voice', label: 'Voice', note: 'Chromox' },
-  { id: 'writing', label: 'Writing', note: 'Ibis' },
-  { id: 'music', label: 'Music', note: 'audio pipeline' },
-  { id: 'motion', label: 'Motion', note: 'animation / pose' },
-  { id: 'style', label: 'Style', note: 'aesthetic overlay' },
+  { id: 'visual', label: 'Visual', surface: 'ComfyUI · Genoma' },
+  { id: 'voice', label: 'Voice', surface: 'Mmuo' },
+  { id: 'writing', label: 'Writing', surface: 'Ibis' },
+  { id: 'music', label: 'Music', surface: 'Swanblade' },
+  { id: 'motion', label: 'Motion', surface: 'Animation' },
+  { id: 'style', label: 'Style', surface: 'Overlay' },
 ] as const;
 
 const SOURCES = ['replicate', 'comfyui', 'civitai', 'local', 'starforge', 'tizita'] as const;
@@ -102,75 +101,219 @@ export function LoraPanel({
   return (
     <section
       style={{
-        border: '1px solid var(--border)',
-        background: 'rgba(255,255,255,0.02)',
         marginTop: '1rem',
+        background: 'rgba(255,255,255,0.015)',
+        border: '1px solid var(--border)',
       }}
     >
-      <div style={{ padding: '0.7rem 1rem', borderBottom: '1px solid var(--border)' }}>
-        <p style={{ fontSize: '0.55rem', letterSpacing: '0.3em', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>
-          LoRAs · {loras.length}
-        </p>
-      </div>
+      <header
+        style={{
+          padding: '0.85rem 1rem 0.7rem 1rem',
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <span
+          style={{
+            fontSize: '0.5rem',
+            letterSpacing: '0.32em',
+            color: 'var(--muted-foreground)',
+            fontFamily: 'monospace',
+            textTransform: 'lowercase',
+          }}
+        >
+          adapters
+        </span>
+        <span
+          style={{
+            fontSize: '0.7rem',
+            fontFamily: 'monospace',
+            color: loras.length > 0 ? TYRIAN_SOFT : 'var(--muted-foreground)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {String(loras.length).padStart(2, '0')}
+        </span>
+      </header>
 
       <div>
-        {CATEGORIES.map((cat) => {
+        {CATEGORIES.map((cat, i) => {
           const inCategory = loras.filter((l) => (l.category ?? 'visual') === cat.id);
           const isOpen = openCategory === cat.id;
+          const hasContent = inCategory.length > 0;
           return (
-            <div key={cat.id} style={{ borderBottom: '1px solid var(--border)' }}>
-              <div style={{ padding: '0.7rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.7rem' }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.7rem' }}>
-                  <span style={{ fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 300, color: inCategory.length > 0 ? TYRIAN : 'var(--foreground)' }}>
+            <div
+              key={cat.id}
+              style={{
+                borderTop: i === 0 ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              {/* Category header — single thin row */}
+              <button
+                type="button"
+                onClick={() => setOpenCategory(isOpen ? null : cat.id)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  padding: '0.7rem 1rem',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--foreground)',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.7rem' }}>
+                  <span
+                    style={{
+                      fontFamily: '"Canela", serif',
+                      fontWeight: 300,
+                      fontSize: '0.95rem',
+                      color: hasContent ? TYRIAN : 'var(--foreground)',
+                      letterSpacing: '0.005em',
+                    }}
+                  >
                     {cat.label}
                   </span>
-                  <span style={{ fontSize: '0.6rem', color: 'var(--muted-foreground)', fontFamily: 'monospace', letterSpacing: '0.15em' }}>
-                    {cat.note}
+                  <span
+                    style={{
+                      fontSize: '0.55rem',
+                      letterSpacing: '0.18em',
+                      color: 'var(--muted-foreground)',
+                      fontFamily: 'monospace',
+                      opacity: 0.6,
+                    }}
+                  >
+                    {cat.surface}
                   </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOpenCategory(isOpen ? null : cat.id)}
-                  style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', background: 'transparent', border: '1px solid var(--border)', padding: '0.25rem 0.6rem', cursor: 'pointer' }}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    color: 'var(--muted-foreground)',
+                    fontFamily: 'monospace',
+                    fontVariantNumeric: 'tabular-nums',
+                    opacity: hasContent ? 0.7 : 0.4,
+                  }}
                 >
-                  {isOpen ? 'Cancel' : '+ Add'}
-                </button>
-              </div>
+                  {hasContent ? `${String(inCategory.length).padStart(2, '0')}` : isOpen ? '×' : '+'}
+                </span>
+              </button>
 
-              {inCategory.length > 0 && (
-                <ul style={{ listStyle: 'none', padding: '0 1rem 0.6rem 1rem', margin: 0 }}>
+              {/* LoRA rows */}
+              {hasContent && (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {inCategory.map((l) => (
-                    <li key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0', borderTop: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'var(--font-heading)', fontSize: '0.85rem', fontWeight: 400, color: 'var(--foreground)' }}>
+                    <li
+                      key={l.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        alignItems: 'center',
+                        gap: '0.6rem',
+                        padding: '0.55rem 1rem',
+                        borderTop: '1px solid var(--border)',
+                      }}
+                    >
+                      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <span
+                          style={{
+                            fontFamily: '"Canela", serif',
+                            fontWeight: 300,
+                            fontSize: '0.95rem',
+                            color: 'var(--foreground)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
                           {l.name ?? l.id}
                         </span>
-                        {l.trigger && (
-                          <code style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.06)', padding: '0.1rem 0.35rem', color: TYRIAN }}>
-                            {l.trigger}
-                          </code>
-                        )}
-                        {typeof l.weight === 'number' && (
-                          <span style={{ fontSize: '0.6rem', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>
-                            w{l.weight}
-                          </span>
-                        )}
-                        {l.baseModel && (
-                          <span style={{ fontSize: '0.55rem', color: 'var(--muted-foreground)', fontFamily: 'monospace', letterSpacing: '0.15em' }}>
-                            {l.baseModel}
-                          </span>
-                        )}
-                        {l.source && (
-                          <span style={{ fontSize: '0.55rem', color: 'var(--muted-foreground)', fontFamily: 'monospace', letterSpacing: '0.15em' }}>
-                            {l.source}
-                          </span>
-                        )}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.55rem',
+                            flexWrap: 'wrap',
+                          }}
+                        >
+                          {l.trigger && (
+                            <code
+                              style={{
+                                fontSize: '0.6rem',
+                                color: TYRIAN,
+                                background: 'rgba(102, 2, 60, 0.08)',
+                                padding: '0.08rem 0.35rem',
+                                fontFamily: 'monospace',
+                                letterSpacing: '0.02em',
+                              }}
+                            >
+                              {l.trigger}
+                            </code>
+                          )}
+                          {typeof l.weight === 'number' && (
+                            <span
+                              style={{
+                                fontSize: '0.55rem',
+                                color: 'var(--muted-foreground)',
+                                fontFamily: 'monospace',
+                                fontVariantNumeric: 'tabular-nums',
+                                opacity: 0.7,
+                              }}
+                            >
+                              w {l.weight.toFixed(2)}
+                            </span>
+                          )}
+                          {l.baseModel && (
+                            <span
+                              style={{
+                                fontSize: '0.5rem',
+                                letterSpacing: '0.18em',
+                                color: 'var(--muted-foreground)',
+                                fontFamily: 'monospace',
+                                textTransform: 'lowercase',
+                                opacity: 0.55,
+                              }}
+                            >
+                              {l.baseModel}
+                            </span>
+                          )}
+                          {l.source && (
+                            <span
+                              style={{
+                                fontSize: '0.5rem',
+                                letterSpacing: '0.18em',
+                                color: 'var(--muted-foreground)',
+                                fontFamily: 'monospace',
+                                textTransform: 'lowercase',
+                                opacity: 0.55,
+                              }}
+                            >
+                              · {l.source}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => detach(l.id)}
                         title="Detach"
-                        style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                        style={{
+                          fontSize: '0.7rem',
+                          lineHeight: 1,
+                          color: 'var(--muted-foreground)',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0.3rem',
+                          opacity: 0.5,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; }}
                       >
                         ×
                       </button>
@@ -179,6 +322,7 @@ export function LoraPanel({
                 </ul>
               )}
 
+              {/* Inline add form */}
               {isOpen && (
                 <AddLoraForm
                   category={cat.id}
@@ -229,51 +373,152 @@ function AddLoraForm({
   };
 
   return (
-    <div style={{ padding: '0.6rem 1rem 1rem 1rem', background: 'rgba(0,0,0,0.25)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.5rem' }}>
-      <FormField label="ID *" value={id} onChange={setId} placeholder="ubani-v3" />
-      <FormField label="Name" value={name} onChange={setName} placeholder="Ubani v3" />
-      <FormField label="Trigger" value={trigger} onChange={setTrigger} placeholder="ubaniv3" />
-      <FormField label="Weight" value={weight} onChange={setWeight} placeholder="0.8" />
-      <FormSelect label="Source" value={source} onChange={setSource} options={[...SOURCES]} />
-      <FormSelect label="Base model" value={baseModel} onChange={setBaseModel} options={[...BASE_MODELS]} />
-      <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', marginTop: '0.4rem' }}>
-        <button type="button" onClick={onCancel} className="btn btn-secondary" style={{ padding: '0.3rem 0.7rem', fontSize: '0.7rem' }}>
-          Cancel
+    <div
+      style={{
+        padding: '0.85rem 1rem 1rem 1rem',
+        background: 'rgba(0,0,0,0.35)',
+        borderTop: '1px solid var(--border)',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+        gap: '0.6rem',
+      }}
+    >
+      <FormField label="id" value={id} onChange={setId} placeholder="ubani-v3" required />
+      <FormField label="name" value={name} onChange={setName} placeholder="Ubani v3" />
+      <FormField label="trigger" value={trigger} onChange={setTrigger} placeholder="ubani" />
+      <FormField label="weight" value={weight} onChange={setWeight} placeholder="0.80" />
+      <FormSelect label="source" value={source} onChange={setSource} options={[...SOURCES]} />
+      <FormSelect label="base" value={baseModel} onChange={setBaseModel} options={[...BASE_MODELS]} />
+      <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.3rem' }}>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            padding: '0.35rem 0.85rem',
+            fontSize: '0.65rem',
+            letterSpacing: '0.15em',
+            background: 'transparent',
+            color: 'var(--muted-foreground)',
+            border: '1px solid var(--border)',
+            cursor: 'pointer',
+            textTransform: 'lowercase',
+          }}
+        >
+          cancel
         </button>
-        <button type="button" onClick={submit} className="btn btn-primary" style={{ padding: '0.3rem 0.7rem', fontSize: '0.7rem' }} disabled={!id.trim()}>
-          Attach
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!id.trim()}
+          style={{
+            padding: '0.35rem 0.85rem',
+            fontSize: '0.65rem',
+            letterSpacing: '0.15em',
+            background: id.trim() ? TYRIAN : 'rgba(102,2,60,0.3)',
+            color: '#fff',
+            border: '1px solid transparent',
+            cursor: id.trim() ? 'pointer' : 'not-allowed',
+            textTransform: 'lowercase',
+          }}
+        >
+          attach
         </button>
       </div>
     </div>
   );
 }
 
-function FormField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+function FormField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  required?: boolean;
+}) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-      <span style={{ fontSize: '0.5rem', letterSpacing: '0.2em', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>{label}</span>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <span
+        style={{
+          fontSize: '0.5rem',
+          letterSpacing: '0.22em',
+          color: 'var(--muted-foreground)',
+          fontFamily: 'monospace',
+          textTransform: 'lowercase',
+          opacity: 0.7,
+        }}
+      >
+        {label}{required && '*'}
+      </span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        style={{ padding: '0.35rem 0.5rem', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: '0.75rem', borderRadius: 0 }}
+        style={{
+          padding: '0.4rem 0.5rem',
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid var(--border)',
+          color: 'var(--foreground)',
+          fontSize: '0.75rem',
+          fontFamily: 'monospace',
+          borderRadius: 0,
+          outline: 'none',
+        }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = TYRIAN; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
       />
     </label>
   );
 }
 
-function FormSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+function FormSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-      <span style={{ fontSize: '0.5rem', letterSpacing: '0.2em', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>{label}</span>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <span
+        style={{
+          fontSize: '0.5rem',
+          letterSpacing: '0.22em',
+          color: 'var(--muted-foreground)',
+          fontFamily: 'monospace',
+          textTransform: 'lowercase',
+          opacity: 0.7,
+        }}
+      >
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        style={{ padding: '0.35rem 0.5rem', background: 'rgba(0,0,0,0.4)', border: '1px solid var(--border)', color: 'var(--foreground)', fontSize: '0.75rem', borderRadius: 0 }}
+        style={{
+          padding: '0.4rem 0.5rem',
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid var(--border)',
+          color: 'var(--foreground)',
+          fontSize: '0.75rem',
+          fontFamily: 'monospace',
+          borderRadius: 0,
+        }}
       >
         {options.map((o) => (
-          <option key={o} value={o} style={{ background: '#000' }}>{o}</option>
+          <option key={o} value={o} style={{ background: '#000' }}>
+            {o}
+          </option>
         ))}
       </select>
     </label>

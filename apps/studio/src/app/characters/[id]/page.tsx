@@ -45,6 +45,13 @@ export default function CharacterDetailPage() {
   const [avatarUpdating, setAvatarUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Main panel tab — character expression surface.
+  // voice  → Ibis writing samples (federation pending)
+  // gallery → generated images (ComfyUI / Genoma, pending)
+  // content → published / drafted content (live: existing flow)
+  // story  → arcs / beats (existing data, future surface)
+  const [activeTab, setActiveTab] = useState<'voice' | 'gallery' | 'content' | 'story'>('content');
+
   // Editable name state
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
@@ -566,6 +573,55 @@ export default function CharacterDetailPage() {
 
       <div className="grid grid-cols-3">
         <div style={{ gridColumn: 'span 2' }}>
+          {/* Expression tabs — character's actual outputs.
+              Voice (Ibis), Gallery (ComfyUI / Genoma), Content
+              (current Slayt-adjacent flow), Story (arcs / beats). */}
+          <ExpressionTabs activeTab={activeTab} onChange={setActiveTab} />
+
+          {activeTab === 'voice' && (
+            <div className="card mb-4" style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', borderRadius: 0 }}>
+              <p style={{ fontSize: '0.55rem', letterSpacing: '0.32em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.5rem' }}>
+                voice · ibis
+              </p>
+              <p style={{ fontFamily: '"Canela", serif', fontWeight: 300, fontSize: '1.1rem', color: 'var(--foreground)', maxWidth: '40ch', marginBottom: '0.4rem' }}>
+                Writing samples in {character.name}'s voice will live here.
+              </p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', maxWidth: '50ch', lineHeight: 1.6 }}>
+                Ibis federation pending. When wired, scripts, dialogue, and longform passages written in this character's voice surface here, conditioned on the writing LoRA + bio.
+              </p>
+            </div>
+          )}
+
+          {activeTab === 'gallery' && (
+            <div className="card mb-4" style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', borderRadius: 0 }}>
+              <p style={{ fontSize: '0.55rem', letterSpacing: '0.32em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.5rem' }}>
+                gallery · comfyui · genoma
+              </p>
+              <p style={{ fontFamily: '"Canela", serif', fontWeight: 300, fontSize: '1.1rem', color: 'var(--foreground)', maxWidth: '40ch', marginBottom: '0.4rem' }}>
+                Generated images for {character.name}.
+              </p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', maxWidth: '50ch', lineHeight: 1.6 }}>
+                Renders made with this character's Visual / Style LoRAs (ComfyUI workflows or Genoma slider explorations) appear here. Pending federation.
+              </p>
+            </div>
+          )}
+
+          {activeTab === 'story' && (
+            <div className="card mb-4" style={{ minHeight: '280px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', borderRadius: 0 }}>
+              <p style={{ fontSize: '0.55rem', letterSpacing: '0.32em', color: 'var(--muted-foreground)', fontFamily: 'monospace', marginBottom: '0.5rem' }}>
+                story · arcs · beats
+              </p>
+              <p style={{ fontFamily: '"Canela", serif', fontWeight: 300, fontSize: '1.1rem', color: 'var(--foreground)', maxWidth: '40ch', marginBottom: '0.4rem' }}>
+                {character.name}'s story.
+              </p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', maxWidth: '50ch', lineHeight: 1.6 }}>
+                Arcs and beats this character belongs to. Currently lives in the Story Templates / Trajectories surface; merging in here next.
+              </p>
+            </div>
+          )}
+
+          {activeTab === 'content' && (
+          <>
           {/* Generate Content Form */}
           <div className="card mb-4">
             <h3 className="card-title">Generate Content</h3>
@@ -669,6 +725,8 @@ export default function CharacterDetailPage() {
               </table>
             )}
           </div>
+          </>
+          )}
         </div>
 
         {/* Character Info Sidebar */}
@@ -1167,6 +1225,81 @@ export default function CharacterDetailPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+const TYRIAN = '#66023C';
+
+const EXPRESSION_TABS = [
+  { id: 'voice', label: 'Voice', sub: 'ibis' },
+  { id: 'gallery', label: 'Gallery', sub: 'comfyui · genoma' },
+  { id: 'content', label: 'Content', sub: 'slayt' },
+  { id: 'story', label: 'Story', sub: 'arcs · beats' },
+] as const;
+
+function ExpressionTabs({
+  activeTab,
+  onChange,
+}: {
+  activeTab: 'voice' | 'gallery' | 'content' | 'story';
+  onChange: (id: 'voice' | 'gallery' | 'content' | 'story') => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: '0',
+        marginBottom: '1rem',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      {EXPRESSION_TABS.map((t) => {
+        const active = t.id === activeTab;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            style={{
+              padding: '0.6rem 1.1rem 0.7rem 1.1rem',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.15rem',
+              borderBottom: active ? `1px solid ${TYRIAN}` : '1px solid transparent',
+              marginBottom: '-1px',
+              color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: '"Canela", serif',
+                fontWeight: 300,
+                fontSize: '1rem',
+                letterSpacing: '0.005em',
+              }}
+            >
+              {t.label}
+            </span>
+            <span
+              style={{
+                fontSize: '0.5rem',
+                letterSpacing: '0.22em',
+                fontFamily: 'monospace',
+                color: active ? TYRIAN : 'var(--muted-foreground)',
+                opacity: active ? 0.85 : 0.5,
+              }}
+            >
+              {t.sub}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
