@@ -623,6 +623,145 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ id: updated.id, loras: updated.loras });
   });
 
+  // POST /characters/import-lora-registry - Read the user's
+  // ~/boveda/characters/*.json registry and attach the LoRAs to
+  // matching Bóveda characters by display_name.
+  //
+  // Each character JSON file in that directory is the source of truth
+  // for one trained LoRA: Replicate destination + version, local
+  // ComfyUI path, trigger word, base model, type (character/style).
+  // This endpoint walks them and idempotently attaches the matching
+  // LoRA to the matching Bóveda character.
+  fastify.post('/characters/import-lora-registry', async (_request, reply) => {
+    const { promises: fs } = await import('node:fs');
+    const path = await import('node:path');
+    const REGISTRY_DIR = process.env.BOVEDA_CHARACTERS_DIR || '/home/sphinxy/boveda/characters';
+
+    let entries: string[];
+    try {
+      entries = await fs.readdir(REGISTRY_DIR);
+    } catch (e) {
+      return reply.code(503).send({
+        error: `Cannot read registry at ${REGISTRY_DIR}`,
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    const jsonFiles = entries.filter((f) => f.endsWith('.json') && !f.startsWith('_'));
+
+    interface RegistryRecord {
+      name: string;
+      trigger?: string;
+      display_name?: string;
+      type?: string;
+      stack_with?: string[];
+      lora?: {
+        wsl_local?: string;
+        local?: string;
+        replicate_destination?: string;
+        replicate_version?: string;
+        trigger?: string;
+        trained_on?: string;
+        rank?: number;
+        steps?: number;
+      };
+    }
+
+    const results = {
+      registry_count: jsonFiles.length,
+      attached: 0,
+      skipped: [] as Array<{ file: string; reason: string }>,
+      errors: [] as Array<{ file: string; error: string }>,
+    };
+
+    for (const filename of jsonFiles) {
+      try {
+        const raw = await fs.readFile(path.join(REGISTRY_DIR, filename), 'utf-8');
+        const record = JSON.parse(raw) as RegistryRecord;
+
+        // Type maps to category. character/style/voice → visual /
+        // style / voice categories. Default visual.
+        const typeToCategory: Record<string, string> = {
+          character: 'visual',
+          style: 'style',
+          voice: 'voice',
+        };
+        const category = typeToCategory[record.type ?? 'character'] ?? 'visual';
+
+        // Find a target character. For character-type LoRAs, match by
+        // display_name. For style-type LoRAs, attach to ALL characters
+        // that list this LoRA in their stack_with (we'll handle this
+        // in a second pass below).
+        const targets: Array<{ id: string; name: string }> = [];
+
+        if (record.type === 'style' || (record.type !== 'character' && record.stack_with === undefined)) {
+          // Style LoRAs attach to every character that explicitly
+          // stacks them in their JSON record's stack_with.
+          for (const file of jsonFiles) {
+            try {
+              const raw2 = await fs.readFile(path.join(REGISTRY_DIR, file), 'utf-8');
+              const r2 = JSON.parse(raw2) as RegistryRecord;
+              if (r2.stack_with?.includes(record.name) && r2.display_name) {
+                const char = await prisma.character.findFirst({ where: { name: r2.display_name } });
+                if (char) targets.push({ id: char.id, name: char.name });
+              }
+            } catch {}
+          }
+        } else if (record.display_name) {
+          // Character-type LoRA. Match by display_name.
+          const char = await prisma.character.findFirst({ where: { name: record.display_name } });
+          if (char) targets.push({ id: char.id, name: char.name });
+          // Also attach to its base name without the version suffix
+          // ("Ubani v2" should also attach to "Ubani"). Heuristic.
+          const base = record.display_name.replace(/\s+v\d+(\s.*)?$/i, '').trim();
+          if (base !== record.display_name) {
+            const baseChar = await prisma.character.findFirst({ where: { name: base } });
+            if (baseChar && !targets.find((t) => t.id === baseChar.id)) {
+              targets.push({ id: baseChar.id, name: baseChar.name });
+            }
+          }
+        }
+
+        if (targets.length === 0) {
+          results.skipped.push({ file: filename, reason: 'no_matching_character' });
+          continue;
+        }
+
+        const lora = {
+          id: record.name,
+          name: record.display_name ?? record.name,
+          category,
+          source: record.lora?.replicate_version ? 'replicate' : 'local',
+          trigger: record.trigger ?? record.lora?.trigger,
+          weight: record.type === 'style' ? 0.6 : 0.8,
+          baseModel: record.lora?.trained_on?.toLowerCase().includes('flux') ? 'flux' : 'sdxl',
+          replicate_destination: record.lora?.replicate_destination,
+          replicate_version: record.lora?.replicate_version,
+          local_path: record.lora?.wsl_local ?? record.lora?.local,
+        };
+
+        for (const target of targets) {
+          const char = await prisma.character.findUnique({ where: { id: target.id } });
+          if (!char) continue;
+          const existing = Array.isArray(char.loras) ? (char.loras as unknown[]) : [];
+          const filtered = existing.filter((x) => (x as { id?: string })?.id !== lora.id);
+          await prisma.character.update({
+            where: { id: target.id },
+            data: { loras: [...filtered, lora] as never },
+          });
+          results.attached++;
+        }
+      } catch (e) {
+        results.errors.push({
+          file: filename,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    return reply.send(results);
+  });
+
   // POST /characters/:id/group-members - Add a member to a group
   // character. Members are lightweight {name, role?, characterId?}
   // entries; full character records are not required.

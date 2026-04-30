@@ -14,6 +14,13 @@ interface ImportResult {
   errors: Array<{ personaId: string; error: string }>;
 }
 
+interface LoraImportResult {
+  registry_count: number;
+  attached: number;
+  skipped: Array<{ file: string; reason: string }>;
+  errors: Array<{ file: string; error: string }>;
+}
+
 const LORA_CATEGORIES = [
   { id: 'visual', label: 'Visual', note: 'Diffusion adapters for image / video generation. ComfyUI, Genoma.' },
   { id: 'voice', label: 'Voice', note: 'Voice clones for TTS / vocal synthesis. Chromox.' },
@@ -27,6 +34,29 @@ export default function SettingsPage() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+
+  const [loraImporting, setLoraImporting] = useState(false);
+  const [loraResult, setLoraResult] = useState<LoraImportResult | null>(null);
+  const [loraError, setLoraError] = useState<string | null>(null);
+
+  const handleImportLoras = async () => {
+    setLoraImporting(true);
+    setLoraError(null);
+    setLoraResult(null);
+    try {
+      const res = await fetch(`${API_URL}/characters/import-lora-registry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'LoRA import failed');
+      setLoraResult(json);
+    } catch (e) {
+      setLoraError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoraImporting(false);
+    }
+  };
 
   const handleImportTizita = async () => {
     setImporting(true);
@@ -101,6 +131,48 @@ export default function SettingsPage() {
                 </Link>
               </p>
             )}
+          </div>
+        )}
+      </section>
+
+      <section style={{ border: '1px solid var(--border)', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', marginTop: '1.5rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem', fontWeight: 400, marginBottom: '0.5rem' }}>
+          LoRA registry
+        </h2>
+        <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '1rem', lineHeight: 1.6, maxWidth: '60ch' }}>
+          Walks <code style={{ background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.3rem' }}>~/boveda/characters/*.json</code>{' '}
+          and attaches each LoRA to the matching character. Character LoRAs match by display name; style LoRAs attach to every character that lists them in <code style={{ background: 'rgba(255,255,255,0.05)', padding: '0.1rem 0.3rem' }}>stack_with</code>. Idempotent.
+        </p>
+        <button
+          type="button"
+          onClick={handleImportLoras}
+          disabled={loraImporting}
+          className="btn btn-primary"
+        >
+          {loraImporting ? 'Importing' : 'Import LoRA registry'}
+        </button>
+
+        {loraError && (
+          <p style={{ marginTop: '1rem', color: 'var(--error)', fontSize: '0.8rem' }}>
+            {loraError}
+          </p>
+        )}
+
+        {loraResult && (
+          <div style={{ marginTop: '1rem', padding: '0.75rem', border: '1px solid var(--border)', background: 'rgba(0,0,0,0.3)' }}>
+            <p style={{ fontSize: '0.75rem', color: 'var(--foreground)', marginBottom: '0.4rem' }}>
+              Registry walk complete.
+            </p>
+            <ul style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', lineHeight: 1.7, listStyle: 'none', padding: 0 }}>
+              <li>{loraResult.registry_count} JSON files in registry</li>
+              <li>{loraResult.attached} LoRA attachments made</li>
+              {loraResult.skipped.length > 0 && (
+                <li>{loraResult.skipped.length} skipped (no matching character)</li>
+              )}
+              {loraResult.errors.length > 0 && (
+                <li style={{ color: 'var(--error)' }}>{loraResult.errors.length} errors</li>
+              )}
+            </ul>
           </div>
         )}
       </section>

@@ -21,6 +21,7 @@ import { RepositionableCircleAvatar } from '@/components/RepositionableCircleAva
 import { ArchetypeDynamics } from '@/components/genome';
 import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
+import { LoraPanel } from '@/components/LoraPanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
 export default function CharacterDetailPage() {
@@ -849,6 +850,14 @@ export default function CharacterDetailPage() {
             <GroupMembersPanel
               characterId={character.id}
               initialMembers={character.groupMembers ?? []}
+            />
+
+            {/* LoRA category slots: visual / voice / writing / music /
+                motion / style. Each slot pipes into the matching
+                downstream surface (ComfyUI, Chromox, Ibis, etc.). */}
+            <LoraPanel
+              characterId={character.id}
+              initialLoras={character.loras ?? []}
             />
 
             <div>
