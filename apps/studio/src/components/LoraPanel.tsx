@@ -60,6 +60,7 @@ export function LoraPanel({
 }) {
   const [loras, setLoras] = useState<LoraRef[]>(initialLoras ?? []);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = (next: LoraRef[]) => {
@@ -151,23 +152,26 @@ export function LoraPanel({
               }}
             >
               {/* Category header — single thin row.
-                  Grid 1fr / 24px so the trailing indicator sits in
-                  the same column as the row × buttons below. */}
-              <button
-                type="button"
-                onClick={() => setOpenCategory(isOpen ? null : cat.id)}
+                  Three-column grid: label / count / + so the LoRA
+                  list is collapsed by default and the add affordance
+                  is its own click target.
+                  - Click the row → expand / collapse the LoRA list
+                    (when there are any LoRAs in this category)
+                  - Click the + button → open the add form */}
+              <div
                 style={{
                   width: '100%',
                   display: 'grid',
-                  gridTemplateColumns: '1fr 24px',
+                  gridTemplateColumns: '1fr auto 24px',
                   alignItems: 'center',
                   gap: '0.6rem',
                   padding: '0.7rem 1rem',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
+                  cursor: hasContent ? 'pointer' : 'default',
                   color: 'var(--foreground)',
-                  textAlign: 'left',
+                }}
+                onClick={() => {
+                  if (!hasContent) return;
+                  setExpandedCategory((prev) => (prev === cat.id ? null : cat.id));
                 }}
               >
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: '0.7rem' }}>
@@ -196,25 +200,53 @@ export function LoraPanel({
                 </span>
                 <span
                   style={{
-                    width: '24px',
-                    textAlign: 'center',
-                    fontSize: '0.7rem',
-                    lineHeight: 1,
+                    fontSize: '0.6rem',
                     color: 'var(--muted-foreground)',
                     fontFamily: 'monospace',
                     fontVariantNumeric: 'tabular-nums',
-                    opacity: hasContent ? 0.7 : 0.4,
+                    opacity: hasContent ? 0.55 : 0,
+                    minWidth: '1.5em',
+                    textAlign: 'right',
+                    transition: 'opacity 0.15s',
                   }}
                 >
-                  {hasContent ? String(inCategory.length).padStart(2, '0') : isOpen ? '×' : '+'}
+                  {hasContent ? String(inCategory.length).padStart(2, '0') : ''}
                 </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenCategory(isOpen ? null : cat.id);
+                  }}
+                  title={isOpen ? 'Cancel' : `Add ${cat.label.toLowerCase()} adapter`}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.85rem',
+                    lineHeight: 1,
+                    color: isOpen ? TYRIAN : 'var(--muted-foreground)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    opacity: 0.6,
+                    transition: 'opacity 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
+                >
+                  {isOpen ? '×' : '+'}
+                </button>
+              </div>
 
-              {/* LoRA rows. Same 1fr / 24px column structure as the
-                  category header so the × buttons line up vertically
-                  with the +/count indicators above them.
-                  Optional thumbnail (40px) prepended when set. */}
-              {hasContent && (
+              {/* LoRA rows — only rendered when the category is
+                  expanded. Inline 'Display — (raw_id)' format keeps
+                  each row to one primary line; metadata follows
+                  underneath in monospace. */}
+              {hasContent && expandedCategory === cat.id && (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                   {inCategory.map((l) => {
                     const hasThumb = Boolean(l.thumbnailUrl);
@@ -225,19 +257,20 @@ export function LoraPanel({
                         style={{
                           display: 'grid',
                           gridTemplateColumns: hasThumb
-                            ? '40px 1fr 24px'
+                            ? '32px 1fr 24px'
                             : '1fr 24px',
                           alignItems: 'center',
-                          gap: '0.7rem',
-                          padding: '0.55rem 1rem',
+                          gap: '0.65rem',
+                          padding: '0.5rem 1rem',
                           borderTop: '1px solid var(--border)',
+                          background: 'rgba(0,0,0,0.18)',
                         }}
                       >
                         {hasThumb && (
                           <div
                             style={{
-                              width: 40,
-                              height: 40,
+                              width: 32,
+                              height: 32,
                               background: 'rgba(0,0,0,0.4)',
                               border: '1px solid var(--border)',
                               overflow: 'hidden',
@@ -251,51 +284,55 @@ export function LoraPanel({
                             />
                           </div>
                         )}
-                        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.18rem' }}>
+                        <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                           <span
                             style={{
-                              fontFamily: '"Canela", serif',
-                              fontWeight: 300,
-                              fontSize: '0.95rem',
-                              color: 'var(--foreground)',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
+                              display: 'flex',
+                              alignItems: 'baseline',
+                              gap: '0.4rem',
+                              flexWrap: 'wrap',
                               lineHeight: 1.15,
                             }}
                           >
-                            {l.name ?? l.id}
-                          </span>
-                          {showRawId && (
                             <span
                               style={{
-                                fontSize: '0.5rem',
-                                letterSpacing: '0.16em',
-                                color: 'var(--muted-foreground)',
-                                fontFamily: 'monospace',
-                                textTransform: 'lowercase',
-                                opacity: 0.5,
+                                fontFamily: '"Canela", serif',
+                                fontWeight: 300,
+                                fontSize: '0.85rem',
+                                color: 'var(--foreground)',
                               }}
                             >
-                              {l.id}
+                              {l.name ?? l.id}
                             </span>
-                          )}
+                            {showRawId && (
+                              <span
+                                style={{
+                                  fontSize: '0.55rem',
+                                  letterSpacing: '0.12em',
+                                  color: 'var(--muted-foreground)',
+                                  fontFamily: 'monospace',
+                                  opacity: 0.5,
+                                }}
+                              >
+                                ({l.id})
+                              </span>
+                            )}
+                          </span>
                           <div
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '0.55rem',
+                              gap: '0.5rem',
                               flexWrap: 'wrap',
-                              marginTop: '0.05rem',
                             }}
                           >
                             {l.trigger && (
                               <code
                                 style={{
-                                  fontSize: '0.6rem',
+                                  fontSize: '0.55rem',
                                   color: TYRIAN,
                                   background: 'rgba(102, 2, 60, 0.08)',
-                                  padding: '0.08rem 0.35rem',
+                                  padding: '0.05rem 0.3rem',
                                   fontFamily: 'monospace',
                                   letterSpacing: '0.02em',
                                 }}
@@ -306,11 +343,11 @@ export function LoraPanel({
                             {typeof l.weight === 'number' && (
                               <span
                                 style={{
-                                  fontSize: '0.55rem',
+                                  fontSize: '0.5rem',
                                   color: 'var(--muted-foreground)',
                                   fontFamily: 'monospace',
                                   fontVariantNumeric: 'tabular-nums',
-                                  opacity: 0.7,
+                                  opacity: 0.65,
                                 }}
                               >
                                 w {l.weight.toFixed(2)}
@@ -319,12 +356,12 @@ export function LoraPanel({
                             {l.baseModel && (
                               <span
                                 style={{
-                                  fontSize: '0.5rem',
+                                  fontSize: '0.45rem',
                                   letterSpacing: '0.18em',
                                   color: 'var(--muted-foreground)',
                                   fontFamily: 'monospace',
                                   textTransform: 'lowercase',
-                                  opacity: 0.55,
+                                  opacity: 0.5,
                                 }}
                               >
                                 {l.baseModel}
@@ -333,12 +370,12 @@ export function LoraPanel({
                             {l.source && (
                               <span
                                 style={{
-                                  fontSize: '0.5rem',
+                                  fontSize: '0.45rem',
                                   letterSpacing: '0.18em',
                                   color: 'var(--muted-foreground)',
                                   fontFamily: 'monospace',
                                   textTransform: 'lowercase',
-                                  opacity: 0.55,
+                                  opacity: 0.5,
                                 }}
                               >
                                 · {l.source}
@@ -356,17 +393,17 @@ export function LoraPanel({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.85rem',
+                            fontSize: '0.8rem',
                             lineHeight: 1,
                             color: 'var(--muted-foreground)',
                             background: 'transparent',
                             border: 'none',
                             cursor: 'pointer',
                             padding: 0,
-                            opacity: 0.5,
+                            opacity: 0.4,
                           }}
                           onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.5'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
                         >
                           ×
                         </button>
