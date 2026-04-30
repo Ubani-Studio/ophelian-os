@@ -9,21 +9,22 @@ export interface ConnectionEdgeData {
   onClick: (connection: WorldConnection) => void;
 }
 
-// Connection type colors based on source-target type combinations
+// Connection type colors. Tight palette: tyrian purple variants per
+// connection axis. Saturated motley palette has been retired.
 const getConnectionColor = (connectionType: string): string => {
-  // Character-Scene connections
+  // Character-Scene connections (presence)
   if (['appears_in', 'owns', 'haunts', 'born_at', 'died_at'].includes(connectionType)) {
-    return '#14b8a6'; // teal
+    return '#66023C';
   }
-  // Scene-World connections
+  // Scene-World connections (location)
   if (['located_in', 'gateway_to', 'hidden_within'].includes(connectionType)) {
-    return '#8b5cf6'; // purple
+    return '#9B4772';
   }
-  // Character-World connections
+  // Character-World connections (authority)
   if (['rules', 'exiled_from', 'created', 'protects'].includes(connectionType)) {
-    return '#ec4899'; // pink
+    return '#5A0532';
   }
-  return '#6b7280'; // gray for custom
+  return '#6B7280';
 };
 
 function ConnectionEdgeComponent({

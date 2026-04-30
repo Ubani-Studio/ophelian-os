@@ -9,15 +9,21 @@ export interface RelationshipEdgeData {
   onClick: (relationship: CharacterRelationship) => void;
 }
 
+// Tight three-tone palette. Tyrian purple variants for warm bonds,
+// muted red for cold bonds, neutral for everything else. Beats the
+// previous 8-saturated-Tailwind-colors look which read as motley.
 const RELATIONSHIP_COLORS: Record<RelationshipType, string> = {
-  ALLY: '#22c55e',
-  ENEMY: '#ef4444',
-  MENTOR: '#8b5cf6',
-  FAMILY: '#f59e0b',
-  RIVAL: '#f97316',
-  FRIEND: '#3b82f6',
-  LOVER: '#ec4899',
-  CUSTOM: '#6b7280',
+  // Warm bonds — tyrian purple family
+  ALLY:   '#66023C',
+  FRIEND: '#7C2952',
+  FAMILY: '#9B4772',
+  LOVER:  '#5A0532',
+  // Cold bonds — muted red
+  ENEMY: '#8B2635',
+  RIVAL: '#A3434F',
+  // Neutral
+  MENTOR: '#A3A3A3',
+  CUSTOM: '#6B7280',
 };
 
 function RelationshipEdgeComponent({

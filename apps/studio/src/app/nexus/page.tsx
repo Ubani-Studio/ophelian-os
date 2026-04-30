@@ -910,7 +910,14 @@ export default function WorldBuilderPage() {
           maxZoom={2}
         >
           <Controls />
-          {showGrid && <Background variant={BackgroundVariant.Dots} gap={20} size={1} />}
+          {showGrid && (
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={48}
+              size={0.7}
+              color="rgba(255,255,255,0.06)"
+            />
+          )}
         </ReactFlow>
       </div>
 

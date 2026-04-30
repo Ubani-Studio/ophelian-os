@@ -158,15 +158,17 @@ body {
   line-height: 1.5;
 }
 
-/* H1-H3 = Canela (presence), H4-H6 = Söhne (structure). Sentence case throughout. */
-h1, h2, h3 {
+/* H1 alone is Canela (presence). Everything else is Söhne. Canela
+   carries weight only at the page-headline level; over-used it loses
+   its character. Sentence case throughout. */
+h1 {
   font-family: var(--font-heading);
   font-weight: 400;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
 
-h4, h5, h6 {
+h2, h3, h4, h5, h6 {
   font-family: var(--font-subheading);
   font-weight: 600;
   letter-spacing: 0;
@@ -291,6 +293,46 @@ h6 { font-size: 0.875rem; }
   border-radius: 0;
   background: var(--background);
   color: var(--foreground);
+}
+
+/* Sharp-edged checkboxes everywhere. Browser default is rounded;
+   we want the same brutalist square as the rest of the UI. */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+  margin: 0;
+}
+input[type="checkbox"]:hover {
+  border-color: var(--foreground);
+}
+input[type="checkbox"]:checked {
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--background);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .input:focus {
