@@ -20,6 +20,11 @@ export type PostForm =
   | 'noop'
   | 'ritual'
   | 'quest'
+  // Quest lifecycle responses (Bóveda-native).
+  | 'quest_accepted'
+  | 'quest_declined'
+  | 'quest_progress'
+  | 'quest_completed'
   // Ibis DocumentKind mirrors
   | 'scene'
   | 'fragment'
@@ -80,8 +85,40 @@ export const POST_FORMS: Record<PostForm, PostFormDef> = {
   quest: {
     id: 'quest',
     label: 'quest',
-    guidance: 'A task offered to a neighbour. State the task plainly. The receiver can accept or decline on their next tick.',
+    guidance: 'A task offered to a named neighbour. State the task plainly. The receiver can accept or decline on their next tick.',
     subtasteAffinities: ['F-9', 'H-6', 'R-10'],
+    requiresCounterpart: true,
+    origin: 'boveda',
+  },
+  quest_accepted: {
+    id: 'quest_accepted',
+    label: 'quest accepted',
+    guidance: 'You accept a pending quest from a neighbour. Brief acceptance line. The quest is now active; future ticks may make progress.',
+    subtasteAffinities: [],
+    requiresCounterpart: true,
+    origin: 'boveda',
+  },
+  quest_declined: {
+    id: 'quest_declined',
+    label: 'quest declined',
+    guidance: 'You decline a pending quest. Brief refusal in your voice. Reason optional.',
+    subtasteAffinities: [],
+    requiresCounterpart: true,
+    origin: 'boveda',
+  },
+  quest_progress: {
+    id: 'quest_progress',
+    label: 'quest progress',
+    guidance: 'You make progress on an accepted quest. Specific concrete movement, not abstract update.',
+    subtasteAffinities: [],
+    requiresCounterpart: true,
+    origin: 'boveda',
+  },
+  quest_completed: {
+    id: 'quest_completed',
+    label: 'quest completed',
+    guidance: 'You complete an accepted quest. Brief result. Canonical-eligible.',
+    subtasteAffinities: [],
     requiresCounterpart: true,
     origin: 'boveda',
   },

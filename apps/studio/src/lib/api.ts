@@ -99,6 +99,10 @@ export interface Character {
   /** Composition kind: solo (default) hides the members panel
    *  entirely. duo / group / collective surface it. */
   compositionKind?: 'solo' | 'duo' | 'group' | 'collective';
+  /** Setting register: biases bio + backstory generation toward
+   *  a specific kind of texture (modern / mystical / archaic /
+   *  past_life / mythic / surreal / mixed). */
+  setting?: Setting;
   /** Agency mode. Determines how this character acts in the system.
    *  manual = author-only (the human user); twin = paired AI version
    *  (Ai-8O is twin to Ubani); espíritu = fully autonomous; relic =
@@ -230,6 +234,15 @@ export async function listLineages(): Promise<LineageOption[]> {
   return res.lineages;
 }
 
+export type Setting =
+  | 'modern'
+  | 'mystical'
+  | 'archaic'
+  | 'past_life'
+  | 'mythic'
+  | 'surreal'
+  | 'mixed';
+
 export async function realignCharacter(
   characterId: string,
   options: {
@@ -237,6 +250,8 @@ export async function realignCharacter(
     lineage?: string | string[];
     brief?: string;
     subtasteCode?: string;
+    /** Setting register that biases the texture-example pool. */
+    setting?: Setting;
     fields: RealignField[];
     apply?: boolean;
     respectLocks?: boolean;

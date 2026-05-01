@@ -26,6 +26,7 @@ import {
   type LineageOption,
   type RealignField,
   type RealignDraft,
+  type Setting,
 } from '@/lib/api';
 
 const TYRIAN = '#66023C';
@@ -39,6 +40,16 @@ const FIELD_LABELS: Record<RealignField, string> = {
   goals: 'goals',
   tongue: 'tongue',
 };
+
+const SETTING_OPTIONS: Array<{ id: Setting; label: string; hint: string }> = [
+  { id: 'modern', label: 'modern', hint: 'present-day specifics, real shops + venues + bus routes' },
+  { id: 'mystical', label: 'mystical', hint: 'altars, ancestors, divinatory practice' },
+  { id: 'archaic', label: 'archaic', hint: 'pre-modern, courts, monasteries, lineage memory' },
+  { id: 'past_life', label: 'past life', hint: 'present character with archaic flashbacks' },
+  { id: 'mythic', label: 'mythic', hint: 'legendary, out-of-time, archetype-named' },
+  { id: 'surreal', label: 'surreal', hint: 'absurd, dream-logic, non-naturalistic but specific' },
+  { id: 'mixed', label: 'mixed', hint: 'generator picks 1-2 and blends per generation' },
+];
 
 const SUBTASTE_OPTIONS: Array<{ code: string; display: string }> = [
   { code: 'S-0', display: 'S-0 KETH · Visionary' },
@@ -67,6 +78,9 @@ export function ForgePanel({
   const [selectedLineages, setSelectedLineages] = useState<Set<string>>(new Set());
   const [brief, setBrief] = useState('');
   const [subtasteCode, setSubtasteCode] = useState('');
+  const [setting, setSetting] = useState<Setting | ''>(
+    (character.setting as Setting | undefined) ?? ''
+  );
   const [fields, setFields] = useState<Set<RealignField>>(new Set(ALL_FIELDS));
   const [draft, setDraft] = useState<RealignDraft | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,6 +120,7 @@ export function ForgePanel({
         lineage: lineageList.length > 0 ? lineageList : undefined,
         brief: brief.trim() || undefined,
         subtasteCode: subtasteCode || undefined,
+        setting: setting || undefined,
         fields: Array.from(fields),
         apply: false,
       });
@@ -114,6 +129,19 @@ export function ForgePanel({
       setError(e instanceof Error ? e.message : 'Forge failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Persist setting on the character record so it sticks across
+  // generations and other surfaces can read it.
+  const onSettingClick = async (id: Setting | '') => {
+    setSetting(id);
+    if (!id) return;
+    try {
+      const updated = await updateCharacter(character.id, { setting: id });
+      onUpdated(updated);
+    } catch {
+      // non-fatal; the setting still applies to the next forge call
     }
   };
 
@@ -143,6 +171,7 @@ export function ForgePanel({
         lineage: lineageList.length > 0 ? lineageList : undefined,
         brief: brief.trim() || undefined,
         subtasteCode: subtasteCode || undefined,
+        setting: setting || undefined,
         fields: Array.from(fields),
         apply: true,
       });
@@ -342,6 +371,53 @@ export function ForgePanel({
                 );
               })}
             </div>
+          </div>
+
+          {/* Setting register · pill grid */}
+          <div>
+            <label style={labelStyle}>
+              Setting register{setting ? '' : ' (default: mixed)'}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              {SETTING_OPTIONS.map((s) => {
+                const on = setting === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onSettingClick(s.id)}
+                    title={s.hint}
+                    style={{
+                      padding: '0.4rem 0.7rem',
+                      fontSize: '0.7rem',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.04em',
+                      border: `1px solid ${on ? TYRIAN : 'var(--border)'}`,
+                      background: on ? TYRIAN : 'transparent',
+                      color: on ? '#fff' : 'var(--foreground)',
+                      cursor: 'pointer',
+                      borderRadius: 0,
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+            {setting && (
+              <p
+                style={{
+                  fontSize: '0.7rem',
+                  color: 'var(--muted-foreground)',
+                  fontStyle: 'italic',
+                  fontFamily: '"Canela", serif',
+                  marginTop: '0.4rem',
+                  lineHeight: 1.55,
+                }}
+              >
+                {SETTING_OPTIONS.find((s) => s.id === setting)?.hint}
+              </p>
+            )}
           </div>
 
           {/* Brief */}

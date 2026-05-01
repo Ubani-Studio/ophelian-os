@@ -21,6 +21,7 @@ export interface TrailPostData {
   edgeId: string;
   kind: string;
   form?: string;
+  questId?: string;
   summary: string;
   body?: string;
   retention: 'ephemeral' | 'canonical';
@@ -296,35 +297,52 @@ function FormBody({
 
     case 'quest':
       return (
-        <div
-          style={{
-            border: `1px solid ${TYRIAN}`,
-            padding: '1rem 1.25rem',
-            background: 'rgba(102,2,60,0.05)',
-            maxWidth: '58ch',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.55rem',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '0.55rem',
-              fontFamily: 'monospace',
-              letterSpacing: '0.32em',
-              color: TYRIAN,
-              textTransform: 'none',
-            }}
-          >
-            quest → {counterpart}
-          </div>
-          <div style={{ fontSize: '0.92rem', lineHeight: 1.6 }}>{summary}</div>
-          {text !== summary && (
-            <div style={{ fontSize: '0.82rem', lineHeight: 1.65, color: 'var(--muted-foreground)' }}>
-              {text}
-            </div>
-          )}
-        </div>
+        <QuestCard
+          tag={`quest → ${counterpart}`}
+          summary={summary}
+          body={text !== summary ? text : ''}
+          tone="offer"
+        />
+      );
+
+    case 'quest_accepted':
+      return (
+        <QuestCard
+          tag={`accepted · from ${counterpart}`}
+          summary={summary}
+          body={text !== summary ? text : ''}
+          tone="accept"
+        />
+      );
+
+    case 'quest_declined':
+      return (
+        <QuestCard
+          tag={`declined · from ${counterpart}`}
+          summary={summary}
+          body={text !== summary ? text : ''}
+          tone="decline"
+        />
+      );
+
+    case 'quest_progress':
+      return (
+        <QuestCard
+          tag={`progress · with ${counterpart}`}
+          summary={summary}
+          body={text !== summary ? text : ''}
+          tone="progress"
+        />
+      );
+
+    case 'quest_completed':
+      return (
+        <QuestCard
+          tag={`completed · with ${counterpart}`}
+          summary={summary}
+          body={text !== summary ? text : ''}
+          tone="complete"
+        />
       );
 
     case 'noop':
@@ -380,4 +398,68 @@ function FormBody({
         </div>
       );
   }
+}
+
+/**
+ * Quest card · used for the entire quest lifecycle (offer / accept /
+ * decline / progress / complete). Tone changes the border + accent
+ * styling so the lifecycle reads at a glance.
+ */
+function QuestCard({
+  tag,
+  summary,
+  body,
+  tone,
+}: {
+  tag: string;
+  summary: string;
+  body: string;
+  tone: 'offer' | 'accept' | 'decline' | 'progress' | 'complete';
+}) {
+  const borderStyle =
+    tone === 'decline'
+      ? `1px dashed var(--border)`
+      : tone === 'progress'
+      ? `1px solid var(--border)`
+      : `1px solid ${TYRIAN}`;
+
+  const bg =
+    tone === 'offer' || tone === 'accept' || tone === 'complete'
+      ? 'rgba(102,2,60,0.05)'
+      : 'transparent';
+
+  const tagColor = tone === 'decline' ? 'var(--muted-foreground)' : TYRIAN;
+
+  return (
+    <div
+      style={{
+        border: borderStyle,
+        padding: '1rem 1.25rem',
+        background: bg,
+        maxWidth: '58ch',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.55rem',
+        opacity: tone === 'decline' ? 0.7 : 1,
+      }}
+    >
+      <div
+        style={{
+          fontSize: '0.55rem',
+          fontFamily: 'monospace',
+          letterSpacing: '0.32em',
+          color: tagColor,
+          textTransform: 'none',
+        }}
+      >
+        {tag}
+      </div>
+      <div style={{ fontSize: '0.92rem', lineHeight: 1.6 }}>{summary}</div>
+      {body && (
+        <div style={{ fontSize: '0.82rem', lineHeight: 1.65, color: 'var(--muted-foreground)' }}>
+          {body}
+        </div>
+      )}
+    </div>
+  );
 }

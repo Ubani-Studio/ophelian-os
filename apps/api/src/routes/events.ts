@@ -299,6 +299,44 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
     }
     recentEvents.sort((a, b) => (a.ts < b.ts ? 1 : -1));
 
+    // Pending quests addressed to this character: walk every edge,
+    // find form='quest' events with this character as a non-proposer
+    // actor, exclude any that already have a quest_* resolution.
+    const offered: Array<{ questId: string; proposerId: string; summary: string; body?: string; ts: string }> = [];
+    const resolved = new Set<string>();
+    for (const edge of edges) {
+      const log = readLog(edge.eventLog);
+      for (const ev of log) {
+        if (!ev || typeof ev !== 'object' || (ev as { rolled_back?: boolean }).rolled_back) continue;
+        const evt = ev as { form?: string; questId?: string; actors?: string[]; summary?: string; body?: string; ts?: string };
+        const form = evt.form;
+        const qid = evt.questId;
+        if (!form || !qid) continue;
+        const actors = Array.isArray(evt.actors) ? evt.actors : [];
+        if (form === 'quest' && actors.length >= 2 && actors[0] !== id && actors.includes(id)) {
+          offered.push({
+            questId: qid,
+            proposerId: actors[0],
+            summary: evt.summary ?? '',
+            body: evt.body,
+            ts: evt.ts ?? '',
+          });
+        }
+        if (form === 'quest_accepted' || form === 'quest_declined' || form === 'quest_completed') {
+          resolved.add(qid);
+        }
+      }
+    }
+    const pendingQuests = offered
+      .filter((o) => !resolved.has(o.questId))
+      .map((o) => ({
+        questId: o.questId,
+        proposerName: neighbourById.get(o.proposerId)?.name ?? o.proposerId.slice(0, 6),
+        summary: o.summary,
+        body: o.body,
+        ts: o.ts,
+      }));
+
     let decision: Decision;
     try {
       decision = await decideTick({
@@ -325,6 +363,7 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
             neighbour: n ? { id: n.id, name: n.name, mode: n.mode } : { id: cId, name: cId.slice(0, 6), mode: 'espíritu' },
           };
         }),
+        pendingQuests,
       });
     } catch (err) {
       if (err instanceof TickThrottledError) {
@@ -374,15 +413,29 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
 
     const entryKind: EventKind =
       decision.kind === 'message' ? 'conversation' : 'thought';
-    const entry: EventEntry & { form?: string } = {
+
+    // Quest threading: a new form='quest' gets a generated id;
+    // quest_* responses inherit questId from the decision.
+    const { randomUUID } = await import('crypto');
+    let questId = decision.questId;
+    if (decision.form === 'quest' && !questId) {
+      questId = randomUUID();
+    }
+    const retention: Retention =
+      decision.form === 'quest_accepted' || decision.form === 'quest_completed'
+        ? 'canonical'
+        : 'ephemeral';
+
+    const entry: EventEntry & { form?: string; questId?: string } = {
       ts: new Date().toISOString(),
       actors,
       kind: entryKind,
       summary: decision.summary,
       body: decision.body,
-      retention: 'ephemeral',
+      retention,
       rolled_back: false,
       ...(decision.form ? { form: decision.form } : {}),
+      ...(questId ? { questId } : {}),
     };
 
     const targetEdge = await prisma.characterRelationship.findUnique({

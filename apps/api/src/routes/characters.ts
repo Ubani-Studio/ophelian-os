@@ -170,6 +170,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       authoredBy?: string | null;
       voiceSamples?: string[];
       compositionKind?: 'solo' | 'duo' | 'group' | 'collective';
+      setting?: 'modern' | 'mystical' | 'archaic' | 'past_life' | 'mythic' | 'surreal' | 'mixed';
       tongue?: {
         primaryLanguage?: string;
         dialect?: string;

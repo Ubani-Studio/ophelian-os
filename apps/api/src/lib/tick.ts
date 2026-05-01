@@ -41,6 +41,10 @@ export interface Decision {
   targetName?: string;
   summary: string;
   body?: string;
+  /** Quest threading. When the form is `quest`, this is the new
+   *  quest's id. When the form is quest_accepted / declined /
+   *  progress / completed, this references the original quest's id. */
+  questId?: string;
   source: 'anthropic' | 'stub';
 }
 
@@ -54,10 +58,24 @@ export interface TickInput {
   recentEvents: Array<{
     ts: string;
     kind: string;
+    form?: string;
     summary: string;
     counterpartName?: string;
+    questId?: string;
+    questState?: 'offered' | 'accepted' | 'declined' | 'progressing' | 'completed';
   }>;
   neighbours: RelationshipNeighbour[];
+  /** Pending quests addressed to this character that have not been
+   *  resolved (no quest_accepted / quest_declined response yet).
+   *  The tick prompt surfaces these explicitly so the receiver can
+   *  respond rather than ignoring. */
+  pendingQuests?: Array<{
+    questId: string;
+    proposerName: string;
+    summary: string;
+    body?: string;
+    ts: string;
+  }>;
 }
 
 function readVoiceSamples(raw: unknown): string[] {
@@ -358,6 +376,23 @@ function buildUserPrompt(input: TickInput): string {
         )
       );
   lines.push('');
+
+  // Surface pending quests addressed to this character. Receiver
+  // can respond with quest_accepted / quest_declined / quest_progress
+  // / quest_completed, threading via questId.
+  if (input.pendingQuests && input.pendingQuests.length > 0) {
+    lines.push('# Pending quests addressed to you');
+    for (const q of input.pendingQuests) {
+      lines.push(
+        `- questId="${q.questId}" · from ${q.proposerName} · "${q.summary}"${q.body ? ` (${q.body.slice(0, 120)})` : ''}`
+      );
+    }
+    lines.push(
+      'You may respond to one of these by setting form to quest_accepted / quest_declined / quest_progress / quest_completed AND including questId in the JSON. Or ignore them and do something else; ignored quests stay open.'
+    );
+    lines.push('');
+  }
+
   lines.push('# Neighbours (potential message / quest / dialogue targets)');
   if (input.neighbours.length === 0) lines.push('(none)');
   else
@@ -395,6 +430,7 @@ function parseDecision(text: string): Omit<Decision, 'source'> | null {
         targetName: typeof parsed.targetName === 'string' ? parsed.targetName : undefined,
         summary: stripEmDashes(parsed.summary),
         body: typeof parsed.body === 'string' ? stripEmDashes(parsed.body) : undefined,
+        questId: typeof parsed.questId === 'string' ? parsed.questId : undefined,
       };
     }
   } catch {

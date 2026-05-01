@@ -25,6 +25,7 @@ import * as cron from 'node-cron';
 import { prisma } from '../db.js';
 import { decideTick, TickThrottledError, type Decision } from './tick.js';
 import { LlmBudgetError } from './llm.js';
+import { randomUUID } from 'crypto';
 
 interface TickOutcome {
   characterId: string;
@@ -37,6 +38,63 @@ interface TickOutcome {
 function readEventLog(raw: unknown): Array<Record<string, unknown>> {
   if (!Array.isArray(raw)) return [];
   return raw as Array<Record<string, unknown>>;
+}
+
+/**
+ * Walk every event the character is an actor on and return open
+ * quests addressed TO them. A quest is "open" if there's no
+ * matching quest_accepted / quest_declined / quest_completed entry
+ * with the same questId.
+ */
+function findPendingQuests(
+  selfId: string,
+  edges: Array<{ id: string; sourceCharacterId: string; targetCharacterId: string; eventLog: unknown }>,
+  neighbourNames: Map<string, string>
+): Array<{ questId: string; proposerName: string; summary: string; body?: string; ts: string }> {
+  const offered: Array<{ questId: string; proposerId: string; summary: string; body?: string; ts: string }> = [];
+  const resolved = new Set<string>();
+
+  for (const edge of edges) {
+    const log = readEventLog(edge.eventLog);
+    for (const ev of log) {
+      if (!ev || typeof ev !== 'object') continue;
+      if (ev.rolled_back) continue;
+      const actors = Array.isArray(ev.actors) ? (ev.actors as string[]) : [];
+      const form = typeof ev.form === 'string' ? ev.form : null;
+      const qid = typeof ev.questId === 'string' ? ev.questId : null;
+      if (!form || !qid) continue;
+
+      // Quest offered to selfId: actors must include selfId AND
+      // selfId is NOT the proposer (proposer is the first actor).
+      if (form === 'quest' && actors.length >= 2 && actors[0] !== selfId && actors.includes(selfId)) {
+        offered.push({
+          questId: qid,
+          proposerId: actors[0],
+          summary: typeof ev.summary === 'string' ? ev.summary : '',
+          body: typeof ev.body === 'string' ? ev.body : undefined,
+          ts: typeof ev.ts === 'string' ? ev.ts : '',
+        });
+      }
+      // Resolution by selfId or anyone resolves the questId.
+      if (
+        form === 'quest_accepted' ||
+        form === 'quest_declined' ||
+        form === 'quest_completed'
+      ) {
+        resolved.add(qid);
+      }
+    }
+  }
+
+  return offered
+    .filter((o) => !resolved.has(o.questId))
+    .map((o) => ({
+      questId: o.questId,
+      proposerName: neighbourNames.get(o.proposerId) ?? o.proposerId.slice(0, 6),
+      summary: o.summary,
+      body: o.body,
+      ts: o.ts,
+    }));
 }
 
 /**
@@ -139,6 +197,12 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
   }
   recentEvents.sort((a, b) => (a.ts < b.ts ? 1 : -1));
 
+  const pendingQuests = findPendingQuests(
+    id,
+    edges,
+    new Map(neighbours.map((n) => [n.id, n.name]))
+  );
+
   let decision: Decision;
   try {
     decision = await decideTick({
@@ -165,6 +229,7 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
           neighbour: n ? { id: n.id, name: n.name, mode: n.mode } : { id: cId, name: cId.slice(0, 6), mode: 'espíritu' },
         };
       }),
+      pendingQuests,
     });
   } catch (err) {
     if (err instanceof TickThrottledError) {
@@ -227,6 +292,20 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
     };
   }
 
+  // Quest threading: a fresh form='quest' gets a new id; quest_*
+  // responses inherit the questId from the decision.
+  let questId = decision.questId;
+  if (decision.form === 'quest' && !questId) {
+    questId = randomUUID();
+  }
+
+  // Quest accepted / completed are canonical-eligible by nature
+  // (they record a commitment or a closed loop). Promote retention.
+  const retention =
+    decision.form === 'quest_accepted' || decision.form === 'quest_completed'
+      ? 'canonical'
+      : 'ephemeral';
+
   const log = readEventLog(targetEdge.eventLog);
   log.push({
     ts: new Date().toISOString(),
@@ -235,7 +314,8 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
     form: decision.form,
     summary: decision.summary,
     body: decision.body,
-    retention: 'ephemeral',
+    ...(questId ? { questId } : {}),
+    retention,
     rolled_back: false,
   });
   await prisma.characterRelationship.update({
