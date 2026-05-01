@@ -26,6 +26,7 @@ import { eventRoutes } from './routes/events.js';
 import { starforgeImportRoutes } from './routes/starforge-import.js';
 import { trailRoutes } from './routes/trail.js';
 import { realignRoutes } from './routes/realign.js';
+import { personaRoutes } from './routes/personas.js';
 import { startScheduler, runScheduledTickPass } from './lib/scheduler.js';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './storage/uploads';
@@ -104,6 +105,7 @@ async function start() {
     await fastify.register(starforgeImportRoutes);
     await fastify.register(trailRoutes);
     await fastify.register(realignRoutes);
+    await fastify.register(personaRoutes);
 
     // Manual tick-pass trigger. Lets the user fire the scheduler
     // immediately rather than waiting for the cron. Useful in beta:
