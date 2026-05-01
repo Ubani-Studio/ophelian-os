@@ -5,6 +5,7 @@ import { prisma } from '../db.js';
 import { callLlm, hasLlmProvider, LlmBudgetError } from '../lib/llm.js';
 import { LINEAGES, lineageContext, listLineages } from '../lib/lineages.js';
 import { isFieldLocked } from '../lib/identity-lock.js';
+import { stripEmDashes } from '../lib/strip-em-dashes.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -221,17 +222,7 @@ function buildAlignmentUser(opts: {
   return lines.join('\n');
 }
 
-// Belt-and-braces: even with the prompt forbidding em dashes,
-// some generations sneak them in. Replace with sentence break.
-function stripEmDashes(s: string): string {
-  if (typeof s !== 'string') return s;
-  // " — " (with spaces) becomes ". " (sentence break).
-  // "—" without spaces becomes ", " (clause join).
-  return s
-    .replace(/ [—–] /g, '. ')
-    .replace(/[—–]/g, ', ')
-    .replace(/\.\s*\./g, '.');
-}
+// (em-dash strip imported at top)
 
 function parseDraft(text: string): AlignedDraft | null {
   if (!text) return null;

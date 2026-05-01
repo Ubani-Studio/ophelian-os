@@ -165,17 +165,23 @@ export async function updateCharacter(id: string, data: Partial<Character>): Pro
   });
 }
 
-/** Manually set Subtaste primary (and optional secondary) for a
+/** Manually set Subtaste dominant + subdominant + shadow for a
  *  non-user character. Refused for isUser=true (use the Starforge
- *  import to update Ubani's Subtaste from Nommo). */
+ *  import to update Ubani's Subtaste from Nommo). Pass shadowCode
+ *  as undefined to auto-suggest from Wu Xing; null to clear. */
 export async function setSubtaste(
   characterId: string,
   primaryCode: string,
-  secondaryCode?: string | null
+  secondaryCode?: string | null,
+  shadowCode?: string | null
 ): Promise<{ ok: boolean; subtaste: Record<string, unknown> }> {
   return apiFetch(`/characters/${characterId}/subtaste`, {
     method: 'PATCH',
-    body: JSON.stringify({ primaryCode, secondaryCode: secondaryCode ?? null }),
+    body: JSON.stringify({
+      primaryCode,
+      secondaryCode: secondaryCode ?? null,
+      ...(shadowCode !== undefined ? { shadowCode } : {}),
+    }),
   });
 }
 

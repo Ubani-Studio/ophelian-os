@@ -1180,10 +1180,14 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
   // a new secondaryCode field.
   fastify.patch<{
     Params: { id: string };
-    Body: { primaryCode: string; secondaryCode?: string | null };
+    Body: {
+      primaryCode: string;
+      secondaryCode?: string | null;
+      shadowCode?: string | null;
+    };
   }>('/characters/:id/subtaste', async (request, reply) => {
     const { id } = request.params;
-    const { primaryCode, secondaryCode } = request.body;
+    const { primaryCode, secondaryCode, shadowCode } = request.body;
 
     const character = await prisma.character.findUnique({ where: { id } });
     if (!character) return reply.code(404).send({ error: 'Character not found' });
@@ -1200,6 +1204,9 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
     if (secondaryCode && !VALID.has(secondaryCode)) {
       return reply.code(400).send({ error: `Invalid secondary code: ${secondaryCode}` });
+    }
+    if (shadowCode && !VALID.has(shadowCode)) {
+      return reply.code(400).send({ error: `Invalid shadow code: ${shadowCode}` });
     }
 
     const ts = (character.timelineState as Record<string, unknown>) || {};
@@ -1222,6 +1229,20 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       'Ø': { glyph: 'VOID', label: 'Receptive' },
     };
 
+    // Wu Xing overcoming cycle: which designation a primary's
+    // element is overcome BY (the structural opposite). Used to
+    // suggest a default shadow when none provided.
+    const SHADOW_OF: Record<string, string> = {
+      'S-0': 'R-10', 'T-1': 'P-7', 'V-2': 'C-4', 'L-3': 'D-8',
+      'C-4': 'R-10', 'N-5': 'Ø',  'H-6': 'F-9', 'P-7': 'L-3',
+      'D-8': 'N-5', 'F-9': 'C-4', 'R-10': 'S-0', 'Ø': 'T-1',
+    };
+
+    const resolvedShadowCode =
+      shadowCode === null
+        ? null
+        : shadowCode || SHADOW_OF[primaryCode] || null;
+
     const newSubtaste = {
       ...existingSubtaste,
       code: primaryCode,
@@ -1234,6 +1255,13 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
             secondaryLabel: GLYPHS[secondaryCode].label,
           }
         : { secondaryCode: null, secondaryGlyph: null, secondaryLabel: null }),
+      ...(resolvedShadowCode
+        ? {
+            shadowCode: resolvedShadowCode,
+            shadowGlyph: GLYPHS[resolvedShadowCode].glyph,
+            shadowLabel: GLYPHS[resolvedShadowCode].label,
+          }
+        : { shadowCode: null, shadowGlyph: null, shadowLabel: null }),
     };
 
     const newTimelineState = {
@@ -1417,6 +1445,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Lazy import so route file stays light.
     const { callLlm, hasLlmProvider, LlmBudgetError } = await import('../lib/llm.js');
+    const { stripEmDashes } = await import('../lib/strip-em-dashes.js');
     if (!hasLlmProvider()) {
       return reply.code(400).send({
         error: 'No LLM provider configured. Set ANTHROPIC_API_KEY in apps/api/.env.',
@@ -1475,7 +1504,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       }
       return reply.send({
         characterId: character.id,
-        draft: result.text,
+        draft: stripEmDashes(result.text),
         source: result.source,
         usage: result.usage,
       });

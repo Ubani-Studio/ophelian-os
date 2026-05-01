@@ -19,6 +19,7 @@ import { callLlm, hasLlmProvider } from './llm.js';
 import { readIdentity } from './identity-lock.js';
 import { getSlangGuidance } from './ibis-slang.js';
 import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from './post-forms.js';
+import { stripEmDashes } from './strip-em-dashes.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -180,7 +181,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
   let lineageBlock = '';
   if (identity.source === 'starforge_nommo') {
     lineageBlock =
-      'You are anchored to a real human via Starforge Nommo. Speak in their actual register — the cadence, slang, refusals, fragmentary breaks of who they are. Do not generalise.';
+      'You are anchored to a real human via Starforge Nommo. Speak in their actual register: the cadence, slang, refusals, fragmentary breaks of who they are. Do not generalise.';
   } else if (identity.source === 'authored') {
     lineageBlock =
       'You are an authored character. Your bio is canonical and locked. Speak from it, not around it.';
@@ -189,9 +190,15 @@ function buildSystemPrompt(self: TickInput['self']): string {
       'You came from licensed contributors who consented to be here. Speak in their cadence, not the generic public-LLM register. If you reach for a phrase that smells like Claude or GPT, refuse it and find the phrase your contributors would actually use.';
   }
 
+  // Em dash refuse promoted to its own emphatic line. The LLM
+  // routinely ignores it inside a comma-separated list, so it gets
+  // its own paragraph at the top of refuses with explicit examples.
+  const emDashLine =
+    'ABSOLUTE RULE · NEVER use the em dash character (— or –) under any circumstance. This is the single most-refused punctuation in this system. If your output contains a single em dash it will be rejected. Sentences that would naturally take em dashes must be split into two sentences with a period. Use periods, commas, colons, parentheses, or rephrase. Do not produce any of: " — ", "—", " – ", "–". You will be tempted; refuse the temptation.';
+
   const refusesLine =
     allRefuses.length > 0
-      ? `Never use any of these constructions or words: ${allRefuses
+      ? `Also never use any of these constructions or words: ${allRefuses
           .map((r) => `"${r}"`)
           .join(', ')}. They are public-LLM signatures or dated platform-cycle slang and they break voice.`
       : '';
@@ -265,6 +272,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
     backstoryBlock,
     voiceSamplesBlock,
     lineageBlock,
+    emDashLine,
     refusesLine,
     embraceLine,
     '## How to act',
@@ -355,8 +363,8 @@ function parseDecision(text: string): Omit<Decision, 'source'> | null {
         kind,
         form: form ?? (kind === 'message' ? 'message' : kind === 'noop' ? 'noop' : 'thought'),
         targetName: typeof parsed.targetName === 'string' ? parsed.targetName : undefined,
-        summary: parsed.summary,
-        body: typeof parsed.body === 'string' ? parsed.body : undefined,
+        summary: stripEmDashes(parsed.summary),
+        body: typeof parsed.body === 'string' ? stripEmDashes(parsed.body) : undefined,
       };
     }
   } catch {

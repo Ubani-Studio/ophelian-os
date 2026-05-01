@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 import { z } from 'zod';
+import { stripEmDashes } from '../lib/strip-em-dashes.js';
 
 /**
  * POST /characters/:id/import-from-starforge
@@ -334,7 +335,7 @@ export async function starforgeImportRoutes(fastify: FastifyInstance): Promise<v
         };
       }
 
-      const bio = buildBio(character.name, ctx, nommoNorm);
+      const bio = stripEmDashes(buildBio(character.name, ctx, nommoNorm));
       const subtasteCode = ctx.subtaste?.archetype?.primary?.designation;
       const brandKeywords = ctx.twin_os?.brand_keywords || [];
       const personaTags =

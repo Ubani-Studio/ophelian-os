@@ -32,14 +32,27 @@ const SUBTASTE_TWELVE: Array<{ code: string; glyph: string; label: string; essen
   { code: 'Ø', glyph: 'VOID', label: 'Receptive', essence: 'The deliberate absence.' },
 ];
 
-function readSubtasteCodes(character: Character): { primary: string | null; secondary: string | null } {
+// Wu Xing overcoming cycle: each Subtaste's structural opposite.
+// Used to auto-suggest a shadow when the user picks dominant.
+const SHADOW_OF: Record<string, string> = {
+  'S-0': 'R-10', 'T-1': 'P-7', 'V-2': 'C-4', 'L-3': 'D-8',
+  'C-4': 'R-10', 'N-5': 'Ø',  'H-6': 'F-9', 'P-7': 'L-3',
+  'D-8': 'N-5', 'F-9': 'C-4', 'R-10': 'S-0', 'Ø': 'T-1',
+};
+
+function readSubtasteCodes(character: Character): {
+  primary: string | null;
+  secondary: string | null;
+  shadow: string | null;
+} {
   const ts = character.timelineState as
-    | { oripheon?: { generated?: { subtaste?: { code?: unknown; secondaryCode?: unknown } } } }
+    | { oripheon?: { generated?: { subtaste?: { code?: unknown; secondaryCode?: unknown; shadowCode?: unknown } } } }
     | undefined;
   const subtaste = ts?.oripheon?.generated?.subtaste ?? {};
   return {
     primary: typeof subtaste.code === 'string' ? subtaste.code : null,
     secondary: typeof subtaste.secondaryCode === 'string' ? subtaste.secondaryCode : null,
+    shadow: typeof subtaste.shadowCode === 'string' ? subtaste.shadowCode : null,
   };
 }
 
@@ -53,27 +66,34 @@ export function SubtastePicker({
   const initial = useMemo(() => readSubtasteCodes(character), [character]);
   const [primary, setPrimary] = useState<string | null>(initial.primary);
   const [secondary, setSecondary] = useState<string | null>(initial.secondary);
+  const [shadow, setShadow] = useState<string | null>(initial.shadow);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
   const isUser = character.isUser === true;
 
-  const persist = async (nextPrimary: string | null, nextSecondary: string | null) => {
+  const persist = async (
+    nextPrimary: string | null,
+    nextSecondary: string | null,
+    nextShadow: string | null | undefined
+  ) => {
     if (!nextPrimary) return;
-    setSaving(nextPrimary + (nextSecondary ?? ''));
+    setSaving(nextPrimary + (nextSecondary ?? '') + (nextShadow ?? ''));
     setError(null);
     try {
-      await setSubtaste(character.id, nextPrimary, nextSecondary);
-      // Optimistic local update: rebuild the timelineState slice the
-      // server just persisted so SubtasteBadge / Nexus panel update
-      // immediately without a refetch.
+      await setSubtaste(character.id, nextPrimary, nextSecondary, nextShadow);
       const ts = (character.timelineState as Record<string, unknown>) ?? {};
       const oripheon = (ts.oripheon as Record<string, unknown>) ?? {};
       const generated = (oripheon.generated as Record<string, unknown>) ?? {};
       const primaryMeta = SUBTASTE_TWELVE.find((s) => s.code === nextPrimary);
       const secondaryMeta = nextSecondary
         ? SUBTASTE_TWELVE.find((s) => s.code === nextSecondary)
+        : null;
+      // When shadow is undefined, server auto-suggested via Wu Xing.
+      const resolvedShadow = nextShadow === undefined ? SHADOW_OF[nextPrimary] : nextShadow;
+      const shadowMeta = resolvedShadow
+        ? SUBTASTE_TWELVE.find((s) => s.code === resolvedShadow)
         : null;
       const updatedCharacter: Character = {
         ...character,
@@ -90,11 +110,16 @@ export function SubtastePicker({
                 secondaryCode: nextSecondary ?? null,
                 secondaryGlyph: secondaryMeta?.glyph ?? null,
                 secondaryLabel: secondaryMeta?.label ?? null,
+                shadowCode: resolvedShadow ?? null,
+                shadowGlyph: shadowMeta?.glyph ?? null,
+                shadowLabel: shadowMeta?.label ?? null,
               },
             },
           },
         },
       };
+      // Reflect resolved shadow locally so the badge updates.
+      if (resolvedShadow) setShadow(resolvedShadow);
       onUpdated(updatedCharacter);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to set Subtaste');
@@ -105,9 +130,14 @@ export function SubtastePicker({
 
   const onPrimaryClick = (code: string) => {
     if (isUser) return;
+    const nextSecondary = secondary === code ? null : secondary;
+    const nextShadow = shadow === code ? null : shadow;
     setPrimary(code);
-    void persist(code, secondary === code ? null : secondary);
     if (secondary === code) setSecondary(null);
+    if (shadow === code) setShadow(null);
+    // Pass undefined for shadow so server auto-suggests via Wu Xing
+    // when none was explicitly chosen yet.
+    void persist(code, nextSecondary, shadow === null ? null : shadow === code ? null : nextShadow ?? undefined);
   };
 
   const onSecondaryClick = (code: string) => {
@@ -115,11 +145,22 @@ export function SubtastePicker({
     if (code === primary) return;
     const next = secondary === code ? null : code;
     setSecondary(next);
-    void persist(primary, next);
+    void persist(primary, next, shadow);
   };
 
+  const onShadowClick = (code: string) => {
+    if (isUser) return;
+    if (code === primary || code === secondary) return;
+    const next = shadow === code ? null : code;
+    setShadow(next);
+    void persist(primary, secondary, next);
+  };
+
+  const autoShadow = primary ? SHADOW_OF[primary] : null;
   const primaryMeta = primary ? SUBTASTE_TWELVE.find((s) => s.code === primary) : null;
   const secondaryMeta = secondary ? SUBTASTE_TWELVE.find((s) => s.code === secondary) : null;
+  const shadowMeta = shadow ? SUBTASTE_TWELVE.find((s) => s.code === shadow) : null;
+  const autoShadowMeta = autoShadow ? SUBTASTE_TWELVE.find((s) => s.code === autoShadow) : null;
 
   return (
     <div className="mt-4">
@@ -190,44 +231,24 @@ export function SubtastePicker({
               background: 'rgba(102,2,60,0.04)',
               fontSize: '0.78rem',
               lineHeight: 1.55,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
             }}
           >
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline', marginBottom: '0.25rem' }}>
-              <span style={{ color: 'var(--muted-foreground)', fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-                primary
-              </span>
-              {primaryMeta ? (
-                <span>
-                  <span style={{ color: TYRIAN, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                    {primaryMeta.code} {primaryMeta.glyph}
-                  </span>
-                  <span style={{ color: 'var(--muted-foreground)' }}> · {primaryMeta.label}</span>
-                </span>
-              ) : (
-                <em style={{ color: 'var(--muted-foreground)' }}>none</em>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
-              <span style={{ color: 'var(--muted-foreground)', fontFamily: 'monospace', fontSize: '0.55rem', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-                secondary
-              </span>
-              {secondaryMeta ? (
-                <span>
-                  <span style={{ color: TYRIAN, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-                    {secondaryMeta.code} {secondaryMeta.glyph}
-                  </span>
-                  <span style={{ color: 'var(--muted-foreground)' }}> · {secondaryMeta.label}</span>
-                </span>
-              ) : (
-                <em style={{ color: 'var(--muted-foreground)' }}>none</em>
-              )}
-            </div>
+            <SummaryRow label="dominant" meta={primaryMeta ?? null} />
+            <SummaryRow label="subdominant" meta={secondaryMeta ?? null} />
+            <SummaryRow
+              label="shadow"
+              meta={shadowMeta ?? null}
+              suggestion={!shadowMeta && autoShadowMeta ? autoShadowMeta : null}
+            />
           </div>
 
-          {/* Primary picker */}
+          {/* Dominant picker */}
           {!isUser && (
             <div>
-              <div style={pickerLabelStyle}>Pick primary</div>
+              <div style={pickerLabelStyle}>Pick dominant</div>
               <div style={gridStyle}>
                 {SUBTASTE_TWELVE.map((s) => (
                   <SubtasteButton
@@ -244,10 +265,10 @@ export function SubtastePicker({
             </div>
           )}
 
-          {/* Secondary picker */}
+          {/* Subdominant picker */}
           {!isUser && primary && (
             <div>
-              <div style={pickerLabelStyle}>Pick secondary (counterpoint)</div>
+              <div style={pickerLabelStyle}>Pick subdominant (counterpoint)</div>
               <div style={gridStyle}>
                 {SUBTASTE_TWELVE.map((s) => (
                   <SubtasteButton
@@ -261,6 +282,51 @@ export function SubtastePicker({
                     onClick={() => onSecondaryClick(s.code)}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Shadow picker */}
+          {!isUser && primary && (
+            <div>
+              <div style={pickerLabelStyle}>
+                Pick shadow (the register they reach for least)
+              </div>
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  color: 'var(--muted-foreground)',
+                  fontStyle: 'italic',
+                  fontFamily: '"Canela", serif',
+                  margin: '0 0 0.4rem 0',
+                  lineHeight: 1.5,
+                }}
+              >
+                {autoShadowMeta ? (
+                  <>
+                    Auto-suggested by Wu Xing: <strong style={{ color: 'var(--foreground)' }}>{autoShadowMeta.code} {autoShadowMeta.glyph}</strong>. Click any cell to override.
+                  </>
+                ) : (
+                  'Pick to override the auto-suggestion.'
+                )}
+              </p>
+              <div style={gridStyle}>
+                {SUBTASTE_TWELVE.map((s) => {
+                  const isAuto = !shadow && autoShadow === s.code;
+                  return (
+                    <SubtasteButton
+                      key={'sh-' + s.code}
+                      code={s.code}
+                      glyph={s.glyph}
+                      label={s.label}
+                      essence={s.essence}
+                      selected={shadow === s.code || isAuto}
+                      disabled={s.code === primary || s.code === secondary}
+                      ghost={isAuto}
+                      onClick={() => onShadowClick(s.code)}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -285,6 +351,51 @@ const gridStyle: React.CSSProperties = {
   gap: '0.3rem',
 };
 
+function SummaryRow({
+  label,
+  meta,
+  suggestion,
+}: {
+  label: string;
+  meta: { code: string; glyph: string; label: string } | null;
+  suggestion?: { code: string; glyph: string; label: string } | null;
+}) {
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+      <span
+        style={{
+          color: 'var(--muted-foreground)',
+          fontFamily: 'monospace',
+          fontSize: '0.55rem',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          minWidth: '90px',
+        }}
+      >
+        {label}
+      </span>
+      {meta ? (
+        <span>
+          <span style={{ color: TYRIAN, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+            {meta.code} {meta.glyph}
+          </span>
+          <span style={{ color: 'var(--muted-foreground)' }}> · {meta.label}</span>
+        </span>
+      ) : suggestion ? (
+        <span style={{ opacity: 0.55 }}>
+          <em style={{ color: 'var(--muted-foreground)' }}>auto: </em>
+          <span style={{ color: TYRIAN, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+            {suggestion.code} {suggestion.glyph}
+          </span>
+          <span style={{ color: 'var(--muted-foreground)' }}> · {suggestion.label}</span>
+        </span>
+      ) : (
+        <em style={{ color: 'var(--muted-foreground)' }}>none</em>
+      )}
+    </div>
+  );
+}
+
 function SubtasteButton({
   code,
   glyph,
@@ -292,6 +403,7 @@ function SubtasteButton({
   essence,
   selected,
   disabled,
+  ghost,
   onClick,
 }: {
   code: string;
@@ -300,6 +412,7 @@ function SubtasteButton({
   essence: string;
   selected: boolean;
   disabled?: boolean;
+  ghost?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -311,9 +424,15 @@ function SubtasteButton({
       style={{
         padding: '0.5rem 0.55rem',
         textAlign: 'left',
-        border: `1px solid ${selected ? TYRIAN : 'var(--border)'}`,
-        background: selected ? TYRIAN : 'transparent',
-        color: selected ? '#fff' : disabled ? 'var(--muted-foreground)' : 'var(--foreground)',
+        border: `1px ${ghost ? 'dashed' : 'solid'} ${selected ? TYRIAN : 'var(--border)'}`,
+        background: selected && !ghost ? TYRIAN : ghost ? 'rgba(102,2,60,0.06)' : 'transparent',
+        color: selected && !ghost
+          ? '#fff'
+          : ghost
+          ? TYRIAN
+          : disabled
+          ? 'var(--muted-foreground)'
+          : 'var(--foreground)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         borderRadius: 0,
         opacity: disabled ? 0.4 : 1,
