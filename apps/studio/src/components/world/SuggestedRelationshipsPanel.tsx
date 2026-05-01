@@ -12,9 +12,20 @@ type WuXingElement = 'wood' | 'fire' | 'earth' | 'metal' | 'water';
 type PipelinePhase = 'genesis' | 'vision' | 'refinement' | 'manifestation' | 'flow';
 type RelationalCycle = 'generating' | 'overcoming' | 'neutral';
 type ComparisonPattern = 'mirror' | 'complement' | 'parallel' | 'friction' | 'neutral';
+// Canonical Subtaste twelve. Designation key is the short code
+// (e.g. 'R-10'); the public-facing GLYPH (SCHISM) and creativeMode
+// label (Contrarian) are looked up via maps below. Mirrors
+// @subtaste/core's pantheon and packages/oripheon/src/data/subtaste-data.ts.
 type SubtasteDesignation =
-  | 'S-0 KĔṮU' | 'T-1 LŌRχE' | 'V-2 ØMÆRA' | 'L-3 Dū·ṂȺ' | 'C-4 ΞDŌN' | 'N-5 LIMŊ'
-  | 'H-6 ȺBŌLT' | 'P-7 ȺRVŌ' | 'D-8 RŌχ' | 'F-9 K̄ALØN' | 'R-10 TΞχRA' | 'NULL SÆ';
+  | 'S-0' | 'T-1' | 'V-2' | 'L-3' | 'C-4' | 'N-5'
+  | 'H-6' | 'P-7' | 'D-8' | 'F-9' | 'R-10' | 'Ø';
+
+// Public-facing glyph for each designation (e.g. R-10 → SCHISM).
+const SUBTASTE_GLYPHS: Record<SubtasteDesignation, string> = {
+  'S-0': 'KETH', 'T-1': 'STRATA', 'V-2': 'OMEN', 'L-3': 'SILT',
+  'C-4': 'CULL', 'N-5': 'LIMN', 'H-6': 'TOLL', 'P-7': 'VAULT',
+  'D-8': 'WICK', 'F-9': 'ANVIL', 'R-10': 'SCHISM', 'Ø': 'VOID',
+};
 
 interface Axes {
   orderChaos: number;
@@ -57,10 +68,10 @@ interface RelationshipMatrix {
 const PIPELINE: PipelinePhase[] = ['genesis', 'vision', 'refinement', 'manifestation', 'flow'];
 
 const PHASE_MAP: Record<SubtasteDesignation, PipelinePhase> = {
-  'S-0 KĔṮU': 'vision', 'T-1 LŌRχE': 'refinement', 'V-2 ØMÆRA': 'vision',
-  'L-3 Dū·ṂȺ': 'manifestation', 'C-4 ΞDŌN': 'refinement', 'N-5 LIMŊ': 'flow',
-  'H-6 ȺBŌLT': 'manifestation', 'P-7 ȺRVŌ': 'flow', 'D-8 RŌχ': 'flow',
-  'F-9 K̄ALØN': 'genesis', 'R-10 TΞχRA': 'genesis', 'NULL SÆ': 'flow',
+  'S-0': 'vision', 'T-1': 'refinement', 'V-2': 'vision',
+  'L-3': 'manifestation', 'C-4': 'refinement', 'N-5': 'flow',
+  'H-6': 'manifestation', 'P-7': 'flow', 'D-8': 'flow',
+  'F-9': 'genesis', 'R-10': 'genesis', 'Ø': 'flow',
 };
 
 const ELEMENT_MAP: Record<PipelinePhase, WuXingElement> = {
@@ -75,24 +86,31 @@ const WU_XING_KE: Record<WuXingElement, WuXingElement> = {
 };
 
 const GROWTH_ARROWS: Record<SubtasteDesignation, SubtasteDesignation> = {
-  'S-0 KĔṮU': 'D-8 RŌχ', 'T-1 LŌRχE': 'N-5 LIMŊ', 'V-2 ØMÆRA': 'L-3 Dū·ṂȺ',
-  'L-3 Dū·ṂȺ': 'S-0 KĔṮU', 'C-4 ΞDŌN': 'H-6 ȺBŌLT', 'N-5 LIMŊ': 'V-2 ØMÆRA',
-  'H-6 ȺBŌLT': 'T-1 LŌRχE', 'P-7 ȺRVŌ': 'C-4 ΞDŌN', 'D-8 RŌχ': 'F-9 K̄ALØN',
-  'F-9 K̄ALØN': 'N-5 LIMŊ', 'R-10 TΞχRA': 'H-6 ȺBŌLT', 'NULL SÆ': 'R-10 TΞχRA',
+  'S-0': 'D-8', 'T-1': 'N-5', 'V-2': 'L-3',
+  'L-3': 'S-0', 'C-4': 'H-6', 'N-5': 'V-2',
+  'H-6': 'T-1', 'P-7': 'C-4', 'D-8': 'F-9',
+  'F-9': 'N-5', 'R-10': 'H-6', 'Ø': 'R-10',
 };
 const STRESS_ARROWS: Record<SubtasteDesignation, SubtasteDesignation> = {
-  'S-0 KĔṮU': 'R-10 TΞχRA', 'T-1 LŌRχE': 'P-7 ȺRVŌ', 'V-2 ØMÆRA': 'C-4 ΞDŌN',
-  'L-3 Dū·ṂȺ': 'D-8 RŌχ', 'C-4 ΞDŌN': 'R-10 TΞχRA', 'N-5 LIMŊ': 'NULL SÆ',
-  'H-6 ȺBŌLT': 'F-9 K̄ALØN', 'P-7 ȺRVŌ': 'L-3 Dū·ṂȺ', 'D-8 RŌχ': 'N-5 LIMŊ',
-  'F-9 K̄ALØN': 'C-4 ΞDŌN', 'R-10 TΞχRA': 'S-0 KĔṮU', 'NULL SÆ': 'T-1 LŌRχE',
+  'S-0': 'R-10', 'T-1': 'P-7', 'V-2': 'C-4',
+  'L-3': 'D-8', 'C-4': 'R-10', 'N-5': 'Ø',
+  'H-6': 'F-9', 'P-7': 'L-3', 'D-8': 'N-5',
+  'F-9': 'C-4', 'R-10': 'S-0', 'Ø': 'T-1',
 };
 
+// Canonical creativeMode label per designation (matches @subtaste/core
+// pantheon and packages/oripheon/src/data/subtaste-data.ts).
 const SUBTASTE_LABELS: Record<SubtasteDesignation, string> = {
-  'S-0 KĔṮU': 'Witness', 'T-1 LŌRχE': 'Recursion', 'V-2 ØMÆRA': 'Translation',
-  'L-3 Dū·ṂȺ': 'Transport', 'C-4 ΞDŌN': 'Interruption', 'N-5 LIMŊ': 'Binding',
-  'H-6 ȺBŌLT': 'Amplification', 'P-7 ȺRVŌ': 'Dampening', 'D-8 RŌχ': 'Shadow',
-  'F-9 K̄ALØN': 'Ignition', 'R-10 TΞχRA': 'Division', 'NULL SÆ': 'Anchor',
+  'S-0': 'Visionary', 'T-1': 'Architectural', 'V-2': 'Prophetic',
+  'L-3': 'Developmental', 'C-4': 'Editorial', 'N-5': 'Integrative',
+  'H-6': 'Advocacy', 'P-7': 'Archival', 'D-8': 'Channelling',
+  'F-9': 'Manifestation', 'R-10': 'Contrarian', 'Ø': 'Receptive',
 };
+
+// Convenience: combined display string (e.g. "R-10 SCHISM").
+function designationDisplay(d: SubtasteDesignation): string {
+  return `${d} ${SUBTASTE_GLYPHS[d]}`;
+}
 
 function deriveSubtaste(axes: Axes): SubtasteDesignation {
   const { orderChaos, mercyRuthlessness, introvertExtrovert, faithDoubt } = axes;
@@ -101,18 +119,18 @@ function deriveSubtaste(axes: Axes): SubtasteDesignation {
   const action = (orderChaos + introvertExtrovert) / 2;
   const reception = ((1 - orderChaos) + (1 - introvertExtrovert)) / 2;
 
-  if (authority > 0.7 && orderChaos > 0.6) return 'S-0 KĔṮU';
-  if (introvertExtrovert < 0.35 && faithDoubt < 0.4) return 'T-1 LŌRχE';
-  if (faithDoubt > 0.7 && intuition > 0.6) return 'V-2 ØMÆRA';
-  if (mercyRuthlessness < 0.4 && action < 0.4) return 'L-3 Dū·ṂȺ';
-  if (mercyRuthlessness > 0.65 && orderChaos > 0.4 && orderChaos < 0.7) return 'C-4 ΞDŌN';
-  if (introvertExtrovert > 0.65 && faithDoubt > 0.5) return 'N-5 LIMŊ';
-  if (mercyRuthlessness < 0.35 && introvertExtrovert > 0.55) return 'H-6 ȺBŌLT';
-  if (introvertExtrovert < 0.4 && orderChaos > 0.6) return 'P-7 ȺRVŌ';
-  if (orderChaos < 0.35 && reception > 0.5) return 'D-8 RŌχ';
-  if (action > 0.6 && mercyRuthlessness > 0.55) return 'F-9 K̄ALØN';
-  if (orderChaos < 0.25) return 'R-10 TΞχRA';
-  return 'NULL SÆ';
+  if (authority > 0.7 && orderChaos > 0.6) return 'S-0';
+  if (introvertExtrovert < 0.35 && faithDoubt < 0.4) return 'T-1';
+  if (faithDoubt > 0.7 && intuition > 0.6) return 'V-2';
+  if (mercyRuthlessness < 0.4 && action < 0.4) return 'L-3';
+  if (mercyRuthlessness > 0.65 && orderChaos > 0.4 && orderChaos < 0.7) return 'C-4';
+  if (introvertExtrovert > 0.65 && faithDoubt > 0.5) return 'N-5';
+  if (mercyRuthlessness < 0.35 && introvertExtrovert > 0.55) return 'H-6';
+  if (introvertExtrovert < 0.4 && orderChaos > 0.6) return 'P-7';
+  if (orderChaos < 0.35 && reception > 0.5) return 'D-8';
+  if (action > 0.6 && mercyRuthlessness > 0.55) return 'F-9';
+  if (orderChaos < 0.25) return 'R-10';
+  return 'Ø';
 }
 
 function analyzeProfile(axes: Axes): ProfileAnalysis {
@@ -294,7 +312,13 @@ export function computeSuggestionForPair(
 
 export interface SubtasteInfo {
   subtaste: SubtasteDesignation;
+  glyph: string;
+  display: string;            // "R-10 SCHISM"
   label: string;
+  growthGlyph: string;
+  growthDisplay: string;
+  stressGlyph: string;
+  stressDisplay: string;
   phase: PipelinePhase;
   wuXingElement: WuXingElement;
   growth: SubtasteDesignation;
@@ -306,30 +330,71 @@ export interface SubtasteInfo {
 }
 
 export function getSubtasteInfo(character: Character): SubtasteInfo | null {
-  const axes = extractAxes(character);
-  if (!axes) return null;
+  // Prefer the explicitly stored designation when present. Set by the
+  // Starforge import (Nommo quiz cache). Falls through to axes-derived
+  // guess only when no explicit code exists. This is what makes Ubani
+  // show R-10 SCHISM (his real Nommo) rather than V-2 OMEN (his
+  // Oripheon-axes guess).
+  const stored = readStoredSubtaste(character);
+  let subtaste: SubtasteDesignation | null = null;
+  let phase: PipelinePhase | null = null;
 
-  const profile = analyzeProfile(axes);
-  const el = profile.wuXingElement;
+  if (stored) {
+    subtaste = stored;
+    phase = PHASE_MAP[stored];
+  } else {
+    const axes = extractAxes(character);
+    if (!axes) return null;
+    const profile = analyzeProfile(axes);
+    subtaste = profile.subtaste;
+    phase = profile.phase;
+  }
 
+  if (!subtaste || !phase) return null;
+  const el = ELEMENT_MAP[phase];
+
+  const growth = GROWTH_ARROWS[subtaste];
+  const stress = STRESS_ARROWS[subtaste];
   return {
-    subtaste: profile.subtaste,
-    label: SUBTASTE_LABELS[profile.subtaste],
-    phase: profile.phase,
+    subtaste,
+    glyph: SUBTASTE_GLYPHS[subtaste],
+    display: designationDisplay(subtaste),
+    label: SUBTASTE_LABELS[subtaste],
+    growthGlyph: SUBTASTE_GLYPHS[growth],
+    growthDisplay: designationDisplay(growth),
+    stressGlyph: SUBTASTE_GLYPHS[stress],
+    stressDisplay: designationDisplay(stress),
+    phase,
     wuXingElement: el,
-    growth: GROWTH_ARROWS[profile.subtaste],
-    growthLabel: SUBTASTE_LABELS[GROWTH_ARROWS[profile.subtaste]],
-    stress: STRESS_ARROWS[profile.subtaste],
-    stressLabel: SUBTASTE_LABELS[STRESS_ARROWS[profile.subtaste]],
+    growth,
+    growthLabel: SUBTASTE_LABELS[growth],
+    stress,
+    stressLabel: SUBTASTE_LABELS[stress],
     generates: WU_XING_GEN[el],
     overcomeBy: WU_XING_KE[el] === el ? el : (() => {
-      // find what overcomes this element
       for (const [k, v] of Object.entries(WU_XING_KE)) {
         if (v === el) return k as WuXingElement;
       }
       return el;
     })(),
   };
+}
+
+// Reads the canonical Subtaste code from timelineState, normalising
+// any legacy string format ("S-0 KĔṮU") to the new key ("S-0").
+function readStoredSubtaste(character: Character): SubtasteDesignation | null {
+  const ts = character.timelineState as
+    | { oripheon?: { generated?: { subtaste?: { code?: unknown } } } }
+    | undefined;
+  const raw = ts?.oripheon?.generated?.subtaste?.code;
+  if (typeof raw !== 'string') return null;
+  // Take the leading code chunk before any space (handles both "R-10"
+  // and legacy "R-10 TΞχRA" formats).
+  const code = raw.split(/\s+/)[0];
+  // Map legacy 'NULL' to canonical 'Ø'.
+  const normalised = code === 'NULL' ? 'Ø' : code;
+  if (normalised in PHASE_MAP) return normalised as SubtasteDesignation;
+  return null;
 }
 
 // ============================================================================

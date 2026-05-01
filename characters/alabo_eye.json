@@ -1,0 +1,39 @@
+{
+  "name": "alabo_eye",
+  "trigger": "alabo_eye",
+  "display_name": "Alabo Eye (style)",
+  "description": "Visual taste LoRA trained on 117 Tizita Apex photos (Crown + Favorite + 5★). Style only — applies aesthetic, no character identity.",
+  "type": "style",
+
+  "lora": {
+    "local": "D:\\Visuals\\ComfyUI\\models\\loras\\alabo_eye_v1.safetensors",
+    "wsl_local": "/mnt/d/Visuals/ComfyUI/models/loras/alabo_eye_v1.safetensors",
+    "replicate_destination": "bomac1193/alabo-eye-flux",
+    "replicate_version": "d6a007bc8b8471b190ca7f739f66f672ca4c4e5819bb888378313fe8bb59604b",
+    "trigger": "alabo_eye",
+    "trained_on": "FLUX-dev",
+    "trained_at": "2026-04-27T22:46:28Z",
+    "rank": 16,
+    "steps": 1000,
+    "training_set_size": 117
+  },
+
+  "stack_with": [],
+
+  "voice": null,
+
+  "brand": {
+    "primary_color": "#0a0a0a",
+    "accent_color": "#d4a657",
+    "tagline": "post-vanity aesthetic",
+    "rights": "owner: bomac1193, exclusive use",
+    "license": "private"
+  },
+
+  "metahuman": null,
+
+  "default_prompt_prefix": "alabo_eye,",
+  "default_negative": "",
+  "preferred_aspect": "9:16",
+  "preferred_quality": "high"
+}

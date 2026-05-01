@@ -7,6 +7,10 @@ import {
   SubjectType,
   LicenseType,
   EventType,
+  CharacterSource,
+  VoiceSource,
+  ConsentRecordType,
+  ConsentSource,
 } from './enums.js';
 
 // Character schemas
@@ -22,6 +26,10 @@ export const CreateCharacterSchema = z.object({
   systemPrompt: z.string().default(''),
   currentArc: z.string().nullable().default(null),
   timelineState: z.record(z.unknown()).default({}),
+  // Identity & source tracking
+  source: z.enum([CharacterSource.GENERATED, CharacterSource.PERSONA, CharacterSource.TWIN]).default(CharacterSource.GENERATED),
+  realIdentityId: z.string().nullable().default(null),
+  biometricHash: z.string().nullable().default(null),
 });
 export type CreateCharacterInput = z.infer<typeof CreateCharacterSchema>;
 
@@ -38,6 +46,10 @@ export const CreateVoiceProfileSchema = z.object({
   providerVoiceId: z.string().nullable().default(null),
   label: z.string().min(1).max(255),
   meta: z.record(z.unknown()).default({}),
+  // Identity & source tracking
+  source: z.enum([VoiceSource.UPLOADED, VoiceSource.PERSONA, VoiceSource.CLONED, VoiceSource.SYNTHESIZED]).default(VoiceSource.SYNTHESIZED),
+  realIdentityId: z.string().nullable().default(null),
+  biometricHash: z.string().nullable().default(null),
 });
 export type CreateVoiceProfileInput = z.infer<typeof CreateVoiceProfileSchema>;
 
@@ -45,7 +57,7 @@ export const VoiceProfileSchema = CreateVoiceProfileSchema.extend({
   id: z.string().cuid(),
   createdAt: z.date(),
   updatedAt: z.date(),
-  // o8 Provenance integration
+  // o8 Provenance integration (deprecated - use realIdentityId)
   o8IdentityId: z.string().nullable().optional(),
   voiceFingerprint: z.string().nullable().optional(),
 });
@@ -70,6 +82,8 @@ export const CreateLicenseSchema = z.object({
   licenseType: z.enum([LicenseType.EXCLUSIVE, LicenseType.NON_EXCLUSIVE, LicenseType.REVSHARE]),
   royaltySplits: RoyaltySplitsSchema.default({ voiceActor: 50, creator: 30, platform: 20 }),
   terms: z.string().nullable().default(null),
+  // Public-facing token (short, memorable - e.g., "FX-91A")
+  publicToken: z.string().nullable().default(null),
 });
 export type CreateLicenseInput = z.infer<typeof CreateLicenseSchema>;
 
@@ -79,6 +93,56 @@ export const LicenseSchema = CreateLicenseSchema.extend({
   updatedAt: z.date(),
 });
 export type License = z.infer<typeof LicenseSchema>;
+
+// Consent permissions - what was consented to
+export const ConsentPermissionsSchema = z.object({
+  synthesis: z.boolean().default(false),      // Allow voice/visual synthesis
+  training: z.boolean().default(false),       // Allow AI training on data
+  commercial: z.boolean().default(false),     // Allow commercial use
+  modification: z.boolean().default(false),   // Allow modifications
+  attribution: z.boolean().default(true),     // Require attribution
+  derivativeWorks: z.boolean().default(false), // Allow derivative works
+});
+export type ConsentPermissions = z.infer<typeof ConsentPermissionsSchema>;
+
+// Consent record - immutable audit trail entry
+export const CreateConsentRecordSchema = z.object({
+  type: z.enum([
+    ConsentRecordType.CREATION,
+    ConsentRecordType.SYNTHESIS,
+    ConsentRecordType.TRAINING,
+    ConsentRecordType.COMMERCIAL_USE,
+    ConsentRecordType.MODIFICATION,
+    ConsentRecordType.PERSONA_IMPORT,
+    ConsentRecordType.REVOCATION,
+  ]),
+  source: z.enum([
+    ConsentSource.USER,
+    ConsentSource.O8,
+    ConsentSource.STARFORGE,
+    ConsentSource.SEMBLA,
+    ConsentSource.API,
+  ]),
+  sourceId: z.string().nullable().default(null),    // ID from external system
+  grantedBy: z.string().nullable().default(null),   // Email or user ID
+  permissions: ConsentPermissionsSchema,
+  terms: z.string().nullable().default(null),       // Link to terms accepted
+  metadata: z.record(z.unknown()).default({}),
+  // Link to subject (one of these should be set)
+  characterId: z.string().nullable().default(null),
+  voiceProfileId: z.string().nullable().default(null),
+  licenseId: z.string().nullable().default(null),
+  genomeId: z.string().nullable().default(null),
+});
+export type CreateConsentRecordInput = z.infer<typeof CreateConsentRecordSchema>;
+
+export const ConsentRecordSchema = CreateConsentRecordSchema.extend({
+  id: z.string().cuid(),
+  timestamp: z.date(),
+  previousHash: z.string().nullable(),  // SHA256 of previous record
+  hash: z.string(),                     // SHA256 of this record
+});
+export type ConsentRecord = z.infer<typeof ConsentRecordSchema>;
 
 // ContentItem schemas
 export const CreateContentItemSchema = z.object({

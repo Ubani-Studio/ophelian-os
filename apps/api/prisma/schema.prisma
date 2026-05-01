@@ -29,7 +29,32 @@ model Character {
   id              String   @id @default(cuid())
   name            String
   aliases         String[]
+  // Public-surface identity. Brief (one paragraph). Shown on
+  // cards, character pages, and as the "voice anchor" in the tick
+  // prompt. The character speaks in the cadence implied here but
+  // does NOT regurgitate phrases from this field.
   bio             String   @default("")
+  // Deeper context. Used by the tick LLM as background to inform
+  // decisions but never displayed in UI and never quoted back.
+  // Holds psychology, history, contradictions, secrets, the
+  // fragments of inner life that make the character feel like an
+  // NPC rather than a templated stub. Optional. When empty, tick
+  // prompts use bio alone.
+  backstory       String   @default("")
+
+  // The artist or author whose register this character speaks in.
+  // Free-text for now; future work links to a Sembla / 08 artist
+  // identity once cohort onboarding ships. When set, tick prompt
+  // tells the LLM "you are authored by X, speak in their register,
+  // not the user's." Pre-LoRA bridge to per-character voice.
+  authoredBy      String?
+
+  // Few-shot voice samples in the authoring artist's voice. Array
+  // of 3-8 short paragraphs. Tick prompt leads with these so the
+  // LLM matches cadence, slang, and refusals from real material
+  // rather than its substrate register. The pre-LoRA bridge to
+  // per-character voice authenticity.
+  voiceSamples    Json     @default("[]")
   avatarUrl       String?
   avatarPosition  String   @default("50% 50%")
   personaTags     String[]
@@ -100,6 +125,26 @@ model Character {
   // Goals as a separate convenience field (mirrored from agencyScope
   // for fast access).
   goals Json @default("[]")
+
+  // The self anchor. Exactly one Character should carry isUser=true:
+  // the human user (Ubani). Marks them as identity-defended,
+  // Starforge-import target, and inbox recipient. Manual mode only.
+  isUser Boolean @default(false)
+
+  // Last time this character (when isUser=true) opened the morning
+  // trail. Used to scope "what happened since you were last here?"
+  // No-op for non-user characters.
+  lastSeenAt DateTime?
+
+  // Identity envelope. JSON shape:
+  //   {
+  //     locked: string[],                  // field names that auto-syncs must skip
+  //     pinned: { heritage?, order?, ... }, // generator constraints
+  //     source: 'sandbox' | 'starforge_nommo' | 'tizita_persona' | 'authored',
+  //     realIdentityRef: { starforgeUserId?, email? }
+  //   }
+  // See docs/identity-lock-and-starforge.md for the full design.
+  identity Json @default("{}")
 
   // Òrò world membership. Carried over so worlds migrated from Òrò
   // (e.g. "Station 8") keep their character bindings.

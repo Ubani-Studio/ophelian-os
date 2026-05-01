@@ -1,0 +1,40 @@
+{
+  "name": "ubani_v2",
+  "trigger": "ubani",
+  "display_name": "Ubani v2 (real-only)",
+  "description": "Character LoRA v2. 23 curated real-camera photos only — no AI-gen contamination. Use this for varied scene generation. v1 (ubani) is kept for the dramatic-editorial register where it works well.",
+  "type": "character",
+  "lora": {
+    "local": "D:\\Visuals\\ComfyUI\\models\\loras\\ubani_v2.safetensors",
+    "wsl_local": "/mnt/d/Visuals/ComfyUI/models/loras/ubani_v2.safetensors",
+    "replicate_destination": "bomac1193/ubani-v2-flux",
+    "replicate_version": "366f12364bfe10070026bb55fee8d2e8f246f61315160e5e32ded965a043c351",
+    "trigger": "ubani",
+    "trained_on": "FLUX-dev",
+    "trained_at": "2026-04-29T04:09:41Z",
+    "rank": 16,
+    "steps": 1800,
+    "training_set_size": 23,
+    "_status": "TRAINED",
+    "_notes": "Real photos only. Zero AI-gen images. Should generalize cleanly across scenes/lighting."
+  },
+  "primary_reference_image": {
+    "wsl_path": "/home/sphinxy/Feedback/lora_training/ubani_photos/This One/real_012_DSC02838.JPG",
+    "windows_path": "\\\\wsl.localhost\\Ubuntu\\home\\sphinxy\\Feedback\\lora_training\\ubani_photos\\This One\\real_012_DSC02838.JPG",
+    "description": "User's favorite. Use as canonical face for PuLID workflows and future MetaHuman face scan."
+  },
+  "stack_with": ["alabo_eye"],
+  "voice": null,
+  "brand": {
+    "primary_color": "#1a1a1a",
+    "accent_color": "#8b3a3a",
+    "tagline": "",
+    "rights": "owner: bomac1193, exclusive use",
+    "license": "private"
+  },
+  "metahuman": null,
+  "default_prompt_prefix": "alabo_eye, ubani,",
+  "default_negative": "",
+  "preferred_aspect": "9:16",
+  "preferred_quality": "high"
+}

@@ -35,6 +35,17 @@ export interface Character {
   name: string;
   aliases: string[];
   bio: string;
+  /** Deeper context. Used by the tick LLM as background; never
+   *  displayed in card surfaces, never quoted by the character.
+   *  Edit via the Backstory section on the character detail page. */
+  backstory?: string;
+  /** Free-text name of the artist whose register voices this
+   *  character. Pre-LoRA bridge to per-character voice. */
+  authoredBy?: string | null;
+  /** Few-shot voice samples (3-8 short paragraphs). Tick prompt
+   *  leads with these so generation matches the authoring artist's
+   *  cadence rather than the substrate model's default. */
+  voiceSamples?: string[];
   avatarUrl: string | null;
   avatarPosition: string;
   personaTags: string[];
@@ -92,6 +103,31 @@ export interface Character {
     rollbackEnabled?: boolean;
   };
   goals?: string[];
+  /** Self anchor — exactly one Character should be true (Ubani). */
+  isUser?: boolean;
+  /** Identity envelope: locked fields, source provenance, sovereignty
+   *  level. See docs/identity-lock-and-starforge.md and
+   *  docs/sovereignty.md. */
+  identity?: {
+    locked?: string[];
+    pinned?: Record<string, string | undefined>;
+    source?: 'sandbox' | 'starforge_nommo' | 'tizita_persona' | 'authored';
+    realIdentityRef?: { starforgeUserId?: string; email?: string };
+    sovereignty?: {
+      level?: 0 | 1 | 2;
+      base_model?: string;
+      inference_path?: string;
+      lora_pins?: Array<{
+        lora_id: string;
+        contributor_id?: string;
+        weight?: number;
+        role?: string;
+      }>;
+      refuses?: string[];
+    };
+  };
+  /** Last time the user (isUser=true) opened the morning trail. */
+  lastSeenAt?: string | null;
 }
 
 export async function getCharacters(): Promise<Character[]> {
@@ -113,6 +149,61 @@ export async function updateCharacter(id: string, data: Partial<Character>): Pro
   return apiFetch<Character>(`/characters/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+/** Generate a draft backstory using bio + Subtaste + voice samples
+ *  + authoredBy. Returns the draft text; the user reviews and saves
+ *  separately via updateCharacter({ backstory }). */
+export async function generateBackstoryDraft(
+  characterId: string
+): Promise<{ draft: string; source: 'anthropic' | 'stub' }> {
+  return apiFetch<{ draft: string; source: 'anthropic' | 'stub' }>(
+    `/characters/${characterId}/generate-backstory`,
+    { method: 'POST', body: JSON.stringify({}) }
+  );
+}
+
+// =============================================================================
+// Aligned generator (lineage + Subtaste + brief → coherent fields)
+// =============================================================================
+
+export interface LineageOption {
+  id: string;
+  label: string;
+  region: string;
+  advisorGated: boolean;
+}
+
+export type RealignField = 'bio' | 'backstory' | 'aliases' | 'personaTags' | 'goals';
+
+export interface RealignDraft {
+  bio?: string;
+  backstory?: string;
+  aliases?: string[];
+  personaTags?: string[];
+  goals?: string[];
+}
+
+export async function listLineages(): Promise<LineageOption[]> {
+  const res = await apiFetch<{ lineages: LineageOption[] }>(`/lineages`);
+  return res.lineages;
+}
+
+export async function realignCharacter(
+  characterId: string,
+  options: {
+    lineage?: string;
+    brief?: string;
+    subtasteCode?: string;
+    fields: RealignField[];
+    apply?: boolean;
+    respectLocks?: boolean;
+  }
+): Promise<{ draft: RealignDraft; applied: boolean; skipped?: string[] }> {
+  return apiFetch(`/characters/${characterId}/realign`, {
+    method: 'POST',
+    body: JSON.stringify(options),
   });
 }
 

@@ -23,6 +23,14 @@ import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
 import { LoraPanel } from '@/components/LoraPanel';
 import { ModePill } from '@/components/ModePill';
+import { TimelineStrip } from '@/components/TimelineStrip';
+import { GoalsPanel } from '@/components/GoalsPanel';
+import { TickButton } from '@/components/TickButton';
+import { SubtasteBadge } from '@/components/SubtasteBadge';
+import { SovereigntyBadge } from '@/components/SovereigntyBadge';
+import { BackstoryPanel } from '@/components/BackstoryPanel';
+import { VoicePanel } from '@/components/VoicePanel';
+import { ForgePanel } from '@/components/ForgePanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
 export default function CharacterDetailPage() {
@@ -72,6 +80,9 @@ export default function CharacterDetailPage() {
   const [editingAliasIndex, setEditingAliasIndex] = useState<number | null>(null);
   const [editedAlias, setEditedAlias] = useState('');
   const [savingAlias, setSavingAlias] = useState(false);
+
+  // Bumped after a tick lands; tells TimelineStrip to refetch.
+  const [timelineRefreshKey, setTimelineRefreshKey] = useState(0);
 
   const loadData = async () => {
     try {
@@ -542,6 +553,13 @@ export default function CharacterDetailPage() {
                 {character.name}
               </h1>
               <ModePill mode={character.mode} twinOfName={character.twinOf ? 'Ubani' : null} />
+              <SubtasteBadge timelineState={character.timelineState} />
+              <SovereigntyBadge identity={character.identity} />
+              <TickButton
+                characterId={character.id}
+                mode={character.mode}
+                onTicked={() => setTimelineRefreshKey((k) => k + 1)}
+              />
               {character.tizitaPersonaId && <IkengaEmblem />}
             </div>
           )}
@@ -729,6 +747,17 @@ export default function CharacterDetailPage() {
           </div>
           </>
           )}
+
+          {/* Memory tending · Phase 2 of agentic-build.md.
+              Lives below the expression tabs because what a
+              character is can be read off their outputs (left column
+              tabs) and what they remember (this strip). The right
+              column is structural identity. */}
+          <TimelineStrip
+            characterId={character.id}
+            characterName={character.name}
+            refreshKey={timelineRefreshKey}
+          />
         </div>
 
         {/* Character Info Sidebar */}
@@ -919,6 +948,30 @@ export default function CharacterDetailPage() {
               characterId={character.id}
               initialLoras={character.loras ?? []}
             />
+
+            {/* Goals · perimeter of intent. Shapes the tick prompt.
+                Hidden for manual / relic. */}
+            <GoalsPanel
+              characterId={character.id}
+              mode={character.mode}
+              initialGoals={character.goals}
+            />
+
+            {/* Forge · aligned character generator. Lineage +
+                Subtaste + brief produce coherent bio / backstory /
+                aliases / tags / goals in one pass. Sheaf theory:
+                shared anchor, locally chaotic, globally consistent. */}
+            <ForgePanel character={character} onUpdated={setCharacter} />
+
+            {/* Voice · authoredBy + few-shot voice samples. The
+                pre-LoRA bridge to per-character voice authenticity.
+                Paste artist samples; tick prompt leads with them. */}
+            <VoicePanel character={character} onUpdated={setCharacter} />
+
+            {/* Backstory · deeper context for the tick LLM. Never
+                displayed in cards, never quoted by the character.
+                Collapsed by default. Empty by default. */}
+            <BackstoryPanel character={character} onUpdated={setCharacter} />
 
             <div>
               {/* Aliases Section - Editable like Persona Tags */}

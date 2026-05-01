@@ -128,3 +128,25 @@ export {
   type O8VoiceDNA,
   type VoiceUsageValidation,
 } from './o8-client.js';
+
+// Consent chain utilities
+export {
+  generateLicenseToken,
+  computeConsentHash,
+  buildConsentRecord,
+  verifyConsentChain,
+  checkConsentForPermission,
+  generateBiometricHash,
+  verifyBiometricHash,
+  type BuildConsentRecordOptions,
+  type ChainVerificationResult,
+  type ConsentCheckResult,
+} from './consent.js';
+
+// Re-export consent types from shared
+export {
+  ConsentRecordType,
+  ConsentSource,
+  CharacterSource,
+  VoiceSource,
+} from '@lcos/shared';

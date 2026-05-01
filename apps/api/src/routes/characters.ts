@@ -1,6 +1,30 @@
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
+import {
+  filterLockedUpdates,
+  isFieldLocked,
+  type LockableField,
+} from '../lib/identity-lock.js';
+
+/**
+ * Bóveda's legacy Oripheon bio template starts with `<name> is a `.
+ * When a character is later renamed (e.g. bound to a Tizita persona
+ * called Triarch but originally rolled as "Nnamdi Anyanwu"), the
+ * baked name in the bio drifts from the canonical Character.name.
+ * This helper reconciles by extracting the leading subject and
+ * regex-replacing it (case-insensitive, whole occurrences) with
+ * the canonical name. Operates on bio + systemPrompt.
+ */
+function reconcileBakedName(text: string, canonicalName: string): string {
+  if (!text) return text;
+  const match = text.match(/^([^\n]+?) is a /);
+  if (!match) return text;
+  const baked = match[1].trim();
+  if (!baked || baked.toLowerCase() === canonicalName.toLowerCase()) return text;
+  const escaped = baked.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(escaped, 'gi'), canonicalName);
+}
 import { CreateCharacterSchema } from '@lcos/shared';
 import {
   generateCharacter,
@@ -132,6 +156,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     const body = request.body as {
       name?: string;
       bio?: string;
+      backstory?: string;
       avatarUrl?: string;
       avatarPosition?: string;
       aliases?: string[];
@@ -141,6 +166,9 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       systemPrompt?: string;
       currentArc?: string | null;
       timelineState?: Record<string, unknown>;
+      worldId?: string | null;
+      authoredBy?: string | null;
+      voiceSamples?: string[];
     };
 
     const character = await prisma.character.findUnique({
@@ -408,19 +436,47 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         const bio = tizitaBrief ?? '';
 
         if (existing) {
-          // Refresh bios that are still our old placeholder text or
-          // that haven't been edited; pull Tizita's brief if it's
-          // newly written, or clear stale stubs so the field is open.
+          const canonicalName = persona.display_name!.trim();
           const looksLikeStub = !existing.bio || existing.bio.startsWith('Stubbed from Tizita') || existing.bio.startsWith('Imported from Tizita');
+
+          const candidateUpdates: Partial<Record<LockableField, string>> = {};
+
+          // Reconcile the canonical name. If the character was rolled
+          // under an Oripheon ancestral name and is now bound to a
+          // named Tizita persona, the persona name wins. The bio /
+          // systemPrompt get the baked ancestral name swapped to match.
+          if (existing.name !== canonicalName) {
+            candidateUpdates.name = canonicalName;
+            const reconciledBio = reconcileBakedName(existing.bio, canonicalName);
+            if (reconciledBio !== existing.bio) candidateUpdates.bio = reconciledBio;
+            const reconciledPrompt = reconcileBakedName(existing.systemPrompt, canonicalName);
+            if (reconciledPrompt !== existing.systemPrompt) candidateUpdates.systemPrompt = reconciledPrompt;
+          } else {
+            // Name is already canonical, but the bio may still carry a
+            // stale baked subject from a past roll. Reconcile against
+            // the canonical name too.
+            const reconciledBio = reconcileBakedName(existing.bio, canonicalName);
+            if (reconciledBio !== existing.bio) candidateUpdates.bio = reconciledBio;
+          }
+
           if (tizitaBrief && looksLikeStub) {
-            await prisma.character.update({
-              where: { id: existing.id },
-              data: { bio: tizitaBrief },
-            });
+            candidateUpdates.bio = tizitaBrief;
           } else if (!tizitaBrief && looksLikeStub && existing.bio) {
+            candidateUpdates.bio = '';
+          }
+
+          // Drop locked fields before writing. The user has marked
+          // these as identity-defended (e.g. via Starforge import).
+          // Auto-syncs leave them alone.
+          const { updates: allowed } = filterLockedUpdates(
+            existing.identity,
+            candidateUpdates
+          );
+
+          if (Object.keys(allowed).length > 0) {
             await prisma.character.update({
               where: { id: existing.id },
-              data: { bio: '' },
+              data: allowed as Prisma.CharacterUpdateInput,
             });
           }
           results.reused++;
@@ -999,7 +1055,10 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
   // Helper: sync oripheon data for a single character record.
   // Returns { updated, status } where status indicates what happened.
   // NEVER overwrites existing hexagram, subtaste, or core generated data.
-  async function syncOripheonForCharacter(character: { id: string; name: string; bio: string | null; timelineState: any }) {
+  // Respects Character.identity.locked: if bio or subtasteCode is locked
+  // (e.g. Ubani after Starforge import), this auto-sync skips those
+  // fields and reports 'skipped_locked' for transparency.
+  async function syncOripheonForCharacter(character: { id: string; name: string; bio: string | null; timelineState: any; identity: any }) {
     const ts = (character.timelineState as Record<string, any>) || {};
     const oripheon = ts.oripheon || {};
     const generated = oripheon.generated;
@@ -1014,6 +1073,18 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       return { updated: null, status: 'already_complete' as const };
     }
 
+    const bioLocked = isFieldLocked(character.identity, 'bio');
+    const subtasteLocked = isFieldLocked(character.identity, 'subtasteCode');
+    const nameLocked = isFieldLocked(character.identity, 'name');
+
+    // If everything material is locked AND the character has no
+    // generated core, refuse the sync entirely. The user has marked
+    // this character as identity-defended; auto-rolling them is the
+    // exact thing locks exist to prevent.
+    if (!hasAxes && !hasArcana && (bioLocked || nameLocked)) {
+      return { updated: null, status: 'skipped_locked' as const };
+    }
+
     let updatedGenerated: any;
     let extraUpdates: Record<string, any> = {};
 
@@ -1023,16 +1094,27 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       if (!hasHexagram) {
         updatedGenerated.hexagram = deriveHexagramReading(generated.personality.axes);
       }
-      if (!hasSubtaste) {
+      if (!hasSubtaste && !subtasteLocked) {
         updatedGenerated.subtaste = getSubtasteDesignation('tarot', generated.arcana.archetype);
+      } else if (subtasteLocked && hasSubtaste) {
+        // Preserve existing subtaste even if downstream tries to recompute
+        updatedGenerated.subtaste = generated.subtaste;
       }
     } else {
       // No core data — full generation needed
       const fresh = generateLCOSCharacter();
       updatedGenerated = fresh;
-      extraUpdates = {
-        bio: fresh.backstory?.substring(0, 500) || character.bio,
-      };
+      // Bio overwrite only if not locked. Locked bios stay as-is.
+      if (!bioLocked) {
+        extraUpdates = {
+          bio: fresh.backstory?.substring(0, 500) || character.bio,
+        };
+      }
+      // If subtaste is locked, keep the previous subtaste rather than
+      // letting fresh generation supply a new one.
+      if (subtasteLocked && generated?.subtaste) {
+        updatedGenerated.subtaste = generated.subtaste;
+      }
     }
 
     const updated = await prisma.character.update({
@@ -1066,8 +1148,245 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     if (status === 'already_complete') {
       return reply.send(character);
     }
+    if (status === 'skipped_locked') {
+      return reply.code(409).send({
+        error: 'Character identity is locked. Auto-sync skipped to defend the canonical bio.',
+        characterId: character.id,
+        status,
+      });
+    }
 
     return reply.send(updated);
+  });
+
+  // POST /characters/:id/mirror-from/:sourceId — copy identity
+  // fields from source character to :id. Used for twin creation
+  // (Ai-8O mirroring Ubani). Copies bio, backstory, voiceSamples,
+  // authoredBy, identity envelope, timelineState.subtaste,
+  // toneForbidden, personaTags, aliases. Sets target.twinOf =
+  // source.id and target.mode = 'twin' unless mode is already set
+  // by the caller. Does NOT copy: name, avatarUrl, mode (unless
+  // forced), worldId, lastSeenAt, isUser.
+  //
+  // When ECOSYSTEM_API_SECRET + IBIS_API_URL are set in env AND the
+  // source has isUser=true, additionally pulls the user's writing
+  // corpus from Ibis and seeds it as voiceSamples. Without those env
+  // vars, just does the static field mirror.
+  fastify.post<{ Params: { id: string; sourceId: string }; Body?: { mode?: string; forceMode?: boolean } }>(
+    '/characters/:id/mirror-from/:sourceId',
+    async (request, reply) => {
+      const { id, sourceId } = request.params;
+      if (id === sourceId) return reply.code(400).send({ error: 'Cannot mirror a character from itself' });
+
+      const [target, source] = await Promise.all([
+        prisma.character.findUnique({ where: { id } }),
+        prisma.character.findUnique({ where: { id: sourceId } }),
+      ]);
+      if (!target) return reply.code(404).send({ error: 'Target character not found' });
+      if (!source) return reply.code(404).send({ error: 'Source character not found' });
+
+      const body = (request.body ?? {}) as { mode?: string; forceMode?: boolean };
+
+      // Optional Ibis corpus pull when source is the user.
+      let ibisVoiceSamples: string[] | null = null;
+      let ibisStatus: 'fetched' | 'skipped' | 'failed' = 'skipped';
+      const ibisUrl = process.env.IBIS_API_URL;
+      const ecosystemSecret = process.env.ECOSYSTEM_API_SECRET;
+      if (source.isUser && ibisUrl && ecosystemSecret) {
+        try {
+          const res = await fetch(`${ibisUrl.replace(/\/$/, '')}/api/corpus/export`, {
+            headers: { 'X-Internal-API-Key': ecosystemSecret },
+            signal: AbortSignal.timeout(10000),
+          });
+          if (res.ok) {
+            const json = (await res.json()) as {
+              ok: boolean;
+              corpus?: { documents?: Array<{ plainText?: string }> };
+            };
+            const docs = json.corpus?.documents ?? [];
+            // Pick up to 5 representative excerpts. Take the first
+            // ~600 chars from each doc; trim to sentence boundary.
+            ibisVoiceSamples = docs
+              .slice(0, 5)
+              .map((d) => {
+                const text = (d.plainText || '').trim();
+                if (text.length <= 600) return text;
+                const truncated = text.slice(0, 600);
+                const lastPeriod = truncated.lastIndexOf('.');
+                return lastPeriod > 200 ? truncated.slice(0, lastPeriod + 1) : truncated;
+              })
+              .filter((t) => t.length > 100);
+            ibisStatus = ibisVoiceSamples.length > 0 ? 'fetched' : 'skipped';
+          }
+        } catch {
+          ibisStatus = 'failed';
+        }
+      }
+
+      // Resolve voice samples: Ibis (if fetched) > source's existing > [].
+      let voiceSamples: string[] = [];
+      if (ibisVoiceSamples && ibisVoiceSamples.length > 0) {
+        voiceSamples = ibisVoiceSamples;
+      } else if (Array.isArray(source.voiceSamples) && source.voiceSamples.length > 0) {
+        voiceSamples = source.voiceSamples as string[];
+      }
+
+      const updates: Prisma.CharacterUpdateInput = {
+        bio: source.bio,
+        backstory: source.backstory,
+        personaTags: source.personaTags,
+        aliases: source.aliases,
+        toneForbidden: source.toneForbidden,
+        toneAllowed: source.toneAllowed,
+        authoredBy: source.authoredBy ?? source.name,
+        voiceSamples: voiceSamples as unknown as Prisma.InputJsonValue,
+        identity: source.identity as Prisma.InputJsonValue,
+        timelineState: source.timelineState as Prisma.InputJsonValue,
+        twinOf: source.id,
+      };
+
+      // Mode handling: default to 'twin' unless caller specifies
+      // otherwise, or unless target is already in a clearly-different
+      // mode the caller didn't ask to override.
+      if (body.mode) {
+        updates.mode = body.mode;
+      } else if (body.forceMode || target.mode === source.mode || target.mode === 'espíritu') {
+        updates.mode = 'twin';
+      }
+
+      const updated = await prisma.character.update({ where: { id }, data: updates });
+
+      return reply.send({
+        ok: true,
+        targetId: updated.id,
+        targetName: updated.name,
+        sourceId: source.id,
+        sourceName: source.name,
+        mode: updated.mode,
+        twinOf: updated.twinOf,
+        voiceSamplesCount: voiceSamples.length,
+        ibisStatus,
+        ibisCorpusUsed: ibisStatus === 'fetched',
+      });
+    }
+  );
+
+  // POST /characters/reconcile-bio-names — one-shot pass that swaps
+  // any baked Oripheon ancestral name in bio / systemPrompt for the
+  // canonical Character.name. Run once after the rename helper lands;
+  // safe to run repeatedly (no-op when already reconciled).
+  fastify.post('/characters/reconcile-bio-names', async (_request, reply) => {
+    const characters = await prisma.character.findMany({});
+    let touched = 0;
+    let skippedLocked = 0;
+    const changes: Array<{ id: string; name: string; skipped?: LockableField[] }> = [];
+
+    for (const c of characters) {
+      const candidateUpdates: Partial<Record<LockableField, string>> = {};
+      const newBio = reconcileBakedName(c.bio, c.name);
+      if (newBio !== c.bio) candidateUpdates.bio = newBio;
+      const newPrompt = reconcileBakedName(c.systemPrompt, c.name);
+      if (newPrompt !== c.systemPrompt) candidateUpdates.systemPrompt = newPrompt;
+
+      const { updates: allowed, skipped } = filterLockedUpdates(c.identity, candidateUpdates);
+
+      if (skipped.length > 0) skippedLocked += 1;
+
+      if (Object.keys(allowed).length > 0) {
+        await prisma.character.update({
+          where: { id: c.id },
+          data: allowed as Prisma.CharacterUpdateInput,
+        });
+        touched += 1;
+        changes.push({ id: c.id, name: c.name, skipped: skipped.length > 0 ? skipped : undefined });
+      }
+    }
+    return reply.send({ touched, skippedLocked, changes });
+  });
+
+  // POST /characters/:id/generate-backstory — generate a draft
+  // backstory using the character's bio + Subtaste + identity
+  // envelope + voice samples + authoredBy. Returns the draft text;
+  // does NOT save (the user reviews and edits before saving via
+  // PATCH /characters/:id { backstory: ... }). Cheap (Haiku) +
+  // throttled by the existing LLM budget.
+  fastify.post<{ Params: { id: string } }>('/characters/:id/generate-backstory', async (request, reply) => {
+    const { id } = request.params;
+    const character = await prisma.character.findUnique({ where: { id } });
+    if (!character) return reply.code(404).send({ error: 'Character not found' });
+
+    // Lazy import so route file stays light.
+    const { callLlm, hasLlmProvider, LlmBudgetError } = await import('../lib/llm.js');
+    if (!hasLlmProvider()) {
+      return reply.code(400).send({
+        error: 'No LLM provider configured. Set ANTHROPIC_API_KEY in apps/api/.env.',
+      });
+    }
+
+    const ts = (character.timelineState as Record<string, unknown>) || {};
+    const oripheonGen = ((ts.oripheon as Record<string, unknown>)?.generated ?? {}) as Record<string, unknown>;
+    const subtaste = oripheonGen.subtaste as { code?: string; glyph?: string; label?: string } | undefined;
+    const voiceSamples = Array.isArray(character.voiceSamples)
+      ? (character.voiceSamples as string[]).filter((s) => typeof s === 'string')
+      : [];
+
+    const samplesBlock =
+      voiceSamples.length > 0
+        ? `\n## Voice samples (match this register; do not quote)\n${voiceSamples
+            .map((s, i) => `--- Sample ${i + 1} ---\n${s}`)
+            .join('\n\n')}`
+        : '';
+
+    const subtasteLine = subtaste?.code
+      ? `Their Subtaste signature: ${subtaste.code}${subtaste.glyph ? ' ' + subtaste.glyph : ''}${subtaste.label ? ' (' + subtaste.label + ')' : ''}.`
+      : '';
+
+    const authorLine = character.authoredBy
+      ? `Authored by ${character.authoredBy}. Write in their register.`
+      : '';
+
+    const system = [
+      'You write character backstories for the Bóveda living-character OS.',
+      'A backstory is depth, history, and contradictions only the character carries. It is never displayed publicly and never quoted by the character. It is read by the tick LLM as background to inform behaviour.',
+      'Three short paragraphs. Specific, sensory, contradictory. Avoid clichés. Avoid balanced both-sides hedging. Avoid em dashes. Write declaratively.',
+      'Do not name yourself as the author. Do not narrate the character. Write the backstory as a frank document the character would not share, but that an oracle reading them might know.',
+      authorLine,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const user = [
+      `Character name: ${character.name}`,
+      character.bio ? `Public bio (their voice anchor): ${character.bio}` : '',
+      character.aliases.length > 0 ? `Aliases: ${character.aliases.join(', ')}` : '',
+      subtasteLine,
+      character.personaTags.length > 0 ? `Persona tags: ${character.personaTags.join(', ')}` : '',
+      samplesBlock,
+      '',
+      `Now write three short paragraphs of backstory for ${character.name}. Specific, sensory, contradictory. Things they don't show on the surface.`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    try {
+      const result = await callLlm({ system, user, maxTokens: 600, cacheSystem: true });
+      if (!result.text) {
+        return reply.code(502).send({ error: 'Empty response from LLM' });
+      }
+      return reply.send({
+        characterId: character.id,
+        draft: result.text,
+        source: result.source,
+        usage: result.usage,
+      });
+    } catch (err) {
+      if (err instanceof LlmBudgetError) {
+        return reply.code(402).send({ error: err.message });
+      }
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : 'Generation failed',
+      });
+    }
   });
 
   // POST /characters/sync-oripheon-all - Sync oripheon data for all characters

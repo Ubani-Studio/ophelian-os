@@ -51,3 +51,42 @@ export const LicenseAction = {
   PUBLISH_CONTENT: 'PUBLISH_CONTENT',
 } as const;
 export type LicenseAction = (typeof LicenseAction)[keyof typeof LicenseAction];
+
+// Character source - where the identity came from
+export const CharacterSource = {
+  GENERATED: 'GENERATED',   // Created by Oripheon generator (fictional)
+  PERSONA: 'PERSONA',       // Real person's public identity (from Sembla/o8)
+  TWIN: 'TWIN',             // Imported from Starforge Twin OS
+} as const;
+export type CharacterSource = (typeof CharacterSource)[keyof typeof CharacterSource];
+
+// Voice source - how the voice was created
+export const VoiceSource = {
+  UPLOADED: 'UPLOADED',       // User uploaded voice sample
+  PERSONA: 'PERSONA',         // Imported from real identity (Sembla/o8)
+  CLONED: 'CLONED',           // Voice cloned via provider
+  SYNTHESIZED: 'SYNTHESIZED', // Pure AI synthesis
+} as const;
+export type VoiceSource = (typeof VoiceSource)[keyof typeof VoiceSource];
+
+// Consent record types for audit trail
+export const ConsentRecordType = {
+  CREATION: 'CREATION',             // Character/genome created with consent
+  SYNTHESIS: 'SYNTHESIS',           // Voice/visual synthesis consent
+  TRAINING: 'TRAINING',             // AI training consent
+  COMMERCIAL_USE: 'COMMERCIAL_USE', // Commercial licensing consent
+  MODIFICATION: 'MODIFICATION',     // Character modified
+  PERSONA_IMPORT: 'PERSONA_IMPORT', // Imported from real identity
+  REVOCATION: 'REVOCATION',         // Consent revoked
+} as const;
+export type ConsentRecordType = (typeof ConsentRecordType)[keyof typeof ConsentRecordType];
+
+// Consent source - where the consent came from
+export const ConsentSource = {
+  USER: 'user',           // Direct user consent
+  O8: 'o8',               // o8 Protocol identity
+  STARFORGE: 'starforge', // Starforge Twin OS
+  SEMBLA: 'sembla',       // Sembla face registration
+  API: 'api',             // Programmatic API consent
+} as const;
+export type ConsentSource = (typeof ConsentSource)[keyof typeof ConsentSource];

@@ -44,6 +44,8 @@ const navGroups: NavGroup[] = [
     title: 'Story',
     items: [
       { href: '/nexus', label: 'Nexus', icon: 'N' },
+      { href: '/trail', label: 'Trail', icon: 'T' },
+      { href: '/altar', label: 'Altar', icon: 'A' },
       { href: '/story-templates', label: 'Trajectories', icon: 'T' },
       { href: '/genome-legend', label: 'Symbols', icon: '◊' },
     ],

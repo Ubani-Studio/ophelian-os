@@ -61,9 +61,9 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
 
       <div className="character-info-header">
         <div className="character-info-avatar">
-          {character.avatarUrl ? (
+          {character.avatarUrl || character.tizitaRepresentativeUrl ? (
             <img
-              src={character.avatarUrl}
+              src={character.avatarUrl || character.tizitaRepresentativeUrl || ''}
               alt={character.name}
               style={{ objectPosition: character.avatarPosition || '50% 50%' }}
             />
@@ -99,7 +99,7 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
           {/* Designation tags */}
           <div style={{ marginTop: '0.5rem', marginBottom: '1rem', display: 'flex', gap: '0.375rem' }}>
             <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 600, padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: '#000' }}>
-              {subtasteInfo.subtaste}
+              {subtasteInfo.display}
             </span>
             <span style={{ fontFamily: 'var(--font-ui)', fontSize: '0.625rem', fontWeight: 600, padding: '0.25rem 0.5rem', border: '1px solid var(--border)', background: '#000' }}>
               {subtasteInfo.label?.toUpperCase()}
@@ -114,11 +114,11 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
               </div>
               <div className="subtaste-ref-row">
                 <span className="subtaste-ref-key">Ascends to</span>
-                <span className="subtaste-ref-val">{subtasteInfo.growth}</span>
+                <span className="subtaste-ref-val">{subtasteInfo.growthDisplay}</span>
               </div>
               <div className="subtaste-ref-row">
                 <span className="subtaste-ref-key">Descends to</span>
-                <span className="subtaste-ref-val subtaste-ref-stress">{subtasteInfo.stress}</span>
+                <span className="subtaste-ref-val subtaste-ref-stress">{subtasteInfo.stressDisplay}</span>
               </div>
               <div className="subtaste-ref-row">
                 <span className="subtaste-ref-key">Awakens</span>
@@ -160,11 +160,11 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
                   </div>
                   <div className="subtaste-ref-row">
                     <span className="subtaste-ref-key">Ascends to</span>
-                    <span className="subtaste-ref-val">{subtasteInfo.growth} — {subtasteInfo.growthLabel}</span>
+                    <span className="subtaste-ref-val">{subtasteInfo.growthDisplay} · {subtasteInfo.growthLabel}</span>
                   </div>
                   <div className="subtaste-ref-row">
                     <span className="subtaste-ref-key">Descends to</span>
-                    <span className="subtaste-ref-val subtaste-ref-stress">{subtasteInfo.stress} — {subtasteInfo.stressLabel}</span>
+                    <span className="subtaste-ref-val subtaste-ref-stress">{subtasteInfo.stressDisplay} · {subtasteInfo.stressLabel}</span>
                   </div>
                   <div className="subtaste-ref-row">
                     <span className="subtaste-ref-key">Awakens</span>

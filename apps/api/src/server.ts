@@ -13,6 +13,7 @@ import { contentRoutes } from './routes/content.js';
 import { ledgerRoutes } from './routes/ledger.js';
 import { uploadRoutes } from './routes/uploads.js';
 import { relationshipRoutes } from './routes/relationships.js';
+import { ensembleRoutes } from './routes/ensembles.js';
 import { positionRoutes } from './routes/positions.js';
 import { sceneRoutes } from './routes/scenes.js';
 import { worldRoutes } from './routes/worlds.js';
@@ -21,6 +22,11 @@ import { snapshotRoutes } from './routes/snapshots.js';
 import { genomeRoutes } from './routes/genomes.js';
 import { consentRoutes } from './routes/consent.js';
 import { inviteRoutes } from './routes/invites.js';
+import { eventRoutes } from './routes/events.js';
+import { starforgeImportRoutes } from './routes/starforge-import.js';
+import { trailRoutes } from './routes/trail.js';
+import { realignRoutes } from './routes/realign.js';
+import { startScheduler, runScheduledTickPass } from './lib/scheduler.js';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './storage/uploads';
 
@@ -85,6 +91,7 @@ async function start() {
     await fastify.register(ledgerRoutes);
     await fastify.register(uploadRoutes);
     await fastify.register(relationshipRoutes);
+    await fastify.register(ensembleRoutes);
     await fastify.register(positionRoutes);
     await fastify.register(sceneRoutes);
     await fastify.register(worldRoutes);
@@ -93,6 +100,22 @@ async function start() {
     await fastify.register(genomeRoutes);
     await fastify.register(consentRoutes);
     await fastify.register(inviteRoutes);
+    await fastify.register(eventRoutes);
+    await fastify.register(starforgeImportRoutes);
+    await fastify.register(trailRoutes);
+    await fastify.register(realignRoutes);
+
+    // Manual tick-pass trigger. Lets the user fire the scheduler
+    // immediately rather than waiting for the cron. Useful in beta:
+    // make the world move now, come back to the trail.
+    fastify.post('/scheduler/tick-pass', async (_request, reply) => {
+      const outcomes = await runScheduledTickPass();
+      const summary = outcomes.reduce<Record<string, number>>((acc, o) => {
+        acc[o.status] = (acc[o.status] ?? 0) + 1;
+        return acc;
+      }, {});
+      return reply.send({ outcomes, summary });
+    });
 
     // Start server
     // Ecosystem port convention: Boveda 5130, Ibis 5140, Òrò 5150, Sankoré 5160.
@@ -101,6 +124,13 @@ async function start() {
 
     await fastify.listen({ port, host });
     console.log(`API server running at http://${host}:${port}`);
+
+    // Start the living-world scheduler. Disabled with SCHEDULER_ENABLED=false.
+    startScheduler({
+      info: (...a) => fastify.log.info(...(a as [string])),
+      warn: (...a) => fastify.log.warn(...(a as [string])),
+      error: (...a) => fastify.log.error(...(a as [string])),
+    });
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

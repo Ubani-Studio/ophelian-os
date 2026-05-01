@@ -36,91 +36,104 @@ export interface SubtasteDesignation {
 // 12 SUBTASTE DESIGNATIONS
 // ============================================================================
 
+// Glyphs, labels, and descriptions are the canonical Subtaste twelve
+// from `@subtaste/core` (subtaste/packages/core/src/pantheon/definitions.ts).
+// `label` mirrors the canonical `creativeMode`; `description` mirrors
+// the canonical `essence`. The `phase` field is preserved for
+// downstream compatibility (compatibility-data.ts). The Ø designation
+// is the canonical name; 'NULL' is kept as a back-compat alias for any
+// callers that still read it.
+const VOID_DESIGNATION: SubtasteDesignation = {
+  code: 'Ø',
+  glyph: 'VOID',
+  label: 'Receptive',
+  description: 'The deliberate absence. What receives by containing nothing.',
+  phase: 'flow',
+};
+
 export const SUBTASTE_DESIGNATIONS: Record<string, SubtasteDesignation> = {
   'S-0': {
     code: 'S-0',
-    glyph: 'KĔṮU',
-    label: 'Witness',
-    description: 'Sets the tone others follow. Defines the center through presence alone.',
+    glyph: 'KETH',
+    label: 'Visionary',
+    description: 'The unmarked throne. First without announcement.',
     phase: 'vision',
   },
   'T-1': {
     code: 'T-1',
-    glyph: 'LŌRχE',
-    label: 'Recursion',
-    description: 'Reads the layers beneath the surface. Understands structure as language.',
+    glyph: 'STRATA',
+    label: 'Architectural',
+    description: 'The hidden architecture. Layers beneath surfaces.',
     phase: 'refinement',
   },
   'V-2': {
     code: 'V-2',
-    glyph: 'ØMÆRA',
-    label: 'Translation',
-    description: 'Sees what approaches before others sense it. The first to know.',
+    glyph: 'OMEN',
+    label: 'Prophetic',
+    description: 'What arrives before itself. The shape of the unformed.',
     phase: 'vision',
   },
   'L-3': {
     code: 'L-3',
-    glyph: 'Dū·ṂȺ',
-    label: 'Transport',
-    description: 'Grows things slowly. Trusts the accumulation of small, quiet acts.',
+    glyph: 'SILT',
+    label: 'Developmental',
+    description: 'Patient sediment. What accumulates in darkness.',
     phase: 'manifestation',
   },
   'C-4': {
     code: 'C-4',
-    glyph: 'ΞDŌN',
-    label: 'Interruption',
-    description: 'Removes what is unnecessary. Finds power in reduction.',
+    glyph: 'CULL',
+    label: 'Editorial',
+    description: 'The necessary cut. What must be removed, removed.',
     phase: 'refinement',
   },
   'N-5': {
     code: 'N-5',
-    glyph: 'LIMŊ',
-    label: 'Binding',
-    description: 'Traces the edges of things. Gives shape to what has none.',
+    glyph: 'LIMN',
+    label: 'Integrative',
+    description: 'To illuminate by edge. The binding outline.',
     phase: 'flow',
   },
   'H-6': {
     code: 'H-6',
-    glyph: 'ȺBŌLT',
-    label: 'Amplification',
-    description: 'Pays the cost. Champions at personal expense.',
+    glyph: 'TOLL',
+    label: 'Advocacy',
+    description: 'The bell that cannot be unheard. The summons.',
     phase: 'manifestation',
   },
   'P-7': {
     code: 'P-7',
-    glyph: 'ȺRVŌ',
-    label: 'Dampening',
-    description: 'Preserves what others discard. Memory made flesh.',
+    glyph: 'VAULT',
+    label: 'Archival',
+    description: 'What is kept. Writing over writing.',
     phase: 'flow',
   },
   'D-8': {
     code: 'D-8',
-    glyph: 'RŌχ',
-    label: 'Shadow',
-    description: 'Empties the self to receive. Conducts what passes through.',
+    glyph: 'WICK',
+    label: 'Channelling',
+    description: 'Draws flame upward without burning. The hollow channel.',
     phase: 'flow',
   },
   'F-9': {
     code: 'F-9',
-    glyph: 'K̄ALØN',
-    label: 'Ignition',
-    description: 'Hammers will into shape. Creates through force and intention.',
+    glyph: 'ANVIL',
+    label: 'Manifestation',
+    description: 'Where pressure becomes form. The manifestation point.',
     phase: 'genesis',
   },
   'R-10': {
     code: 'R-10',
-    glyph: 'TΞχRA',
-    label: 'Division',
-    description: 'Breaks things so they can grow. Finds creation in destruction.',
+    glyph: 'SCHISM',
+    label: 'Contrarian',
+    description: 'The productive fracture. What breaks to reveal grain.',
     phase: 'genesis',
   },
-  'NULL': {
-    code: 'NULL',
-    glyph: 'SÆ',
-    label: 'Anchor',
-    description: 'Holds space. Neither pushes nor pulls. The still point.',
-    phase: 'flow',
-  },
+  'Ø': VOID_DESIGNATION,
+  // Back-compat alias: legacy code paths (and the
+  // getSubtasteDesignation fallback below) reach for 'NULL'. Points
+  // at the same record so callers see the canonical glyph + label.
+  NULL: VOID_DESIGNATION,
 };
 
 // ============================================================================

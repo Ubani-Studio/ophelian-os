@@ -101,7 +101,7 @@ export async function getO8Identity(identityId: string): Promise<O8Identity | nu
       return null;
     }
 
-    return await response.json();
+    return await response.json() as O8Identity;
   } catch (error) {
     console.warn('[o8-client] Error fetching identity:', error);
     return null;

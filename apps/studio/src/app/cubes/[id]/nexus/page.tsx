@@ -72,6 +72,7 @@ import { NewRelationshipModal } from '@/components/world/NewRelationshipModal';
 import { NewConnectionModal } from '@/components/world/NewConnectionModal';
 import { NewSceneModal } from '@/components/world/NewSceneModal';
 import { NewWorldModal } from '@/components/world/NewWorldModal';
+import { AddCharacterToCube } from '@/components/AddCharacterToCube';
 
 type EntityType = 'character' | 'scene' | 'world';
 
@@ -147,6 +148,7 @@ export default function WorldBuilderPage() {
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [showSceneModal, setShowSceneModal] = useState(false);
   const [showWorldModal, setShowWorldModal] = useState(false);
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [pendingConnection, setPendingConnection] = useState<{ source: string; target: string } | null>(null);
 
   // Shift+click connection state
@@ -754,6 +756,9 @@ export default function WorldBuilderPage() {
         <div className="sidebar-section">
           <h3 className="section-title">Add</h3>
           <div className="add-buttons">
+            <button className="btn btn-sm btn-scene" onClick={() => setShowCharacterModal(true)}>
+              + Character
+            </button>
             <button className="btn btn-sm btn-scene" onClick={() => setShowSceneModal(true)}>
               + Scene
             </button>
@@ -1187,6 +1192,14 @@ export default function WorldBuilderPage() {
         isOpen={showWorldModal}
         onClose={() => setShowWorldModal(false)}
         onCreate={handleCreateWorld}
+      />
+
+      <AddCharacterToCube
+        isOpen={showCharacterModal}
+        onClose={() => setShowCharacterModal(false)}
+        cubeId={cubeId}
+        cubeName={cubeName || 'this Cube'}
+        onChanged={() => loadData()}
       />
     </div>
   );
