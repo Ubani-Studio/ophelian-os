@@ -10,6 +10,7 @@ import { cohortSlangMoatLine } from '../lib/voice-moat.js';
 import { getSlangGuidance } from '../lib/ibis-slang.js';
 import { readEmbracePhrases } from '../lib/cohort-phrases.js';
 import { buildSpeciesTextureBlock, getSpecies } from '../lib/species.js';
+import { buildSubtasteRegisterBlock } from '../lib/subtaste-registers.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -598,6 +599,20 @@ function buildAlignmentUser(opts: {
       lines.push(`## Subtaste signature: ${opts.subtasteCode} ${meta.glyph} (${meta.label})`);
       lines.push(`Essence: ${meta.essence} The character carries this signature in how they act, decide, and react. Do not name the signature in the bio.`);
       lines.push('');
+      // Subtaste shape × lineage tradition register block. The cohort
+      // refuses defaulting to Black-American literary register when
+      // the lineage is Yoruba / Greek / Daoist / etc. Each
+      // Subtaste shape is rendered through the lineage's specific
+      // tradition. See subtaste-registers.ts.
+      const registerBlock = buildSubtasteRegisterBlock(
+        opts.subtasteCode,
+        undefined,
+        opts.lineageIds ?? [],
+      );
+      if (registerBlock.length > 0) {
+        lines.push(registerBlock);
+        lines.push('');
+      }
       lines.push(subtasteSensibility(opts.subtasteCode, opts.setting));
       lines.push('');
       const calibrationNote =
@@ -844,6 +859,15 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
       if (body.apply) {
         const updates: Prisma.CharacterUpdateInput = {};
         const skipped: string[] = [];
+
+        // Persist lineageIds whenever the realign call carried lineage
+        // input. This makes lineage first-class on Character so the
+        // tick prompt can read it and compose Subtaste × lineage
+        // register. Applies regardless of which fields the user
+        // chose to realign — lineage is identity, not field-content.
+        if (lineageIds.length > 0) {
+          updates.lineageIds = lineageIds as unknown as Prisma.InputJsonValue;
+        }
 
         for (const f of body.fields) {
           if (filtered[f] === undefined) continue;

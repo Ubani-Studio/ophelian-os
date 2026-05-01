@@ -169,6 +169,14 @@ model Character {
   // for fast access).
   goals Json @default("[]")
 
+  // Lineage ids the character is anchored to. Drives the
+  // Subtaste-register composition (Subtaste shape × lineage tradition)
+  // so a Yoruba prophetic character writes oríkì + Ifá ese, a
+  // Greek prophetic character writes dithyramb + Pindar. Persisted
+  // at forge / realign time and read by tick. See
+  // subtaste-registers.ts and lineages.ts.
+  lineageIds Json @default("[]")
+
   // Identity history. Append-only log of meaningful identity moves
   // (species reclassification, Subtaste change, lineage shift). Each
   // entry is { ts, field, from, to, source? }. The tick prompt

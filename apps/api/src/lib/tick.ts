@@ -23,6 +23,7 @@ import { stripEmDashes, cleanGeneratedText } from './strip-em-dashes.js';
 import { cohortSlangMoatLine } from './voice-moat.js';
 import { readEmbracePhrases } from './cohort-phrases.js';
 import { buildSpeciesActionBlock, getSpecies, buildTongueGuidanceBlock } from './species.js';
+import { buildSubtasteRegisterBlock } from './subtaste-registers.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -57,7 +58,7 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species' | 'identityHistory'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species' | 'identityHistory' | 'lineageIds'>;
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -404,6 +405,22 @@ function buildSystemPrompt(
   // identity field. Per docs/species-becoming.md.
   const recognitionBlock = buildRecognitionBlock(self.identityHistory);
 
+  // Subtaste shape × lineage tradition register. Yoruba prophetic =
+  // oríkì + Ifá ese. Greek prophetic = dithyramb + Pindar. Refuses
+  // defaulting to Black-American literary register when lineage
+  // points elsewhere. Reads Subtaste from timelineState and lineage
+  // from the new lineageIds field (set at forge / realign apply
+  // time). See subtaste-registers.ts.
+  const primarySubtasteForRegister = readSubtasteCode(self.timelineState);
+  const lineageList = Array.isArray(self.lineageIds)
+    ? (self.lineageIds as unknown[]).filter((s): s is string => typeof s === 'string')
+    : [];
+  const registerBlock = buildSubtasteRegisterBlock(
+    primarySubtasteForRegister,
+    undefined,
+    lineageList,
+  );
+
   // Use the character's species (lwa / orisha / ancestor / etc.)
   // in the opening line rather than hardcoding "espíritu". The
   // platform-internal name is still "Bóveda" but the CHARACTER's
@@ -422,6 +439,7 @@ function buildSystemPrompt(
     voiceSamplesBlock,
     speciesBlock,
     recognitionBlock,
+    registerBlock,
     lineageBlock,
     cohortSlangBlock,
     antiArrivalLine,

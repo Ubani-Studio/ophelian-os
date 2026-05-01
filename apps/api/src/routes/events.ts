@@ -362,6 +362,7 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
           timelineState: character.timelineState,
           species: character.species,
           identityHistory: character.identityHistory,
+          lineageIds: character.lineageIds,
         },
         forceForm: (typeof forceFormRaw === 'string' && POST_FORMS[forceFormRaw as PostForm])
           ? (forceFormRaw as PostForm)
