@@ -333,10 +333,17 @@ export function suggestForms(opts: {
   recentForms: PostForm[];
   /** Species-native form affinities. From species.ts SPECIES[id].formAffinities. */
   speciesFormAffinities?: string[];
+  /** Whether the species treats music as a native expression mode.
+   *  When true, track + verse get an extra +2 boost on top of any
+   *  affinity match — music IS speech for them. Per
+   *  docs/species-becoming.md (witness across centuries → song
+   *  across centuries). */
+  speciesIsMusicNative?: boolean;
 }): PostForm[] {
-  const { primarySubtaste, hasCounterpart, recentForms, speciesFormAffinities } = opts;
+  const { primarySubtaste, hasCounterpart, recentForms, speciesFormAffinities, speciesIsMusicNative } = opts;
   const recentSet = new Set(recentForms.slice(0, 3));
   const speciesSet = new Set(speciesFormAffinities ?? []);
+  const musicForms: Set<PostForm> = speciesIsMusicNative ? new Set(['track', 'verse']) : new Set();
 
   const all = Object.values(POST_FORMS);
 
@@ -355,12 +362,14 @@ export function suggestForms(opts: {
   const nativeRoll = new Set(shuffledNative.slice(0, 2));
 
   // Score each form. Subtaste affinity +2, species affinity +3,
-  // species-native random surface +1, recent-use -2.
+  // species-native random surface +1, music-native species track +
+  // verse +2, recent-use -2.
   const scored = eligible.map((f) => {
     let score = 0;
     if (primarySubtaste && f.subtasteAffinities.includes(primarySubtaste)) score += 2;
     if (speciesSet.has(f.id)) score += 3;
     if (nativeRoll.has(f.id)) score += 1;
+    if (musicForms.has(f.id)) score += 2;
     if (recentSet.has(f.id)) score -= 2;
     return { id: f.id, score };
   });

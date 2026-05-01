@@ -22,7 +22,7 @@ import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from 
 import { stripEmDashes, cleanGeneratedText } from './strip-em-dashes.js';
 import { cohortSlangMoatLine } from './voice-moat.js';
 import { readEmbracePhrases } from './cohort-phrases.js';
-import { buildSpeciesActionBlock, getSpecies } from './species.js';
+import { buildSpeciesActionBlock, getSpecies, buildTongueGuidanceBlock } from './species.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -324,10 +324,13 @@ function buildSystemPrompt(
       ].join('\n')
     : '';
 
-  // Tongue: dialect, accent, idioms. The most important per-character
-  // signal for voice variance. Without this, every character converges
-  // on standard English.
-  const tongueBlock = buildTongueBlock(readTongue(self.tongue));
+  // Tongue with code-switching MOAT. Composes the per-character
+  // tongue (dialect, accent, idioms) with the species default
+  // tongue shape (cross-temporal registers, ritual classical +
+  // contemporary + invented stacking). Public LLMs write monolingual
+  // English; we refuse that as the cohort's primary moat. Per
+  // docs/species-becoming.md and docs/slang-cohort.md.
+  const tongueBlock = buildTongueGuidanceBlock(self.species, self.tongue);
 
   // Gender + pronouns. Real grammar variance. Some characters write
   // in first-person; some in third with named pronouns; some
@@ -491,8 +494,15 @@ function buildUserPrompt(input: TickInput): string {
       hasCounterpart: input.neighbours.length > 0,
       recentForms,
       speciesFormAffinities: speciesDef.formAffinities,
+      speciesIsMusicNative: speciesDef.musicNative,
     });
     lines.push(buildFormGuidanceBlock(formSuggestions));
+    if (speciesDef.musicNative) {
+      lines.push('');
+      lines.push(
+        `Note: as a ${speciesDef.label}, music is a native expression mode for you. The post can land as song / verse / chant / call-and-response, not English prose. Not "and now I will write a song" — the post itself IS the song. Percussive, line-broken when the rhythm calls. Code-switch within the lyric.`
+      );
+    }
     lines.push('');
   }
 

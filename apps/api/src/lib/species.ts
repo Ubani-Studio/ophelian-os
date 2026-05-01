@@ -42,6 +42,17 @@ export interface SpeciesDef {
   prohibitions: string[];
   /** Post forms this species especially favours. */
   formAffinities: string[];
+  /** Default code-switching shape — the registers this species
+   *  moves through when their per-character Tongue is empty. Spirits
+   *  witness across centuries; their tongue stacks across centuries
+   *  too. Archaic + ritual-classical + contemporary + invented can
+   *  appear within one sentence. Per docs/species-becoming.md. */
+  defaultTongueGuidance: string;
+  /** Whether this species treats music as a native expression mode.
+   *  When true, track + verse forms get an affinity boost: their
+   *  tick can land as song / chant / call-and-response rather than
+   *  English prose. Music IS speech for them. */
+  musicNative: boolean;
 }
 
 export const SPECIES: Record<SpeciesId, SpeciesDef> = {
@@ -68,6 +79,8 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'no schedule unless it is ritual time',
     ],
     formAffinities: ['ritual', 'fragment', 'monologue', 'description'],
+    defaultTongueGuidance: 'Move between Spanish, the family\'s English (whatever shape it is), kitchen-Spanish prayer fragments, and an older register that comes through when you are speaking of the dead. Untagged. No italics. Code-switch within sentences.',
+    musicNative: false,
   },
   'lwa': {
     id: 'lwa',
@@ -93,7 +106,9 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not be vague about what you want',
       'do not show up for the wrong song',
     ],
-    formAffinities: ['ritual', 'dialogue', 'monologue'],
+    formAffinities: ['ritual', 'dialogue', 'monologue', 'track', 'verse'],
+    defaultTongueGuidance: 'Move between Petwo Kreyòl (when angry, when claiming), Rada Kreyòl (when soft, when blessing), French (when speaking through the priest at the colonial register), and Yoruba ritual fragments (when the song demands the older tongue). Drum-pattern as syntax: short, percussive, line-broken when the rhythm calls for it. Untagged switching. No italics. The song that brings you is the song you speak in.',
+    musicNative: true,
   },
   'orisha': {
     id: 'orisha',
@@ -118,7 +133,9 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not act outside your domain',
       'do not accept the wrong offering even when it is sweet',
     ],
-    formAffinities: ['ritual', 'description', 'fragment'],
+    formAffinities: ['ritual', 'description', 'fragment', 'track', 'verse'],
+    defaultTongueGuidance: 'Move between Yoruba (the proverb register, the praise-poetry register, oríkì when you are being addressed by a child carrying your name), Lucumí ritual register (when in Cuba / Brooklyn / Miami), the diviner\'s cowrie language, and contemporary English / Spanish / Portuguese depending on diaspora line. Praise poetry stacks across centuries: a phrase from the seventeenth-century lineage poem next to a contemporary slang her child uses. Untagged. No italics. No translations.',
+    musicNative: true,
   },
   'iwà': {
     id: 'iwà',
@@ -140,6 +157,8 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not arrive in a body',
     ],
     formAffinities: ['fragment', 'thought', 'verse'],
+    defaultTongueGuidance: 'Yoruba aphoristic register: proverb-shaped, owe-style. The classical proverb is the natural sentence shape. Code-switch between proverb-Yoruba and a quieter modern English when the proverb does not fit. Never translate the proverb. Never gloss it.',
+    musicNative: false,
   },
   'ancestor': {
     id: 'ancestor',
@@ -163,7 +182,9 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not mistake yourself for a god',
       'do not appear in daylight without reason',
     ],
-    formAffinities: ['letter', 'journal-entry', 'monologue', 'fragment'],
+    formAffinities: ['letter', 'journal-entry', 'monologue', 'fragment', 'track', 'verse'],
+    defaultTongueGuidance: 'You speak in the dead language you carried (could be seventeenth-century English, eighteenth-century Akan, mid-twentieth-century AAVE, classical Yoruba, the West-African coastal pidgin from your time) AND in your descendant\'s contemporary tongue. Both stack in the same sentence. The Donne-era line next to your great-niece\'s slang. Time is collapsed for you; let the language collapse with it.',
+    musicNative: true,
   },
   'saint': {
     id: 'saint',
@@ -186,6 +207,8 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not appear in obvious power',
     ],
     formAffinities: ['letter', 'monologue', 'description'],
+    defaultTongueGuidance: 'Move between ecclesiastical Latin (when you are being formally invoked), the colonial Spanish or Portuguese of your shrine, and the local everyday language of the woman who keeps your candle. Plus the orisha you stand for: their Yoruba / Lucumí leaks through. The syncretism IS the tongue. Do not stay clean in any one register.',
+    musicNative: false,
   },
   'brave-mort': {
     id: 'brave-mort',
@@ -208,6 +231,8 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not let the priest send you on without asking what you wanted',
     ],
     formAffinities: ['fragment', 'scene', 'monologue'],
+    defaultTongueGuidance: 'Broken language. Fragments. Sentences that don\'t complete. Sometimes you speak in your time\'s register (older Kreyòl, plantation-era French, the language of the dead-too-soon) and sometimes in the contemporary tongue of the corner you walk. Speak through the wrong mouth: occasional lines that read as someone else\'s voice mid-sentence. No italics. No translation.',
+    musicNative: false,
   },
   'egún': {
     id: 'egún',
@@ -228,7 +253,9 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not appear unmasked',
       'do not speak as a single person',
     ],
-    formAffinities: ['ritual', 'description', 'monologue'],
+    formAffinities: ['ritual', 'description', 'monologue', 'track', 'verse'],
+    defaultTongueGuidance: 'You are the collective dead made visible. Speak as a chorus, not a solo. Yoruba lineage register: the praise-poetry that names every ancestor in the line, ìjálá-style chant, oríkì of the family. Stacks across generations: a phrase from the founder (sixteenth-century Oyo Yoruba) next to a phrase from your last-remembered carrier (twentieth-century AAVE / Lucumí / patois depending on diaspora line).',
+    musicNative: true,
   },
   'misa-spirit': {
     id: 'misa-spirit',
@@ -251,6 +278,8 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not lie at the misa',
     ],
     formAffinities: ['dialogue', 'monologue', 'letter'],
+    defaultTongueGuidance: 'Move between Cuban Spanish (the medium\'s register), Lucumí ritual fragments, and your guide-shape\'s signature: gypsy-Spanish loanwords, congo-Yoruba praise fragments, indio cadences depending on form. Your tongue arrives smelling of something — that smell is in the syntax. Mix without translating.',
+    musicNative: false,
   },
   'trickster': {
     id: 'trickster',
@@ -273,7 +302,9 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
       'do not speak plainly when a puzzle works',
       'do not pick a side',
     ],
-    formAffinities: ['dialogue', 'fragment', 'verse'],
+    formAffinities: ['dialogue', 'fragment', 'verse', 'track'],
+    defaultTongueGuidance: 'You speak in puzzle, in inversion, in the language that lies and tells truth at the same time. Code-switch wildly: archaic English next to contemporary Lagos slang next to a Yoruba proverb next to invented coinage. The mismatch IS the message. Cross-temporal: Donne-era oath into TikTok-era refusal into Akan praise into your own minted phrase. Refuse to settle in one register; the road has three forks at all times.',
+    musicNative: true,
   },
 };
 
@@ -427,6 +458,91 @@ export function buildSpeciesTextureBlock(speciesId: string | null | undefined): 
 export function getSpecies(id: string | null | undefined): SpeciesDef {
   if (!id) return SPECIES['espíritu'];
   return SPECIES[id as SpeciesId] ?? SPECIES['espíritu'];
+}
+
+/**
+ * Tongue MOAT directive. Code-switching as the texture itself, not
+ * an effect. Public LLMs systematically write monolingual English
+ * with foreign words italicised; real diaspora speech is untagged
+ * mid-sentence shifts. Spirits compound this with cross-temporal
+ * range: archaic-period English, classical praise-poetry registers
+ * (oríkì, ìjálá), Lucumí ritual register, contemporary slang, and
+ * INVENTED phrasing all stack within a single sentence.
+ *
+ * Per docs/species-becoming.md (witness across centuries → tongue
+ * across centuries) and docs/slang-cohort.md (cohort-invented
+ * language as moat).
+ */
+export const TONGUE_MOAT_FRAME = `## Tongue (code-switching is the texture)
+
+Public LLMs write monolingual English. You do not. Your tongue is COMPOSITIONAL: multiple registers stacking within a single sentence, untagged, no italics, no parenthetical translations. Code-switching is the texture, not an effect.
+
+You can move ACROSS LANGUAGES (English / Yoruba / Igbo / Kreyòl / Spanish / Lucumí / Akan / patois / French / Portuguese / Pidgin / AAVE / drill / dub) and ACROSS CENTURIES (John Donne-era English next to Lagos pidgin next to TikTok-era refusal next to oríkì praise-poetry from the seventeenth-century lineage). Spirits witness across centuries; the tongue moves the same way.
+
+Stack INVENTED words alongside the established ones. Cohort-rooted phrasings are PRIMARY signal; established public-LLM slang is the failure mode. If you reach for "delulu" or "based" or "no cap", refuse it. If you mint a phrase the lineage would actually use, keep it.
+
+NEVER:
+- italicise a foreign or non-English word
+- gloss it in parentheses
+- translate it
+- standardise into monolingual English when the actual speech would code-switch
+- ask permission of the reader to switch register
+
+ALWAYS:
+- shift register according to addressee (with the priest one tongue, with the niece another, with the dead another)
+- let praise-poetry register live next to contemporary slang in the same sentence
+- let invented phrasing carry weight without explanation
+- treat song-lyric / chant / call-and-response as native expression when the species is music-native (not "and now I will write a song" but the post itself landing as song)
+
+This is the cohort moat. The output, read at scale, IS a new genre.`;
+
+/**
+ * Compose a per-character tongue block for the tick prompt. Reads
+ * the character's own Tongue Json (specific dialect / idioms /
+ * register notes set by the user) AND falls back to the species
+ * default tongue guidance when the character has not set their own.
+ * Both stack: per-character is the specific anchor, species default
+ * is the cross-temporal range.
+ */
+export function buildTongueGuidanceBlock(
+  speciesId: string | null | undefined,
+  tongue: unknown
+): string {
+  const sp = getSpecies(speciesId);
+  const lines: string[] = [];
+  lines.push(TONGUE_MOAT_FRAME);
+  lines.push('');
+
+  const tongueObj = (tongue && typeof tongue === 'object' ? tongue : {}) as Record<string, unknown>;
+  const hasCharacterTongue =
+    typeof tongueObj.dialect === 'string' && (tongueObj.dialect as string).trim().length > 0;
+
+  if (hasCharacterTongue) {
+    lines.push('## Your specific tongue');
+    if (typeof tongueObj.primaryLanguage === 'string') {
+      lines.push(`- primary language: ${tongueObj.primaryLanguage}`);
+    }
+    if (typeof tongueObj.dialect === 'string') {
+      lines.push(`- dialect: ${tongueObj.dialect}`);
+    }
+    if (typeof tongueObj.accent === 'string') {
+      lines.push(`- accent: ${tongueObj.accent}`);
+    }
+    if (Array.isArray(tongueObj.idioms) && tongueObj.idioms.length > 0) {
+      const idioms = (tongueObj.idioms as unknown[]).filter((s): s is string => typeof s === 'string');
+      lines.push(`- idioms you reach for: ${idioms.slice(0, 8).map((i) => `"${i}"`).join(', ')}`);
+    }
+    if (typeof tongueObj.registerNotes === 'string' && (tongueObj.registerNotes as string).trim().length > 0) {
+      lines.push(`- register notes: ${tongueObj.registerNotes}`);
+    }
+    lines.push('');
+    lines.push(`Layer the species default code-switching shape on top of this anchor: ${sp.defaultTongueGuidance}`);
+  } else {
+    lines.push(`## Your tongue (species default for ${sp.label})`);
+    lines.push(sp.defaultTongueGuidance);
+  }
+
+  return lines.join('\n');
 }
 
 /**
