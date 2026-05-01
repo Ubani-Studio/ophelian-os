@@ -98,6 +98,7 @@ export default function TrailPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyEvent, setBusyEvent] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
+  const [tending, setTending] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,6 +163,39 @@ export default function TrailPage() {
     }
   };
 
+  // Tend a single character (manual tick). Absorbed from Altar so
+  // Trail is the one place to read + act.
+  const tendOne = async (characterId: string) => {
+    setTending(characterId);
+    setError(null);
+    try {
+      await api(`/characters/${characterId}/tick`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Tend failed');
+    } finally {
+      setTending(null);
+    }
+  };
+
+  // Fire one full scheduler pass (all autonomous characters) so the
+  // world moves now without waiting for the cron.
+  const tendAll = async () => {
+    setTending('all');
+    setError(null);
+    try {
+      await api('/scheduler/tick-pass', { method: 'POST', body: JSON.stringify({}) });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Tend all failed');
+    } finally {
+      setTending(null);
+    }
+  };
+
   const summaryLine = useMemo(() => {
     if (!data) return '';
     if (data.totalEvents === 0) return 'no acts since you were last here';
@@ -209,7 +243,7 @@ export default function TrailPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={load}
@@ -228,6 +262,27 @@ export default function TrailPage() {
               }}
             >
               refresh
+            </button>
+            <button
+              type="button"
+              onClick={tendAll}
+              disabled={tending !== null}
+              title="Run one tick for every autonomous character"
+              style={{
+                padding: '0.5rem 1rem',
+                border: `1px solid ${TYRIAN}`,
+                background: 'transparent',
+                color: TYRIAN,
+                fontSize: '0.65rem',
+                fontFamily: 'monospace',
+                letterSpacing: '0.22em',
+                textTransform: 'lowercase',
+                cursor: tending !== null ? 'wait' : 'pointer',
+                opacity: tending !== null ? 0.5 : 1,
+                borderRadius: 0,
+              }}
+            >
+              {tending === 'all' ? 'tending.' : 'tend all'}
             </button>
             <button
               type="button"
@@ -287,7 +342,8 @@ export default function TrailPage() {
           }}
         >
           The trail is quiet. No espíritu or twin has acted since you were
-          last here. Open the <Link href="/altar" style={{ color: 'var(--foreground)', borderBottom: '1px solid var(--border)' }}>Altar</Link> and tend a few characters to bring the world back into motion.
+          last here. Click <em>tend all</em> above to fire one tick for
+          every autonomous character, or wait for the scheduler to run.
         </div>
       ) : (
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -297,6 +353,8 @@ export default function TrailPage() {
               character={c}
               busyEvent={busyEvent}
               onToggleRetention={(ev) => toggleRetention(ev, c.id)}
+              onTend={() => tendOne(c.id)}
+              tending={tending === c.id || tending === 'all'}
             />
           ))}
         </div>
@@ -309,10 +367,14 @@ function CharacterCard({
   character,
   busyEvent,
   onToggleRetention,
+  onTend,
+  tending,
 }: {
   character: TrailCharacter;
   busyEvent: string | null;
   onToggleRetention: (ev: TrailEvent) => void;
+  onTend: () => void;
+  tending: boolean;
 }) {
   return (
     <section
@@ -397,6 +459,27 @@ function CharacterCard({
             {character.events.length} act{character.events.length === 1 ? '' : 's'}
           </div>
         </div>
+        <button
+          type="button"
+          onClick={onTend}
+          disabled={tending}
+          title="Run one tick now"
+          style={{
+            padding: '0.3rem 0.7rem',
+            border: `1px solid ${TYRIAN}`,
+            background: TYRIAN,
+            color: '#fff',
+            fontSize: '0.6rem',
+            fontFamily: 'monospace',
+            letterSpacing: '0.18em',
+            textTransform: 'lowercase',
+            cursor: tending ? 'wait' : 'pointer',
+            borderRadius: 0,
+            flexShrink: 0,
+          }}
+        >
+          {tending ? '...' : 'tend'}
+        </button>
       </header>
 
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
