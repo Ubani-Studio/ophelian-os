@@ -56,7 +56,7 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState'>;
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -78,6 +78,11 @@ export interface TickInput {
     body?: string;
     ts: string;
   }>;
+  /** Force a specific post form. Debug / manual override; bypasses
+   *  affinity scoring and tells the LLM "use only this form".
+   *  Used by the studio "Force form" debug button to verify quest
+   *  emergence end-to-end without waiting for organic affinity. */
+  forceForm?: PostForm;
 }
 
 function readVoiceSamples(raw: unknown): string[] {
@@ -367,10 +372,22 @@ function buildSystemPrompt(
     .join('\n');
 }
 
-function readSubtasteCode(identity: unknown): string | undefined {
-  const env = readIdentity(identity);
-  // Identity envelope doesn't carry the subtaste; fall back caller path.
-  return undefined;
+function readSubtasteCode(timelineState: unknown): string | undefined {
+  // Subtaste lives at timelineState.oripheon.generated.subtaste.code,
+  // set by the SubtastePicker / Nommo import / realign paths. Reading
+  // it here lets suggestForms bias toward the character's actual
+  // primary code (so F-9 / H-6 / R-10 surface quests, S-0 / D-8
+  // surface ritual, etc.). Without this, every character drew from
+  // the affinity-agnostic baseline pool and the catalogue collapsed
+  // toward thought / fragment / description.
+  if (!timelineState || typeof timelineState !== 'object') return undefined;
+  const ts = timelineState as Record<string, unknown>;
+  const oripheon = ts.oripheon as Record<string, unknown> | undefined;
+  if (!oripheon || typeof oripheon !== 'object') return undefined;
+  const generated = oripheon.generated as Record<string, unknown> | undefined;
+  if (!generated || typeof generated !== 'object') return undefined;
+  const subtaste = generated.subtaste as { code?: string } | undefined;
+  return typeof subtaste?.code === 'string' ? subtaste.code : undefined;
 }
 
 function buildUserPrompt(input: TickInput): string {
@@ -383,17 +400,32 @@ function buildUserPrompt(input: TickInput): string {
 
   // Form guidance. Suggest a small set biased by Subtaste affinity
   // and recent variety. The LLM picks one and outputs it as `form`.
-  const recentForms = input.recentEvents
-    .slice(0, 3)
-    .map((e) => (e.kind as PostForm) || 'thought');
-  const primarySubtaste = readSubtasteCode(input.self.identity);
-  const formSuggestions = suggestForms({
-    primarySubtaste,
-    hasCounterpart: input.neighbours.length > 0,
-    recentForms,
-  });
-  lines.push(buildFormGuidanceBlock(formSuggestions));
-  lines.push('');
+  // When forceForm is set (debug / manual override), bypass scoring
+  // and lock the LLM to that single form.
+  if (input.forceForm) {
+    lines.push('## Post form (forced)');
+    const def = POST_FORMS[input.forceForm];
+    if (def) {
+      lines.push(`- ${def.label}: ${def.guidance}`);
+    }
+    lines.push('');
+    lines.push(
+      `IMPORTANT: use form="${input.forceForm}" in your output. Do not pick any other form. This is a forced override for debugging the form lifecycle.`
+    );
+    lines.push('');
+  } else {
+    const recentForms = input.recentEvents
+      .slice(0, 3)
+      .map((e) => (e.kind as PostForm) || 'thought');
+    const primarySubtaste = readSubtasteCode(input.self.timelineState);
+    const formSuggestions = suggestForms({
+      primarySubtaste,
+      hasCounterpart: input.neighbours.length > 0,
+      recentForms,
+    });
+    lines.push(buildFormGuidanceBlock(formSuggestions));
+    lines.push('');
+  }
 
   lines.push('# Recent memories (newest first)');
   if (input.recentEvents.length === 0) lines.push('(no prior memories)');
@@ -548,11 +580,13 @@ export async function decideTick(input: TickInput): Promise<Decision> {
     }
   }
 
-  // Active CohortPhrase rows for embrace surfacing. Lineage /
-  // Subtaste isn't trivially derivable from TickInput.self today
-  // so we fetch the lineage-agnostic active set; future work pulls
-  // the character's lineage / Subtaste codes for tighter filtering.
-  const embracePhrases = await readEmbracePhrases({});
+  // Active CohortPhrase rows for embrace surfacing. Filtered by
+  // the character's primary Subtaste so lineage-rooted phrases land
+  // with characters of the same signature; lineage-agnostic active
+  // phrases also surface as a fallback (handled inside readEmbracePhrases).
+  const embracePhrases = await readEmbracePhrases({
+    subtasteCode: readSubtasteCode(input.self.timelineState) ?? null,
+  });
 
   const system = buildSystemPrompt(input.self, embracePhrases);
   const user = buildUserPrompt(input);

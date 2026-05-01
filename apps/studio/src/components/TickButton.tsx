@@ -24,6 +24,18 @@ interface TickResult {
   };
 }
 
+// Forms exposed in the debug dropdown. Quest is the primary
+// motivation (smoke-test that the lifecycle fires); the others
+// help verify each shape renders and persists correctly.
+const DEBUG_FORMS = [
+  { id: '', label: 'auto' },
+  { id: 'quest', label: 'force quest' },
+  { id: 'ritual', label: 'force ritual' },
+  { id: 'monologue', label: 'force monologue' },
+  { id: 'fragment', label: 'force fragment' },
+  { id: 'scene', label: 'force scene' },
+];
+
 export function TickButton({
   characterId,
   mode,
@@ -36,6 +48,7 @@ export function TickButton({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSource, setLastSource] = useState<'anthropic' | 'stub' | null>(null);
+  const [forceForm, setForceForm] = useState<string>('');
 
   const isAutonomous = mode === 'espíritu' || mode === 'twin';
   if (!isAutonomous) return null;
@@ -44,7 +57,10 @@ export function TickButton({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/characters/${characterId}/tick`, {
+      const url = forceForm
+        ? `${API_URL}/characters/${characterId}/tick?form=${encodeURIComponent(forceForm)}`
+        : `${API_URL}/characters/${characterId}/tick`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
         body: JSON.stringify({}),
@@ -92,6 +108,29 @@ export function TickButton({
       >
         {busy ? '...' : 'tend'}
       </button>
+      <select
+        value={forceForm}
+        onChange={(e) => setForceForm(e.target.value)}
+        disabled={busy}
+        title="Force a specific post form (debug). Use 'force quest' to verify the quest lifecycle."
+        style={{
+          padding: '0.25rem 0.4rem',
+          border: '1px solid var(--border)',
+          background: 'transparent',
+          color: 'var(--muted-foreground)',
+          fontSize: '0.55rem',
+          fontFamily: 'monospace',
+          letterSpacing: '0.12em',
+          borderRadius: 0,
+          cursor: 'pointer',
+        }}
+      >
+        {DEBUG_FORMS.map((f) => (
+          <option key={f.id || 'auto'} value={f.id}>
+            {f.label}
+          </option>
+        ))}
+      </select>
       {lastSource && !busy && (
         <span
           style={{

@@ -3,6 +3,7 @@ import { prisma } from '../db.js';
 import { z } from 'zod';
 import { decideTick, type Decision, TickThrottledError } from '../lib/tick.js';
 import { LlmBudgetError } from '../lib/llm.js';
+import { POST_FORMS, type PostForm } from '../lib/post-forms.js';
 
 // Phase 2 of agentic-build.md: memory tending. Events are stored on
 // CharacterRelationship.eventLog as an append-only JSON array. Each
@@ -250,8 +251,11 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
   //
   // Manual / relic characters refuse to tick — they are not
   // autonomous by design.
-  fastify.post<{ Params: { id: string } }>('/characters/:id/tick', async (request, reply) => {
+  fastify.post<{ Params: { id: string }; Querystring: { form?: string } }>(
+    '/characters/:id/tick',
+    async (request, reply) => {
     const { id } = request.params;
+    const forceFormRaw = request.query?.form;
 
     const character = await prisma.character.findUnique({ where: { id } });
     if (!character) return reply.code(404).send({ error: 'Character not found' });
@@ -355,7 +359,11 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
           tongue: character.tongue,
           gender: character.gender,
           pronouns: character.pronouns,
+          timelineState: character.timelineState,
         },
+        forceForm: (typeof forceFormRaw === 'string' && POST_FORMS[forceFormRaw as PostForm])
+          ? (forceFormRaw as PostForm)
+          : undefined,
         recentEvents: recentEvents.slice(0, 20),
         neighbours: edges.map((edge) => {
           const cId = edge.sourceCharacterId === id ? edge.targetCharacterId : edge.sourceCharacterId;
