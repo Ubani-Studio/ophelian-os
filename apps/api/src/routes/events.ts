@@ -374,7 +374,7 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
 
     const entryKind: EventKind =
       decision.kind === 'message' ? 'conversation' : 'thought';
-    const entry: EventEntry = {
+    const entry: EventEntry & { form?: string } = {
       ts: new Date().toISOString(),
       actors,
       kind: entryKind,
@@ -382,6 +382,7 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
       body: decision.body,
       retention: 'ephemeral',
       rolled_back: false,
+      ...(decision.form ? { form: decision.form } : {}),
     };
 
     const targetEdge = await prisma.characterRelationship.findUnique({

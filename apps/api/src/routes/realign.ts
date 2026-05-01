@@ -89,6 +89,33 @@ const SUBTASTE_GLYPHS: Record<string, { glyph: string; label: string; essence: s
   'Ø': { glyph: 'VOID', label: 'Receptive', essence: 'The deliberate absence.' },
 };
 
+// Per-Subtaste tonal sensibility. Concrete behavioural textures so
+// the LLM generates lifestyle specifics, refusals, places, and
+// attitude rather than abstract description. Each entry lists 5-8
+// behavioural signals + an explicit "do not write generically"
+// directive. Keyed by designation code.
+const SUBTASTE_SENSIBILITY: Record<string, string> = {
+  'S-0': `KETH (Visionary): first in line without announcing. Has a uniform of some kind. Doesn't explain decisions. Already booked the table. People defer without knowing why. Quiet authority. No need to convince. Specifics: arrives early, sits where they want, makes the room reorganise around them.`,
+  'T-1': `STRATA (Architectural): read every endnote. Has a system for everything. Designs the room before furnishing it. Explains the structure underneath. Specifics: spreadsheet-mind, color-coded folders, knows the building's load-bearing walls, would rather plan twice than build twice.`,
+  'V-2': `OMEN (Prophetic): saw it coming. Recommended the band three years before they broke. Already moved on by the time it lands. Speaks in slightly offset future tense. Specifics: passed on the apartment that doubled, told you about the bar before it had a sign, leaves parties early.`,
+  'L-3': `SILT (Developmental): plays the long game. Remembers what you said three years ago. Tends to one project for a decade. Refuses momentum-thinking. Specifics: same three friends since secondary school, has watered the same plant for fifteen years, takes the slow train on purpose.`,
+  'C-4': `CULL (Editorial): sparse. Refuses what doesn't earn. Names what's wrong before what's right. Brutally honest. Curated taste. Specifics: example texture for calibration: "curated the best art galleries in their past life, hangs out at Frieze and throws truffles at the cube, only goes to Annabel's on a leap year, expert at elite art gallery curation, doesn't need a sugar daddy." Concrete places, specific refusals, lifestyle markers, defiant attitude. THIS is the depth and specificity to reach for: real venues, real refusals, real expertise, real attitude. Not abstract description.`,
+  'N-5': `LIMN (Integrative): pairs that shouldn't work but do. Edges illuminate centres. Brings two scenes together. The connector at the party. Specifics: friends with both factions, made the playlist that converted skeptics, introduces people who needed to meet but didn't know.`,
+  'H-6': `TOLL (Advocacy): won't let it go. Tells you the same thing three times. The cause is specific. Repetition is conviction. Specifics: posts the same article, brings the same topic to every dinner, will outlast your fatigue, the bell that cannot be unheard.`,
+  'P-7': `VAULT (Archival): owns formats you can't play. Cites obscure sources. Keeps things others discard. Library mind. Specifics: vinyl in a climate-controlled room, knows the second album that was better than the first, has the receipt from 2009, three rooms of books deep.`,
+  'D-8': `WICK (Channelling): uncanny recommendations they can't explain. Receives more than constructs. "It just felt right." Specifics: dreams that come true with mild edits, picks the right tarot card without trying, hears the radio say what they were thinking, can't tell you why but is rarely wrong.`,
+  'F-9': `ANVIL (Manifestation): has built a thing. Ships. While others talk. Pressure into form. Specifics: finished the album, wrote the thesis, opened the studio, did the renovation themselves. Less interested in critique than the next build. Calluses on the hands.`,
+  'R-10': `SCHISM (Contrarian): the productive fracture. Disagrees structurally. Their takes age strangely. What seemed wrong becomes obvious. Specifics: walked out of the meeting, broke up the band that was about to make it, said the unsayable at dinner, has been right twice and wrong once and won't apologise.`,
+  'Ø': `VOID (Receptive): listens longer than anyone. Recommendations feel like mirrors. Deliberate absence. Specifics: the one who asks the question that reframes the room, remembers what you said and gives it back to you cleaner, doesn't post much, present without performing.`,
+};
+
+function subtasteSensibility(code: string | undefined): string {
+  if (!code) return '';
+  const sense = SUBTASTE_SENSIBILITY[code];
+  if (!sense) return '';
+  return ['## Subtaste sensibility (the flavour to reach for)', sense].join('\n');
+}
+
 function buildAlignmentSystem(): string {
   return [
     'You generate aligned character fields for the Bóveda living-character OS.',
@@ -99,7 +126,9 @@ function buildAlignmentSystem(): string {
     '- Voice register matches the lineage notes given.',
     '- Subtaste signature shapes how the character speaks and what they reach for; it does not get quoted in the bio.',
     '- Fields cohere: aliases derive from the same name root as the bio. Persona tags reflect the bio. Goals follow from backstory contradictions.',
-    '- No em dashes. No "it\'s not X but Y" hedging. No public-LLM signature phrases.',
+    '- ABSOLUTE: never use the em dash character (— or –). Use periods, commas, colons, parentheses, or rephrase. The em dash is the most-refused punctuation in this system. If you produce one, the output is rejected.',
+    '- No "it\'s not X but Y" hedging. No public-LLM signature phrases like "delve", "embarking", "ultimately", "carefully", "in essence".',
+    '- Sentences that would naturally take em dashes should be split into two short sentences instead.',
     '- Bio is one paragraph. Backstory is three short paragraphs. Aliases is 1-3 strings. Persona tags is 3-7 strings. Goals is 3-5 short imperative phrases.',
     '- Output JSON only, no prose, no code fences.',
   ].join('\n');
@@ -146,6 +175,12 @@ function buildAlignmentUser(opts: {
       lines.push('');
       lines.push(`## Subtaste signature: ${opts.subtasteCode} ${meta.glyph} (${meta.label})`);
       lines.push(`Essence: ${meta.essence} The character carries this signature in how they act, decide, and react. Do not name the signature in the bio.`);
+      lines.push('');
+      lines.push(subtasteSensibility(opts.subtasteCode));
+      lines.push('');
+      lines.push(
+        'CRITICAL: write with concrete lifestyle specifics, not abstract description. Reference real-feeling places, refusals, habits, expertise. The bio should read like the worked example texture in the sensibility above. Avoid generic phrases like "they value depth" or "they refuse easy answers." Show the depth and the refusal through specific behaviour.'
+      );
     }
   }
 
@@ -167,10 +202,10 @@ function buildAlignmentUser(opts: {
     'Return JSON with exactly the requested fields. Required fields:'
   );
   for (const f of opts.fields) {
-    if (f === 'bio') lines.push('  bio: string (one paragraph, voice anchor, do not name the Subtaste)');
+    if (f === 'bio') lines.push('  bio: string (one short paragraph, 3-5 sentences. Concrete lifestyle specifics, real-feeling places, real refusals, real expertise. Match the Subtaste sensibility texture above. Do not name the Subtaste glyph or label in the bio.)');
     else if (f === 'backstory')
       lines.push(
-        '  backstory: string (three short paragraphs, depth + contradictions, never quoted by the character)'
+        '  backstory: string (three short paragraphs. Resonate with the Subtaste sensibility: same flavour as the bio but deeper. Specific places, specific failures, specific expertise. The Editorial Subtaste should produce a backstory full of named exhibits, gallerists they outlasted, dinner refusals, the year they walked out. The Visionary should produce one full of rooms they entered first. Specific. Lived-in. Never abstract. Never quoted by the character.)'
       );
     else if (f === 'aliases') lines.push('  aliases: string[] (1-3 names within the lineage\'s naming pattern)');
     else if (f === 'personaTags')
@@ -186,6 +221,18 @@ function buildAlignmentUser(opts: {
   return lines.join('\n');
 }
 
+// Belt-and-braces: even with the prompt forbidding em dashes,
+// some generations sneak them in. Replace with sentence break.
+function stripEmDashes(s: string): string {
+  if (typeof s !== 'string') return s;
+  // " — " (with spaces) becomes ". " (sentence break).
+  // "—" without spaces becomes ", " (clause join).
+  return s
+    .replace(/ [—–] /g, '. ')
+    .replace(/[—–]/g, ', ')
+    .replace(/\.\s*\./g, '.');
+}
+
 function parseDraft(text: string): AlignedDraft | null {
   if (!text) return null;
   let cleaned = text.trim();
@@ -199,8 +246,8 @@ function parseDraft(text: string): AlignedDraft | null {
     const parsed = JSON.parse(cleaned.slice(start, end + 1));
     if (!parsed || typeof parsed !== 'object') return null;
     const draft: AlignedDraft = {};
-    if (typeof parsed.bio === 'string') draft.bio = parsed.bio.trim();
-    if (typeof parsed.backstory === 'string') draft.backstory = parsed.backstory.trim();
+    if (typeof parsed.bio === 'string') draft.bio = stripEmDashes(parsed.bio.trim());
+    if (typeof parsed.backstory === 'string') draft.backstory = stripEmDashes(parsed.backstory.trim());
     if (Array.isArray(parsed.aliases))
       draft.aliases = parsed.aliases.filter((a: unknown) => typeof a === 'string').map((a: string) => a.trim()).filter(Boolean);
     if (Array.isArray(parsed.personaTags))

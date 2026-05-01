@@ -169,6 +169,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       worldId?: string | null;
       authoredBy?: string | null;
       voiceSamples?: string[];
+      compositionKind?: 'solo' | 'duo' | 'group' | 'collective';
       tongue?: {
         primaryLanguage?: string;
         dialect?: string;
@@ -1170,6 +1171,92 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     return reply.send(updated);
+  });
+
+  // PATCH /characters/:id/subtaste — manually pick primary +
+  // optional secondary Subtaste designation. Refuses to overwrite
+  // when isUser=true (Ubani's Subtaste comes from Starforge Nommo).
+  // Stores in timelineState.oripheon.generated.subtaste alongside
+  // a new secondaryCode field.
+  fastify.patch<{
+    Params: { id: string };
+    Body: { primaryCode: string; secondaryCode?: string | null };
+  }>('/characters/:id/subtaste', async (request, reply) => {
+    const { id } = request.params;
+    const { primaryCode, secondaryCode } = request.body;
+
+    const character = await prisma.character.findUnique({ where: { id } });
+    if (!character) return reply.code(404).send({ error: 'Character not found' });
+
+    if (character.isUser) {
+      return reply.code(409).send({
+        error: 'Subtaste for the user character is inherited from Starforge Nommo. Use POST /characters/:id/import-from-starforge to refresh it.',
+      });
+    }
+
+    const VALID = new Set(['S-0', 'T-1', 'V-2', 'L-3', 'C-4', 'N-5', 'H-6', 'P-7', 'D-8', 'F-9', 'R-10', 'Ø']);
+    if (!VALID.has(primaryCode)) {
+      return reply.code(400).send({ error: `Invalid primary code: ${primaryCode}` });
+    }
+    if (secondaryCode && !VALID.has(secondaryCode)) {
+      return reply.code(400).send({ error: `Invalid secondary code: ${secondaryCode}` });
+    }
+
+    const ts = (character.timelineState as Record<string, unknown>) || {};
+    const oripheon = (ts.oripheon as Record<string, unknown>) || {};
+    const generated = (oripheon.generated as Record<string, unknown>) || {};
+    const existingSubtaste = (generated.subtaste as Record<string, unknown>) || {};
+
+    const GLYPHS: Record<string, { glyph: string; label: string }> = {
+      'S-0': { glyph: 'KETH', label: 'Visionary' },
+      'T-1': { glyph: 'STRATA', label: 'Architectural' },
+      'V-2': { glyph: 'OMEN', label: 'Prophetic' },
+      'L-3': { glyph: 'SILT', label: 'Developmental' },
+      'C-4': { glyph: 'CULL', label: 'Editorial' },
+      'N-5': { glyph: 'LIMN', label: 'Integrative' },
+      'H-6': { glyph: 'TOLL', label: 'Advocacy' },
+      'P-7': { glyph: 'VAULT', label: 'Archival' },
+      'D-8': { glyph: 'WICK', label: 'Channelling' },
+      'F-9': { glyph: 'ANVIL', label: 'Manifestation' },
+      'R-10': { glyph: 'SCHISM', label: 'Contrarian' },
+      'Ø': { glyph: 'VOID', label: 'Receptive' },
+    };
+
+    const newSubtaste = {
+      ...existingSubtaste,
+      code: primaryCode,
+      glyph: GLYPHS[primaryCode].glyph,
+      label: GLYPHS[primaryCode].label,
+      ...(secondaryCode
+        ? {
+            secondaryCode,
+            secondaryGlyph: GLYPHS[secondaryCode].glyph,
+            secondaryLabel: GLYPHS[secondaryCode].label,
+          }
+        : { secondaryCode: null, secondaryGlyph: null, secondaryLabel: null }),
+    };
+
+    const newTimelineState = {
+      ...ts,
+      oripheon: {
+        ...oripheon,
+        generated: {
+          ...generated,
+          subtaste: newSubtaste,
+        },
+      },
+    };
+
+    const updated = await prisma.character.update({
+      where: { id },
+      data: { timelineState: newTimelineState as unknown as Prisma.InputJsonValue },
+    });
+
+    return reply.send({
+      ok: true,
+      characterId: updated.id,
+      subtaste: newSubtaste,
+    });
   });
 
   // POST /characters/:id/mirror-from/:sourceId — copy identity

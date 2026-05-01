@@ -18,6 +18,7 @@ import type { Character, CharacterRelationship } from '@prisma/client';
 import { callLlm, hasLlmProvider } from './llm.js';
 import { readIdentity } from './identity-lock.js';
 import { getSlangGuidance } from './ibis-slang.js';
+import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from './post-forms.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -33,6 +34,9 @@ export type DecisionKind = 'message' | 'thought' | 'noop';
 
 export interface Decision {
   kind: DecisionKind;
+  /** Post form (mirrors Ibis DocumentKind catalogue). Optional;
+   *  defaults to thought / message based on kind for back-compat. */
+  form?: PostForm;
   targetName?: string;
   summary: string;
   body?: string;
@@ -277,6 +281,12 @@ function buildSystemPrompt(self: TickInput['self']): string {
     .join('\n');
 }
 
+function readSubtasteCode(identity: unknown): string | undefined {
+  const env = readIdentity(identity);
+  // Identity envelope doesn't carry the subtaste; fall back caller path.
+  return undefined;
+}
+
 function buildUserPrompt(input: TickInput): string {
   const goals = readGoals(input.self.goals);
   const lines: string[] = [];
@@ -284,6 +294,21 @@ function buildUserPrompt(input: TickInput): string {
   if (goals.length === 0) lines.push('- (none set)');
   else goals.forEach((g) => lines.push(`- ${g}`));
   lines.push('');
+
+  // Form guidance. Suggest a small set biased by Subtaste affinity
+  // and recent variety. The LLM picks one and outputs it as `form`.
+  const recentForms = input.recentEvents
+    .slice(0, 3)
+    .map((e) => (e.kind as PostForm) || 'thought');
+  const primarySubtaste = readSubtasteCode(input.self.identity);
+  const formSuggestions = suggestForms({
+    primarySubtaste,
+    hasCounterpart: input.neighbours.length > 0,
+    recentForms,
+  });
+  lines.push(buildFormGuidanceBlock(formSuggestions));
+  lines.push('');
+
   lines.push('# Recent memories (newest first)');
   if (input.recentEvents.length === 0) lines.push('(no prior memories)');
   else
@@ -295,14 +320,16 @@ function buildUserPrompt(input: TickInput): string {
         )
       );
   lines.push('');
-  lines.push('# Neighbours (potential message targets)');
+  lines.push('# Neighbours (potential message / quest / dialogue targets)');
   if (input.neighbours.length === 0) lines.push('(none)');
   else
     input.neighbours
       .slice(0, MAX_NEIGHBOURS)
       .forEach((n) => lines.push(`- ${n.neighbour.name} (${n.neighbour.mode})`));
   lines.push('');
-  lines.push('Now decide. Output JSON only.');
+  lines.push(
+    'Output JSON: { kind: "message" | "thought" | "noop", form: "<one of the listed forms>", targetName?: string, summary: string, body?: string }. The "kind" field is for routing (does this need a counterpart? is it action vs reflection?). The "form" field is for shape (scene, fragment, monologue, ritual, etc.). Both are required.'
+  );
   return lines.join('\n');
 }
 
@@ -322,8 +349,11 @@ function parseDecision(text: string): Omit<Decision, 'source'> | null {
       const kind = (parsed.kind === 'message' || parsed.kind === 'thought' || parsed.kind === 'noop')
         ? (parsed.kind as DecisionKind)
         : 'thought';
+      const formRaw = typeof parsed.form === 'string' ? parsed.form.trim() : undefined;
+      const form: PostForm | undefined = formRaw && formRaw in POST_FORMS ? (formRaw as PostForm) : undefined;
       return {
         kind,
+        form: form ?? (kind === 'message' ? 'message' : kind === 'noop' ? 'noop' : 'thought'),
         targetName: typeof parsed.targetName === 'string' ? parsed.targetName : undefined,
         summary: parsed.summary,
         body: typeof parsed.body === 'string' ? parsed.body : undefined,

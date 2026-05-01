@@ -23,6 +23,7 @@ interface TrailEvent {
   ts: string;
   edgeId: string;
   kind: string;
+  form?: string;
   summary: string;
   body?: string;
   retention: 'ephemeral' | 'canonical';
@@ -142,6 +143,7 @@ export async function trailRoutes(fastify: FastifyInstance): Promise<void> {
             ts,
             edgeId: edge.id,
             kind: typeof ev.kind === 'string' ? ev.kind : 'thought',
+            form: typeof ev.form === 'string' ? ev.form : undefined,
             summary: typeof ev.summary === 'string' ? ev.summary : '',
             body: typeof ev.body === 'string' ? ev.body : undefined,
             retention:

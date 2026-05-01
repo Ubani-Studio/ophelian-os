@@ -21,6 +21,8 @@ import { RepositionableCircleAvatar } from '@/components/RepositionableCircleAva
 import { ArchetypeDynamics } from '@/components/genome';
 import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
+import { CompositionKindPicker } from '@/components/CompositionKindPicker';
+import { SubtastePicker } from '@/components/SubtastePicker';
 import { LoraPanel } from '@/components/LoraPanel';
 import { ModePill } from '@/components/ModePill';
 import { TimelineStrip } from '@/components/TimelineStrip';
@@ -935,11 +937,17 @@ export default function CharacterDetailPage() {
             {/* Tizita-bound photos + Ikenga emblem (collapsed by default) */}
             <TizitaPanel characterId={character.id} tizitaPersonaId={character.tizitaPersonaId} />
 
-            {/* Group / collective members (Triarch, councils, bands) */}
-            <GroupMembersPanel
-              characterId={character.id}
-              initialMembers={character.groupMembers ?? []}
-            />
+            {/* Group / collective members. Hidden for solo
+                characters (the default). Surfaced when composition
+                is duo / group / collective. */}
+            <SubtastePicker character={character} onUpdated={setCharacter} />
+            <CompositionKindPicker character={character} onUpdated={setCharacter} />
+            {character.compositionKind && character.compositionKind !== 'solo' && (
+              <GroupMembersPanel
+                characterId={character.id}
+                initialMembers={character.groupMembers ?? []}
+              />
+            )}
 
             {/* LoRA category slots: visual / voice / writing / music /
                 motion / style. Each slot pipes into the matching

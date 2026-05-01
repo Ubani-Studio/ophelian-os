@@ -111,6 +111,15 @@ model Character {
   // without forcing each member to be a fully-fledged character row.
   groupMembers Json @default("[]")
 
+  // Composition kind. Distinguishes individuals from collectives so
+  // the studio can hide the members panel for solos, show a duo
+  // pair-shape for two, etc.
+  //   solo       — one person / spirit / object (default)
+  //   duo        — two-person pair (band, partnership)
+  //   group      — three or more (ensemble, council)
+  //   collective — open-ended (movement, scene, lineage)
+  compositionKind String @default("solo")
+
   // Agency mode. Determines how this Character acts in the system.
   //   manual    — author-only (the human user). Cannot act
   //               autonomously. Other entities can address them;

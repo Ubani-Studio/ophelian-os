@@ -232,6 +232,7 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
     ts: new Date().toISOString(),
     actors,
     kind: decision.kind === 'message' ? 'conversation' : 'thought',
+    form: decision.form,
     summary: decision.summary,
     body: decision.body,
     retention: 'ephemeral',

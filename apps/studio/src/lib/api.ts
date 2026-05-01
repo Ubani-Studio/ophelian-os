@@ -96,6 +96,9 @@ export interface Character {
    *  { name, role?, characterId? } — full Character records are not
    *  required, just names. */
   groupMembers?: Array<{ name: string; role?: string; characterId?: string }>;
+  /** Composition kind: solo (default) hides the members panel
+   *  entirely. duo / group / collective surface it. */
+  compositionKind?: 'solo' | 'duo' | 'group' | 'collective';
   /** Agency mode. Determines how this character acts in the system.
    *  manual = author-only (the human user); twin = paired AI version
    *  (Ai-8O is twin to Ubani); espíritu = fully autonomous; relic =
@@ -159,6 +162,20 @@ export async function updateCharacter(id: string, data: Partial<Character>): Pro
   return apiFetch<Character>(`/characters/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  });
+}
+
+/** Manually set Subtaste primary (and optional secondary) for a
+ *  non-user character. Refused for isUser=true (use the Starforge
+ *  import to update Ubani's Subtaste from Nommo). */
+export async function setSubtaste(
+  characterId: string,
+  primaryCode: string,
+  secondaryCode?: string | null
+): Promise<{ ok: boolean; subtaste: Record<string, unknown> }> {
+  return apiFetch(`/characters/${characterId}/subtaste`, {
+    method: 'PATCH',
+    body: JSON.stringify({ primaryCode, secondaryCode: secondaryCode ?? null }),
   });
 }
 

@@ -25,6 +25,7 @@ interface TrailEvent {
   ts: string;
   edgeId: string;
   kind: string;
+  form?: string;
   summary: string;
   body?: string;
   retention: 'ephemeral' | 'canonical';
@@ -509,7 +510,7 @@ function CharacterCard({
               >
                 {formatRelative(ev.ts)}
                 <div style={{ marginTop: '0.15rem', textTransform: 'lowercase', opacity: 0.7 }}>
-                  {ev.kind} · w/ {ev.counterpartName}
+                  {ev.form ?? ev.kind} · w/ {ev.counterpartName}
                 </div>
               </div>
 
