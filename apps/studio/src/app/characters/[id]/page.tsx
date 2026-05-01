@@ -33,6 +33,7 @@ import { SubtasteBadge } from '@/components/SubtasteBadge';
 import { SovereigntyBadge } from '@/components/SovereigntyBadge';
 import { BackstoryPanel } from '@/components/BackstoryPanel';
 import { VoicePanel } from '@/components/VoicePanel';
+import { CohortPhrasePanel } from '@/components/CohortPhrasePanel';
 import { ForgePanel } from '@/components/ForgePanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
@@ -977,6 +978,11 @@ export default function CharacterDetailPage() {
                 pre-LoRA bridge to per-character voice authenticity.
                 Paste artist samples; tick prompt leads with them. */}
             <VoicePanel character={character} onUpdated={setCharacter} />
+
+            {/* Cohort phrases · the slang MOAT review surface.
+                Extract → review → promote → Ibis frontier writeback.
+                See docs/slang-cohort.md. */}
+            <CohortPhrasePanel character={character} />
 
             {/* Backstory · deeper context for the tick LLM. Never
                 displayed in cards, never quoted by the character.

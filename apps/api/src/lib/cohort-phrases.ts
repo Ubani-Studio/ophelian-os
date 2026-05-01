@@ -234,3 +234,35 @@ export async function recordCohortPhraseUses(phrases: string[]): Promise<void> {
     // non-fatal
   }
 }
+
+/**
+ * Scan generated text for active cohort phrases and bump useCount on
+ * each match. Wraps the substring scan + DB write so callers (the
+ * tick persist path, the realign apply path) can fire-and-forget.
+ *
+ * Substring match is case-insensitive. Word boundaries are not
+ * enforced for v1; phrases are usually distinctive enough that
+ * fragments rarely collide. If false positives become a problem
+ * later, swap for a tokeniser-aware matcher.
+ */
+export async function scanAndRecordUses(text: string): Promise<{ matched: string[] }> {
+  if (!text || text.trim().length === 0) return { matched: [] };
+  let active: { phrase: string }[] = [];
+  try {
+    active = await prisma.cohortPhrase.findMany({
+      where: { status: 'active' },
+      select: { phrase: true },
+    });
+  } catch {
+    return { matched: [] };
+  }
+  if (active.length === 0) return { matched: [] };
+  const haystack = text.toLowerCase();
+  const matched = active
+    .map((a) => a.phrase)
+    .filter((p) => p.length > 0 && haystack.includes(p.toLowerCase()));
+  if (matched.length > 0) {
+    await recordCohortPhraseUses(matched);
+  }
+  return { matched };
+}

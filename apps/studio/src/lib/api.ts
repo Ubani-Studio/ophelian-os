@@ -206,6 +206,49 @@ export async function generateBackstoryDraft(
 }
 
 // =============================================================================
+// Cohort phrases (slang MOAT)
+// =============================================================================
+
+export type CohortPhraseStatus = 'proposed' | 'active' | 'promoted' | 'revoked';
+
+export interface CohortPhrase {
+  id: string;
+  phrase: string;
+  sourceCharacterId: string | null;
+  lineage: string | null;
+  subtasteCode: string | null;
+  sourceQuote: string | null;
+  gloss: string | null;
+  status: CohortPhraseStatus;
+  useCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listCohortPhrases(characterId: string): Promise<{ phrases: CohortPhrase[] }> {
+  return apiFetch<{ phrases: CohortPhrase[] }>(`/characters/${characterId}/cohort-phrases`);
+}
+
+export async function extractCohortPhrases(
+  characterId: string
+): Promise<{ extracted: number; phrases: CohortPhrase[]; reason: 'ok' | 'llm-unavailable' | 'no-samples' | 'none-found' }> {
+  return apiFetch(`/characters/${characterId}/cohort-phrases/extract`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export async function updateCohortPhrase(
+  phraseId: string,
+  patch: { status?: CohortPhraseStatus; gloss?: string }
+): Promise<CohortPhrase> {
+  return apiFetch<CohortPhrase>(`/characters/cohort-phrases/${phraseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
+// =============================================================================
 // Aligned generator (lineage + Subtaste + brief → coherent fields)
 // =============================================================================
 

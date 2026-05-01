@@ -26,6 +26,7 @@ import { prisma } from '../db.js';
 import { decideTick, TickThrottledError, type Decision } from './tick.js';
 import { LlmBudgetError } from './llm.js';
 import { randomUUID } from 'crypto';
+import { scanAndRecordUses } from './cohort-phrases.js';
 
 interface TickOutcome {
   characterId: string;
@@ -324,6 +325,13 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
     where: { id: targetEdgeId },
     data: { eventLog: log as unknown as object },
   });
+
+  // Slang MOAT useCount: scan the persisted text for active cohort
+  // phrases and bump their counters. Establishes the per-use signal
+  // that Imperium royalty hooks attach to once the LoRA pipeline
+  // ships. Fire-and-forget; failures don't break the tick.
+  const generatedText = [decision.summary, decision.body].filter(Boolean).join('\n');
+  void scanAndRecordUses(generatedText);
 
   return {
     characterId: id,
