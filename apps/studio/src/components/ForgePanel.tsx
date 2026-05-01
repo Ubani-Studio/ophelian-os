@@ -30,13 +30,14 @@ import {
 
 const TYRIAN = '#66023C';
 
-const ALL_FIELDS: RealignField[] = ['bio', 'backstory', 'aliases', 'personaTags', 'goals'];
+const ALL_FIELDS: RealignField[] = ['bio', 'backstory', 'aliases', 'personaTags', 'goals', 'tongue'];
 const FIELD_LABELS: Record<RealignField, string> = {
   bio: 'bio',
   backstory: 'backstory',
   aliases: 'aliases',
   personaTags: 'tags',
   goals: 'goals',
+  tongue: 'tongue',
 };
 
 const SUBTASTE_OPTIONS: Array<{ code: string; display: string }> = [
@@ -63,7 +64,7 @@ export function ForgePanel({
 }) {
   const [open, setOpen] = useState(false);
   const [lineages, setLineages] = useState<LineageOption[]>([]);
-  const [lineage, setLineage] = useState<string>('');
+  const [selectedLineages, setSelectedLineages] = useState<Set<string>>(new Set());
   const [brief, setBrief] = useState('');
   const [subtasteCode, setSubtasteCode] = useState('');
   const [fields, setFields] = useState<Set<RealignField>>(new Set(ALL_FIELDS));
@@ -86,6 +87,15 @@ export function ForgePanel({
     setFields(next);
   };
 
+  const lineageList = Array.from(selectedLineages);
+
+  const toggleLineage = (id: string) => {
+    const next = new Set(selectedLineages);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedLineages(next);
+  };
+
   const forge = async () => {
     setLoading(true);
     setError(null);
@@ -93,7 +103,7 @@ export function ForgePanel({
     setSkipped([]);
     try {
       const result = await realignCharacter(character.id, {
-        lineage: lineage || undefined,
+        lineage: lineageList.length > 0 ? lineageList : undefined,
         brief: brief.trim() || undefined,
         subtasteCode: subtasteCode || undefined,
         fields: Array.from(fields),
@@ -130,7 +140,7 @@ export function ForgePanel({
     setError(null);
     try {
       const result = await realignCharacter(character.id, {
-        lineage: lineage || undefined,
+        lineage: lineageList.length > 0 ? lineageList : undefined,
         brief: brief.trim() || undefined,
         subtasteCode: subtasteCode || undefined,
         fields: Array.from(fields),
@@ -208,22 +218,65 @@ export function ForgePanel({
             <div style={{ fontSize: '0.7rem', color: 'var(--error)' }}>{error}</div>
           )}
 
-          {/* Lineage picker */}
+          {/* Lineage picker · multi-select pill grid */}
           <div>
-            <label style={labelStyle}>Lineage</label>
-            <select
-              value={lineage}
-              onChange={(e) => setLineage(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">none · culturally indeterminate</option>
-              {lineages.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.label} · {l.region}
-                  {l.advisorGated ? ' · advisor-gated' : ''}
-                </option>
-              ))}
-            </select>
+            <label style={labelStyle}>
+              Lineage{lineageList.length > 0 ? ` (${lineageList.length})` : ''}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              {lineages.map((l) => {
+                const on = selectedLineages.has(l.id);
+                return (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => toggleLineage(l.id)}
+                    title={`${l.region}${l.advisorGated ? ' · advisor-gated' : ''}`}
+                    style={{
+                      padding: '0.35rem 0.7rem',
+                      fontSize: '0.7rem',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.04em',
+                      border: `1px solid ${on ? TYRIAN : 'var(--border)'}`,
+                      background: on ? TYRIAN : 'transparent',
+                      color: on ? '#fff' : 'var(--foreground)',
+                      cursor: 'pointer',
+                      borderRadius: 0,
+                      transition: 'border-color 0.12s, background 0.12s',
+                    }}
+                  >
+                    {l.label}
+                    {l.advisorGated && (
+                      <span
+                        style={{
+                          marginLeft: '0.3rem',
+                          fontSize: '0.55rem',
+                          opacity: 0.7,
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        ◇
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {lineageList.length > 1 && (
+              <p
+                style={{
+                  fontSize: '0.62rem',
+                  color: 'var(--muted-foreground)',
+                  marginTop: '0.35rem',
+                  fontFamily: '"Canela", serif',
+                  fontStyle: 'italic',
+                  lineHeight: 1.5,
+                }}
+              >
+                Multiple lineages blend at the intersection. Names from one,
+                register from another, idioms code-switching across.
+              </p>
+            )}
           </div>
 
           {/* Subtaste pin */}
@@ -374,6 +427,25 @@ export function ForgePanel({
                   body={draft.goals.map((g, i) => `0${i + 1} ${g}`).join('\n')}
                   onApply={() => applyField('goals')}
                   applying={applying === 'goals'}
+                />
+              )}
+              {draft.tongue !== undefined && (
+                <DraftRow
+                  field="tongue"
+                  label="Tongue"
+                  body={[
+                    draft.tongue.primaryLanguage && `Language: ${draft.tongue.primaryLanguage}`,
+                    draft.tongue.dialect && `Dialect: ${draft.tongue.dialect}`,
+                    draft.tongue.accent && `Accent: ${draft.tongue.accent}`,
+                    draft.tongue.idioms && draft.tongue.idioms.length > 0
+                      ? `Idioms: ${draft.tongue.idioms.join(' · ')}`
+                      : null,
+                    draft.tongue.registerNotes && `Register: ${draft.tongue.registerNotes}`,
+                  ]
+                    .filter(Boolean)
+                    .join('\n')}
+                  onApply={() => applyField('tongue')}
+                  applying={applying === 'tongue'}
                 />
               )}
             </div>

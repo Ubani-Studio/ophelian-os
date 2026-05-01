@@ -1,365 +1,455 @@
 'use client';
 
+/**
+ * Story Template detail · luxury redesign.
+ *
+ * Typography:
+ *   H1 only Canela, all other headers Söhne (system fallback).
+ *   Sentence case throughout. No em dashes.
+ *
+ * Aesthetic:
+ *   Sharp edges, hairline dividers, monospace small caps for
+ *   metadata labels, tyrian accent (#66023C) for active / canonical
+ *   states. No gradients, no rounded pills, no toy-shaped UI.
+ *
+ * Behaviour:
+ *   When a Cube is provided via cubeContext, the panel surfaces an
+ *   "apply to {cube}" action that pins the trajectory on the World
+ *   record. When already pinned, surface a "pinned" state with
+ *   unpin action.
+ */
+
 import { useState } from 'react';
 import {
   StoryTemplate,
-  getTemplateById,
   getCompatibleTemplates,
   getShadowTemplate,
-  temperatureColors,
-  energySymbols,
 } from '@/lib/story-templates';
+import { updateWorld, type World } from '@/lib/api';
+
+const TYRIAN = '#66023C';
+
+interface CubeContext {
+  id: string;
+  name: string;
+  trajectoryId?: string | null;
+  trajectoryVariant?: string | null;
+  onChanged?: (next: World) => void;
+}
 
 interface StoryTemplateDetailProps {
   template: StoryTemplate;
   onClose?: () => void;
   onApply?: (config: { primary: string; secondary?: string; shadow?: string }) => void;
   onTemplateClick?: (templateId: string) => void;
+  cubeContext?: CubeContext;
 }
 
 export function StoryTemplateDetail({
   template,
-  onClose,
   onApply,
   onTemplateClick,
+  cubeContext,
 }: StoryTemplateDetailProps) {
-  const [selectedSecondary, setSelectedSecondary] = useState<string | undefined>();
-  const [showAncient, setShowAncient] = useState(false);
-  const [showModern, setShowModern] = useState(false);
+  const [pinning, setPinning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const tempColor = temperatureColors[template.temperature];
-  const energySymbol = energySymbols[template.primaryEnergy];
   const compatibleTemplates = getCompatibleTemplates(template.id);
   const shadowTemplate = getShadowTemplate(template.id);
+  const isPinnedToCube = cubeContext?.trajectoryId === template.id;
 
-  const handleApply = () => {
-    onApply?.({
-      primary: template.id,
-      secondary: selectedSecondary,
-      shadow: template.shadowType,
-    });
+  const handlePin = async () => {
+    if (!cubeContext) {
+      onApply?.({ primary: template.id, shadow: template.shadowType });
+      return;
+    }
+    setPinning(true);
+    setError(null);
+    try {
+      const updated = await updateWorld(cubeContext.id, {
+        trajectoryId: template.id,
+        trajectoryVariant: null,
+      });
+      cubeContext.onChanged?.(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to pin trajectory');
+    } finally {
+      setPinning(false);
+    }
+  };
+
+  const handleUnpin = async () => {
+    if (!cubeContext) return;
+    setPinning(true);
+    setError(null);
+    try {
+      const updated = await updateWorld(cubeContext.id, {
+        trajectoryId: null,
+        trajectoryVariant: null,
+      });
+      cubeContext.onChanged?.(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to unpin');
+    } finally {
+      setPinning(false);
+    }
   };
 
   return (
     <div
       style={{
-        backgroundColor: 'var(--card)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        overflow: 'hidden',
+        background: 'transparent',
+        color: 'var(--foreground)',
+        fontFamily: 'var(--font-ui), system-ui, -apple-system, sans-serif',
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          padding: '1.5rem',
-          background: `linear-gradient(135deg, ${tempColor.bg}20 0%, transparent 100%)`,
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>{template.name}</h2>
-              <span
-                style={{
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: '12px',
-                  backgroundColor: tempColor.bg,
-                  color: tempColor.text,
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  textTransform: 'capitalize',
-                }}
-              >
-                {template.temperature}
-              </span>
-              <span
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1rem',
-                }}
-                title={template.primaryEnergy}
-              >
-                {energySymbol}
-              </span>
-            </div>
-            <p style={{ margin: 0, fontSize: '1.1rem', fontStyle: 'italic', color: 'var(--muted-foreground)' }}>
-              "{template.question}"
-            </p>
-          </div>
-          {onClose && (
-            <button
-              onClick={onClose}
+      {/* Header · H1 Canela, sub Söhne metadata */}
+      <header style={{ paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+        <h1
+          style={{
+            fontFamily: '"Canela", serif',
+            fontWeight: 300,
+            fontSize: '2.4rem',
+            lineHeight: 1.05,
+            margin: 0,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {template.name}
+        </h1>
+
+        <div
+          style={{
+            marginTop: '0.6rem',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.85rem',
+            alignItems: 'baseline',
+          }}
+        >
+          <Meta label="Temperature" value={template.temperature} />
+          <Meta label="Energy" value={template.primaryEnergy} />
+          <Meta label="Motion" value={template.motion.toLowerCase()} />
+        </div>
+
+        <p
+          style={{
+            marginTop: '1rem',
+            fontFamily: '"Canela", serif',
+            fontStyle: 'italic',
+            fontSize: '1rem',
+            lineHeight: 1.55,
+            color: 'var(--muted-foreground)',
+            maxWidth: '60ch',
+          }}
+        >
+          {template.question}
+        </p>
+      </header>
+
+      {/* Description · body Söhne */}
+      <section style={sectionStyle}>
+        <SubHeader>The arc</SubHeader>
+        <p style={bodyStyle}>{template.description}</p>
+      </section>
+
+      {/* Phases · the five-phase progression */}
+      <section style={sectionStyle}>
+        <SubHeader>Phases</SubHeader>
+        <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          {template.phases.map((phase) => (
+            <li
+              key={phase.order}
               style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                border: 'none',
-                backgroundColor: 'var(--muted)',
-                color: 'var(--foreground)',
-                cursor: 'pointer',
-                fontSize: '1.2rem',
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr',
+                gap: '0.85rem',
+                padding: '0.7rem 0',
+                borderBottom: '1px solid var(--border)',
+                alignItems: 'baseline',
               }}
             >
-              ×
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-          <span
-            style={{
-              padding: '0.375rem 0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--muted)',
-              fontSize: '0.8rem',
-            }}
-          >
-            Motion: {template.motion}
-          </span>
-          <span
-            style={{
-              padding: '0.375rem 0.75rem',
-              borderRadius: '8px',
-              backgroundColor: 'var(--muted)',
-              fontSize: '0.8rem',
-              textTransform: 'capitalize',
-            }}
-          >
-            Energy: {template.primaryEnergy}
-          </span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ padding: '1.5rem' }}>
-        {/* Description */}
-        <p style={{ margin: '0 0 1.5rem', lineHeight: 1.7, fontSize: '0.95rem' }}>
-          {template.description}
-        </p>
-
-        {/* Phases */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>
-            The Five Phases
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {template.phases.map((phase, i) => (
-              <div
-                key={i}
+              <span
                 style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  padding: '1rem',
-                  backgroundColor: 'var(--muted)',
-                  borderRadius: '10px',
-                  borderLeft: `4px solid ${tempColor.bg}`,
+                  fontFamily: 'monospace',
+                  fontSize: '0.6rem',
+                  letterSpacing: '0.18em',
+                  color: TYRIAN,
+                  paddingTop: '0.2rem',
                 }}
               >
-                <div
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    backgroundColor: tempColor.bg,
-                    color: tempColor.text,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                >
-                  {phase.order}
+                0{phase.order}
+              </span>
+              <div>
+                <div style={{ fontSize: '0.92rem', lineHeight: 1.5, marginBottom: '0.2rem' }}>
+                  {phase.name}
                 </div>
-                <div>
-                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{phase.name}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
-                    {phase.description}
-                  </div>
+                <div style={{ fontSize: '0.78rem', lineHeight: 1.55, color: 'var(--muted-foreground)' }}>
+                  {phase.description}
                 </div>
               </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Compatible secondaries */}
+      {compatibleTemplates.length > 0 && (
+        <section style={sectionStyle}>
+          <SubHeader>Stacks well with</SubHeader>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {compatibleTemplates.map((c) => (
+              <RelationLink key={c.id} label={c.name} onClick={() => onTemplateClick?.(c.id)} />
             ))}
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Compatible Secondary Types */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>
-            Compatible Secondary Types
-          </h3>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {compatibleTemplates.map((ct) => {
-              const ctColor = temperatureColors[ct.temperature];
-              const isSelected = selectedSecondary === ct.id;
-              return (
-                <button
-                  key={ct.id}
-                  onClick={() => {
-                    if (onTemplateClick) {
-                      onTemplateClick(ct.id);
-                    } else {
-                      setSelectedSecondary(isSelected ? undefined : ct.id);
-                    }
-                  }}
-                  style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    border: `2px solid ${isSelected ? ctColor.bg : 'var(--border)'}`,
-                    backgroundColor: isSelected ? `${ctColor.bg}20` : 'transparent',
-                    color: 'var(--foreground)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                  }}
-                >
-                  <span
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: ctColor.bg,
-                    }}
-                  />
-                  {ct.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Shadow Type */}
-        {shadowTemplate && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', fontWeight: 600 }}>
-              Shadow Type
-            </h3>
-            <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
-              What is often repressed when {template.name} is the primary arc:
-            </p>
-            <button
+      {/* Shadow */}
+      {shadowTemplate && (
+        <section style={sectionStyle}>
+          <SubHeader>Shadow</SubHeader>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '0.6rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <RelationLink
+              label={shadowTemplate.name}
               onClick={() => onTemplateClick?.(shadowTemplate.id)}
-              style={{
-                padding: '0.75rem 1rem',
-                borderRadius: '8px',
-                border: '2px dashed var(--border)',
-                backgroundColor: 'transparent',
-                color: 'var(--foreground)',
-                cursor: onTemplateClick ? 'pointer' : 'default',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                width: '100%',
-              }}
-            >
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', lineHeight: 1.55 }}>
+              The structural opposite. Stacking these creates dramatic friction.
+            </span>
+          </div>
+        </section>
+      )}
+
+      {/* Ancient sources */}
+      {template.ancientSources.length > 0 && (
+        <section style={sectionStyle}>
+          <SubHeader>Ancient sources</SubHeader>
+          <ul style={listStyle}>
+            {template.ancientSources.map((s) => (
+              <li key={s} style={listItemStyle}>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Modern examples */}
+      {template.modernExamples.length > 0 && (
+        <section style={sectionStyle}>
+          <SubHeader>Modern examples</SubHeader>
+          <ul style={listStyle}>
+            {template.modernExamples.map((s) => (
+              <li key={s} style={listItemStyle}>
+                {s}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Apply to cube */}
+      {cubeContext && (
+        <section style={{ ...sectionStyle, paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+          {error && (
+            <div style={{ fontSize: '0.7rem', color: 'var(--error)', marginBottom: '0.5rem' }}>
+              {error}
+            </div>
+          )}
+          {isPinnedToCube ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.85rem', flexWrap: 'wrap' }}>
               <span
                 style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: temperatureColors[shadowTemplate.temperature].bg,
+                  fontSize: '0.6rem',
+                  fontFamily: 'monospace',
+                  letterSpacing: '0.22em',
+                  color: TYRIAN,
+                  textTransform: 'lowercase',
                 }}
-              />
-              <strong>{shadowTemplate.name}</strong>
-              <span style={{ color: 'var(--muted-foreground)' }}>— "{shadowTemplate.question}"</span>
-            </button>
-          </div>
-        )}
-
-        {/* Sources */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <button
-            onClick={() => setShowAncient(!showAncient)}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              backgroundColor: 'transparent',
-              color: 'var(--foreground)',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '0.5rem',
-            }}
-          >
-            <span>Ancient Sources</span>
-            <span>{showAncient ? '▼' : '▶'}</span>
-          </button>
-          {showAncient && (
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.5rem', fontSize: '0.85rem' }}>
-              {template.ancientSources.map((source, i) => (
-                <li key={i} style={{ marginBottom: '0.25rem', color: 'var(--muted-foreground)' }}>
-                  {source}
-                </li>
-              ))}
-            </ul>
+              >
+                pinned to {cubeContext.name}
+              </span>
+              <button
+                type="button"
+                onClick={handleUnpin}
+                disabled={pinning}
+                style={ghostButtonStyle(pinning)}
+              >
+                {pinning ? 'unpinning.' : 'unpin'}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.85rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handlePin}
+                disabled={pinning}
+                style={primaryButtonStyle(pinning)}
+              >
+                {pinning ? 'pinning.' : `pin to ${cubeContext.name.toLowerCase()}`}
+              </button>
+              {cubeContext.trajectoryId && (
+                <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>
+                  Currently pinned to{' '}
+                  <em style={{ color: 'var(--foreground)' }}>{cubeContext.trajectoryId}</em>.
+                  Pinning replaces.
+                </span>
+              )}
+            </div>
           )}
+        </section>
+      )}
 
+      {/* When no cube context, fall back to onApply hook (legacy
+          callers, e.g. /story-templates standalone page). */}
+      {!cubeContext && onApply && (
+        <section style={{ ...sectionStyle, paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
           <button
-            onClick={() => setShowModern(!showModern)}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              backgroundColor: 'transparent',
-              color: 'var(--foreground)',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
+            type="button"
+            onClick={() => onApply({ primary: template.id, shadow: template.shadowType })}
+            style={primaryButtonStyle(false)}
           >
-            <span>Modern Examples</span>
-            <span>{showModern ? '▼' : '▶'}</span>
+            apply this trajectory
           </button>
-          {showModern && (
-            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.5rem', fontSize: '0.85rem' }}>
-              {template.modernExamples.map((example, i) => (
-                <li key={i} style={{ marginBottom: '0.25rem', color: 'var(--muted-foreground)' }}>
-                  {example}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Apply Button */}
-        {onApply && (
-          <button
-            onClick={handleApply}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: tempColor.bg,
-              color: tempColor.text,
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: 600,
-            }}
-          >
-            Apply {template.name}
-            {selectedSecondary && ` + ${getTemplateById(selectedSecondary)?.name}`}
-          </button>
-        )}
-      </div>
+        </section>
+      )}
     </div>
   );
+}
+
+const sectionStyle: React.CSSProperties = {
+  paddingTop: '1.1rem',
+  paddingBottom: '0.4rem',
+};
+
+const bodyStyle: React.CSSProperties = {
+  fontSize: '0.92rem',
+  lineHeight: 1.65,
+  color: 'var(--foreground)',
+  margin: 0,
+  maxWidth: '64ch',
+};
+
+const listStyle: React.CSSProperties = {
+  listStyle: 'none',
+  padding: 0,
+  margin: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.3rem',
+};
+
+const listItemStyle: React.CSSProperties = {
+  fontSize: '0.78rem',
+  lineHeight: 1.55,
+  color: 'var(--muted-foreground)',
+  paddingLeft: '1rem',
+  position: 'relative',
+};
+
+function SubHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <h2
+      style={{
+        fontFamily: 'var(--font-ui), system-ui, sans-serif',
+        fontWeight: 600,
+        fontSize: '0.55rem',
+        letterSpacing: '0.32em',
+        textTransform: 'uppercase',
+        color: 'var(--muted-foreground)',
+        margin: '0 0 0.5rem 0',
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'baseline',
+        gap: '0.35rem',
+        fontSize: '0.65rem',
+        fontFamily: 'monospace',
+        letterSpacing: '0.16em',
+        textTransform: 'lowercase',
+        color: 'var(--muted-foreground)',
+      }}
+    >
+      <span style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>{label.toLowerCase()}</span>
+      <span style={{ color: 'var(--foreground)' }}>{value}</span>
+    </span>
+  );
+}
+
+function RelationLink({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '0.3rem 0.75rem',
+        border: '1px solid var(--border)',
+        background: 'transparent',
+        color: 'var(--foreground)',
+        fontSize: '0.78rem',
+        fontFamily: 'inherit',
+        cursor: onClick ? 'pointer' : 'default',
+        borderRadius: 0,
+        transition: 'border-color 0.15s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = TYRIAN)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+    >
+      {label}
+    </button>
+  );
+}
+
+function primaryButtonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    padding: '0.5rem 1.1rem',
+    border: `1px solid ${TYRIAN}`,
+    background: TYRIAN,
+    color: '#fff',
+    fontSize: '0.65rem',
+    fontFamily: 'monospace',
+    letterSpacing: '0.22em',
+    textTransform: 'lowercase',
+    cursor: disabled ? 'wait' : 'pointer',
+    borderRadius: 0,
+    opacity: disabled ? 0.6 : 1,
+  };
+}
+
+function ghostButtonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    padding: '0.4rem 0.85rem',
+    border: '1px solid var(--border)',
+    background: 'transparent',
+    color: 'var(--muted-foreground)',
+    fontSize: '0.6rem',
+    fontFamily: 'monospace',
+    letterSpacing: '0.2em',
+    textTransform: 'lowercase',
+    cursor: disabled ? 'wait' : 'pointer',
+    borderRadius: 0,
+  };
 }

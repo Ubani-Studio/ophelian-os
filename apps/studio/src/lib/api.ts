@@ -46,6 +46,16 @@ export interface Character {
    *  leads with these so generation matches the authoring artist's
    *  cadence rather than the substrate model's default. */
   voiceSamples?: string[];
+  /** How this character speaks: language + dialect + accent +
+   *  idioms. Without it characters converge on standard English.
+   *  Tick prompt injects an explicit ## Tongue block. */
+  tongue?: {
+    primaryLanguage?: string;
+    dialect?: string;
+    accent?: string;
+    idioms?: string[];
+    registerNotes?: string;
+  };
   avatarUrl: string | null;
   avatarPosition: string;
   personaTags: string[];
@@ -175,7 +185,7 @@ export interface LineageOption {
   advisorGated: boolean;
 }
 
-export type RealignField = 'bio' | 'backstory' | 'aliases' | 'personaTags' | 'goals';
+export type RealignField = 'bio' | 'backstory' | 'aliases' | 'personaTags' | 'goals' | 'tongue';
 
 export interface RealignDraft {
   bio?: string;
@@ -183,6 +193,13 @@ export interface RealignDraft {
   aliases?: string[];
   personaTags?: string[];
   goals?: string[];
+  tongue?: {
+    primaryLanguage?: string;
+    dialect?: string;
+    accent?: string;
+    idioms?: string[];
+    registerNotes?: string;
+  };
 }
 
 export async function listLineages(): Promise<LineageOption[]> {
@@ -193,7 +210,8 @@ export async function listLineages(): Promise<LineageOption[]> {
 export async function realignCharacter(
   characterId: string,
   options: {
-    lineage?: string;
+    /** Single lineage id or array of ids (multi-blend). */
+    lineage?: string | string[];
     brief?: string;
     subtasteCode?: string;
     fields: RealignField[];
@@ -577,6 +595,10 @@ export interface World {
   imageUrl: string | null;
   tags: string[];
   metadata: Record<string, unknown> | null;
+  /** Pinned narrative trajectory id (decolonial 10) or null. */
+  trajectoryId?: string | null;
+  /** Optional variant pin within the primary trajectory. */
+  trajectoryVariant?: string | null;
   createdAt: string;
   updatedAt: string;
   position?: WorldPosition | null;
@@ -605,6 +627,8 @@ export interface UpdateWorldInput {
   imageUrl?: string | null;
   tags?: string[];
   metadata?: Record<string, unknown> | null;
+  trajectoryId?: string | null;
+  trajectoryVariant?: string | null;
 }
 
 export async function getWorlds(): Promise<World[]> {

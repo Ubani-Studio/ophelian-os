@@ -314,6 +314,7 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
           toneForbidden: character.toneForbidden,
           authoredBy: character.authoredBy,
           voiceSamples: character.voiceSamples,
+          tongue: character.tongue,
         },
         recentEvents: recentEvents.slice(0, 20),
         neighbours: edges.map((edge) => {

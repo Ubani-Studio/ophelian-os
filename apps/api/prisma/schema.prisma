@@ -55,6 +55,18 @@ model Character {
   // rather than its substrate register. The pre-LoRA bridge to
   // per-character voice authenticity.
   voiceSamples    Json     @default("[]")
+
+  // Tongue: how this character actually *speaks*. Without it every
+  // character converges on standard English. Shape:
+  //   {
+  //     primaryLanguage: 'English' | 'English (UK)' | 'Yoruba' | ...,
+  //     dialect: 'patois' | 'AAVE' | 'Lagos pidgin' | 'Kreyòl' | ...,
+  //     accent: free-text (e.g. 'south London', 'Brooklyn'),
+  //     idioms: string[]  (specific phrases this character reaches for),
+  //     registerNotes: free-text (e.g. 'fragmentary, aphoristic, never softens')
+  //   }
+  // Read by the tick prompt as an explicit ## Tongue block.
+  tongue          Json     @default("{}")
   avatarUrl       String?
   avatarPosition  String   @default("50% 50%")
   personaTags     String[]
@@ -418,6 +430,12 @@ model World {
   imageUrl    String?
   tags        String[]       @default([])
   metadata    Json?
+  // Pinned narrative trajectory for this Cube. References a story
+  // template id from packages/oripheon/...storyarcs (decolonial 10
+  // canonical). Optional variant pin for cultural texture
+  // (e.g. "Sankofa" under Return). When null, Cube is untrajectoried.
+  trajectoryId      String?
+  trajectoryVariant String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   position    WorldPosition?

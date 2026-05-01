@@ -169,6 +169,13 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       worldId?: string | null;
       authoredBy?: string | null;
       voiceSamples?: string[];
+      tongue?: {
+        primaryLanguage?: string;
+        dialect?: string;
+        accent?: string;
+        idioms?: string[];
+        registerNotes?: string;
+      } | null;
     };
 
     const character = await prisma.character.findUnique({
@@ -179,13 +186,19 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: 'Character not found' });
     }
 
-    const { timelineState, ...rest } = body;
+    const { timelineState, tongue, voiceSamples, ...rest } = body;
     const updated = await prisma.character.update({
       where: { id },
       data: {
         ...rest,
         ...(timelineState !== undefined && {
           timelineState: timelineState as Prisma.InputJsonValue,
+        }),
+        ...(tongue !== undefined && {
+          tongue: (tongue ?? {}) as Prisma.InputJsonValue,
+        }),
+        ...(voiceSamples !== undefined && {
+          voiceSamples: voiceSamples as unknown as Prisma.InputJsonValue,
         }),
       },
     });

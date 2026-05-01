@@ -45,7 +45,7 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue'>;
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -58,6 +58,62 @@ export interface TickInput {
 function readVoiceSamples(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((s) => typeof s === 'string' && s.trim().length > 0) as string[];
+}
+
+interface TongueShape {
+  primaryLanguage?: string;
+  dialect?: string;
+  accent?: string;
+  idioms?: string[];
+  registerNotes?: string;
+}
+
+function readTongue(raw: unknown): TongueShape {
+  if (!raw || typeof raw !== 'object') return {};
+  const t = raw as Record<string, unknown>;
+  const tongue: TongueShape = {};
+  if (typeof t.primaryLanguage === 'string') tongue.primaryLanguage = t.primaryLanguage;
+  if (typeof t.dialect === 'string') tongue.dialect = t.dialect;
+  if (typeof t.accent === 'string') tongue.accent = t.accent;
+  if (Array.isArray(t.idioms)) tongue.idioms = (t.idioms as unknown[]).filter((i) => typeof i === 'string') as string[];
+  if (typeof t.registerNotes === 'string') tongue.registerNotes = t.registerNotes;
+  return tongue;
+}
+
+function buildTongueBlock(tongue: TongueShape): string {
+  const hasContent =
+    tongue.primaryLanguage ||
+    tongue.dialect ||
+    tongue.accent ||
+    (tongue.idioms && tongue.idioms.length > 0) ||
+    tongue.registerNotes;
+  if (!hasContent) return '';
+
+  const lines: string[] = ['## Tongue (how you actually speak)'];
+
+  const languageLine = [
+    tongue.primaryLanguage && `Primary: ${tongue.primaryLanguage}`,
+    tongue.dialect && `Dialect: ${tongue.dialect}`,
+    tongue.accent && `Accent: ${tongue.accent}`,
+  ]
+    .filter(Boolean)
+    .join('. ');
+  if (languageLine) lines.push(languageLine + '.');
+
+  if (tongue.idioms && tongue.idioms.length > 0) {
+    lines.push(
+      `Idioms you reach for naturally: ${tongue.idioms.map((i) => `"${i}"`).join(', ')}. Use them when they fit; do not force them.`
+    );
+  }
+  if (tongue.registerNotes) {
+    lines.push(tongue.registerNotes);
+  }
+
+  lines.push(
+    'Speak in this tongue specifically, not in generic standard English. If your tongue is patois, write patois. If your tongue is AAVE, write AAVE. If your tongue is fragmentary or aphoristic, do not pad. The substrate model wants to soften you toward standard register; refuse it.'
+  );
+
+  return lines.join('\n');
 }
 
 // Default anti-derivative refuses applied to every tick prompt unless
@@ -157,6 +213,11 @@ function buildSystemPrompt(self: TickInput['self']): string {
       ].join('\n')
     : '';
 
+  // Tongue: dialect, accent, idioms. The most important per-character
+  // signal for voice variance. Without this, every character converges
+  // on standard English.
+  const tongueBlock = buildTongueBlock(readTongue(self.tongue));
+
   const backstoryBlock = self.backstory
     ? [
         '## Background (do not quote, use to inform)',
@@ -196,6 +257,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
     `Your mode is "${self.mode}". You act on your own behalf, not as the user.`,
     authoredBlock,
     bioBlock,
+    tongueBlock,
     backstoryBlock,
     voiceSamplesBlock,
     lineageBlock,

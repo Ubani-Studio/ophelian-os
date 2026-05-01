@@ -154,6 +154,7 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
         toneForbidden: character.toneForbidden,
         authoredBy: character.authoredBy,
         voiceSamples: character.voiceSamples,
+        tongue: character.tongue,
       },
       recentEvents: recentEvents.slice(0, 20),
       neighbours: edges.map((edge) => {

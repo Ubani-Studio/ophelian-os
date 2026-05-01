@@ -24,14 +24,16 @@ import { isFieldLocked } from '../lib/identity-lock.js';
  *   POST /characters/:id/realign         — regenerate aligned fields on an existing character
  */
 
-const FIELD_OPTIONS = ['bio', 'backstory', 'aliases', 'personaTags', 'goals'] as const;
+const FIELD_OPTIONS = ['bio', 'backstory', 'aliases', 'personaTags', 'goals', 'tongue'] as const;
 type RealignField = (typeof FIELD_OPTIONS)[number];
 
 const RealignSchema = z.object({
-  lineage: z.string().optional(),
+  // Single string for back-compat with existing callers; array for
+  // multi-lineage blends (Yoruba + Vodou). Either form accepted.
+  lineage: z.union([z.string(), z.array(z.string())]).optional(),
   brief: z.string().optional(),
   subtasteCode: z.string().optional(),
-  fields: z.array(z.enum(FIELD_OPTIONS)).default(['bio', 'backstory', 'aliases', 'personaTags', 'goals']),
+  fields: z.array(z.enum(FIELD_OPTIONS)).default(['bio', 'backstory', 'aliases', 'personaTags', 'goals', 'tongue']),
   /** When true, write the generated fields onto the character.
    *  When false, just return the draft for review. Default false
    *  so the user can preview before committing. */
@@ -42,12 +44,21 @@ const RealignSchema = z.object({
   respectLocks: z.boolean().default(true),
 });
 
+interface TongueShape {
+  primaryLanguage?: string;
+  dialect?: string;
+  accent?: string;
+  idioms?: string[];
+  registerNotes?: string;
+}
+
 interface AlignedDraft {
   bio?: string;
   backstory?: string;
   aliases?: string[];
   personaTags?: string[];
   goals?: string[];
+  tongue?: TongueShape;
 }
 
 function readSubtasteFromTimelineState(ts: unknown): { code?: string; glyph?: string; label?: string } | null {
@@ -96,7 +107,7 @@ function buildAlignmentSystem(): string {
 
 function buildAlignmentUser(opts: {
   characterName: string;
-  lineageId?: string;
+  lineageIds?: string[];
   brief?: string;
   subtasteCode?: string;
   subtasteGlyph?: string;
@@ -108,11 +119,25 @@ function buildAlignmentUser(opts: {
 
   lines.push(`Character name (canonical): ${opts.characterName}`);
 
-  if (opts.lineageId) {
-    lines.push('');
-    lines.push(lineageContext(opts.lineageId));
-  } else {
+  const lineageList = (opts.lineageIds ?? []).filter(Boolean);
+  if (lineageList.length === 0) {
     lines.push('Lineage: not specified. Be culturally indeterminate.');
+  } else if (lineageList.length === 1) {
+    lines.push('');
+    lines.push(lineageContext(lineageList[0]));
+  } else {
+    lines.push('');
+    lines.push(
+      '## Lineage blend · multiple cultural anchors. The character lives at their intersection.'
+    );
+    for (const lid of lineageList) {
+      lines.push('');
+      lines.push(lineageContext(lid));
+    }
+    lines.push('');
+    lines.push(
+      'Blend respectfully. Names can carry one tradition while register carries another (e.g. Yoruba name, Lucumí ritual register). Idioms can code-switch across the blend. Generate as a real diasporic intersection, not as a stereotype mash.'
+    );
   }
 
   if (opts.subtasteCode) {
@@ -151,6 +176,10 @@ function buildAlignmentUser(opts: {
     else if (f === 'personaTags')
       lines.push('  personaTags: string[] (3-7 lowercase tags, lineage-aware, no generic AI tags)');
     else if (f === 'goals') lines.push('  goals: string[] (3-5 short imperative phrases, what the character is reaching toward)');
+    else if (f === 'tongue')
+      lines.push(
+        '  tongue: { primaryLanguage: string, dialect: string, accent: string, idioms: string[] (3-6 specific phrases this character uses), registerNotes: string (one sentence on cadence/refusals) } — anchored to lineage. NOT generic. Specific dialect (Lagos pidgin, AAVE, Kreyòl, Yoruba code-switch, south London, etc.) so the character does not converge on standard English.'
+      );
   }
   lines.push('');
   lines.push('Output JSON only.');
@@ -181,6 +210,20 @@ function parseDraft(text: string): AlignedDraft | null {
         .filter(Boolean);
     if (Array.isArray(parsed.goals))
       draft.goals = parsed.goals.filter((a: unknown) => typeof a === 'string').map((a: string) => a.trim()).filter(Boolean);
+    if (parsed.tongue && typeof parsed.tongue === 'object') {
+      const t = parsed.tongue as Record<string, unknown>;
+      const tongue: TongueShape = {};
+      if (typeof t.primaryLanguage === 'string') tongue.primaryLanguage = t.primaryLanguage.trim();
+      if (typeof t.dialect === 'string') tongue.dialect = t.dialect.trim();
+      if (typeof t.accent === 'string') tongue.accent = t.accent.trim();
+      if (Array.isArray(t.idioms))
+        tongue.idioms = (t.idioms as unknown[])
+          .filter((i) => typeof i === 'string')
+          .map((i) => (i as string).trim())
+          .filter(Boolean);
+      if (typeof t.registerNotes === 'string') tongue.registerNotes = t.registerNotes.trim();
+      if (Object.keys(tongue).length > 0) draft.tongue = tongue;
+    }
     return draft;
   } catch {
     return null;
@@ -209,9 +252,16 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
         });
       }
 
-      if (body.lineage && !LINEAGES[body.lineage]) {
+      // Normalise lineage to array form. Validate every id.
+      const lineageIds: string[] = Array.isArray(body.lineage)
+        ? body.lineage
+        : body.lineage
+          ? [body.lineage]
+          : [];
+      const unknownLineages = lineageIds.filter((l) => !LINEAGES[l]);
+      if (unknownLineages.length > 0) {
         return reply.code(400).send({
-          error: `Unknown lineage: ${body.lineage}. Get the list from GET /lineages.`,
+          error: `Unknown lineage(s): ${unknownLineages.join(', ')}. Get the list from GET /lineages.`,
         });
       }
 
@@ -234,7 +284,7 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
       const system = buildAlignmentSystem();
       const user = buildAlignmentUser({
         characterName: character.name,
-        lineageId: body.lineage,
+        lineageIds,
         brief: body.brief,
         subtasteCode,
         subtasteGlyph,
@@ -286,6 +336,8 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
           else if (f === 'personaTags' && filtered.personaTags !== undefined) updates.personaTags = filtered.personaTags;
           else if (f === 'goals' && filtered.goals !== undefined)
             updates.goals = filtered.goals as unknown as Prisma.InputJsonValue;
+          else if (f === 'tongue' && filtered.tongue !== undefined)
+            updates.tongue = filtered.tongue as unknown as Prisma.InputJsonValue;
         }
 
         if (Object.keys(updates).length > 0) {

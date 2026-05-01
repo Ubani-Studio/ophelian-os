@@ -97,6 +97,9 @@ export default function WorldBuilderPage() {
   const cubeId = params.id as string;
   const [crossCube, setCrossCube] = useState(false);
   const [cubeName, setCubeName] = useState<string>('');
+  // Full cube record for the trajectory pin / unpin surface in the
+  // Story Templates panel. Refreshed by loadData.
+  const [cube, setCube] = useState<World | null>(null);
 
   // Data state. The 'characters' / 'scenes' state hold the SCOPED
   // view (only entities belonging to this Cube unless crossCube is
@@ -193,8 +196,11 @@ export default function WorldBuilderPage() {
         getConnections(),
       ]);
 
-      const cube = wrlds.find((w) => w.id === cubeId);
-      if (cube) setCubeName(cube.name);
+      const found = wrlds.find((w) => w.id === cubeId);
+      if (found) {
+        setCubeName(found.name);
+        setCube(found);
+      }
 
       // Cube scope: only characters whose worldId matches this Cube
       // are visible by default. With crossCube on, all characters
@@ -860,21 +866,25 @@ export default function WorldBuilderPage() {
           </h3>
           {showStoryTemplates && (
             <div className="story-templates-panel">
-              <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginBottom: '0.75rem' }}>
-                Universal narrative arcs for your worlds and chapters.
+              <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginBottom: '0.6rem', fontFamily: '"Canela", serif', fontStyle: 'italic', lineHeight: 1.55 }}>
+                Pin a trajectory to {cubeName || 'this cube'}. The arc shapes how characters and scenes move.
               </p>
-              <ul className="entity-list">
+              <ul className="entity-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {storyTemplates.map((template) => {
-                  const tempColor = temperatureColors[template.temperature];
+                  const isPinned = cube?.trajectoryId === template.id;
+                  const isSelected = selectedStoryTemplate?.id === template.id;
                   return (
                     <li
                       key={template.id}
-                      className={`entity-item ${selectedStoryTemplate?.id === template.id ? 'selected' : ''}`}
+                      className={`entity-item ${isSelected ? 'selected' : ''}`}
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'baseline',
                         gap: '0.5rem',
                         cursor: 'pointer',
+                        padding: '0.4rem 0.55rem',
+                        borderLeft: isPinned ? '2px solid #66023C' : '2px solid transparent',
+                        background: isSelected ? 'rgba(102,2,60,0.06)' : 'transparent',
                       }}
                       onClick={() => {
                         setSelectedEntity(null);
@@ -883,22 +893,20 @@ export default function WorldBuilderPage() {
                         setSelectedStoryTemplate(template);
                       }}
                     >
-                      <span
-                        style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: tempColor.bg,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span style={{ flex: 1 }}>{template.name}</span>
-                      <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>
-                        {template.primaryEnergy === 'ascending' ? '↑' :
-                         template.primaryEnergy === 'descending' ? '↓' :
-                         template.primaryEnergy === 'cyclical' ? '↻' :
-                         template.primaryEnergy === 'lateral' ? '↔' : '◉'}
-                      </span>
+                      <span style={{ flex: 1, fontSize: '0.82rem' }}>{template.name}</span>
+                      {isPinned && (
+                        <span
+                          style={{
+                            fontSize: '0.5rem',
+                            fontFamily: 'monospace',
+                            letterSpacing: '0.22em',
+                            color: '#66023C',
+                            textTransform: 'lowercase',
+                          }}
+                        >
+                          pinned
+                        </span>
+                      )}
                     </li>
                   );
                 })}
@@ -1085,6 +1093,17 @@ export default function WorldBuilderPage() {
                 const template = storyTemplates.find(t => t.id === templateId);
                 if (template) setSelectedStoryTemplate(template);
               }}
+              cubeContext={
+                cube
+                  ? {
+                      id: cube.id,
+                      name: cube.name,
+                      trajectoryId: cube.trajectoryId,
+                      trajectoryVariant: cube.trajectoryVariant,
+                      onChanged: (next) => setCube(next),
+                    }
+                  : undefined
+              }
             />
           </div>
         )}

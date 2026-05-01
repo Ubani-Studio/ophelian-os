@@ -18,6 +18,12 @@ interface UpdateWorldBody {
   imageUrl?: string | null;
   tags?: string[];
   metadata?: Prisma.InputJsonValue | null;
+  /** Pinned narrative trajectory id (e.g. 'descent', 'return',
+   *  'sacrifice'). Null clears the pin. */
+  trajectoryId?: string | null;
+  /** Optional variant pinned within the primary (e.g. 'Sankofa'
+   *  under 'return'). */
+  trajectoryVariant?: string | null;
 }
 
 export async function worldRoutes(fastify: FastifyInstance): Promise<void> {
@@ -91,6 +97,8 @@ export async function worldRoutes(fastify: FastifyInstance): Promise<void> {
         imageUrl: body.imageUrl,
         tags: body.tags,
         metadata: body.metadata === null ? Prisma.DbNull : body.metadata,
+        ...(body.trajectoryId !== undefined ? { trajectoryId: body.trajectoryId } : {}),
+        ...(body.trajectoryVariant !== undefined ? { trajectoryVariant: body.trajectoryVariant } : {}),
       },
       include: { position: true },
     });
