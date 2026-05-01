@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Character } from '@/lib/api';
 import { syncOripheonData } from '@/lib/api';
 import { getSubtasteInfo } from '@/components/world/SuggestedRelationshipsPanel';
+import { SubtastePicker } from '@/components/SubtastePicker';
 
 const MATERIA: Record<string, string> = {
   wood: 'Bloom',
@@ -172,7 +173,7 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
                   </div>
                   <div className="subtaste-ref-row">
                     <span className="subtaste-ref-key">Anchored by</span>
-                    <span className="subtaste-ref-val subtaste-ref-stress">{MATERIA[subtasteInfo.overcomeBy]} types — provides balance</span>
+                    <span className="subtaste-ref-val subtaste-ref-stress">{MATERIA[subtasteInfo.overcomeBy]} types provides balance</span>
                   </div>
                 </div>
               )}
@@ -180,6 +181,16 @@ export function CharacterDetailPanel({ character, onClose, onRefresh }: Characte
           )}
         </div>
       )}
+
+      {/* Editable Subtaste · pick dominant + optional subdominant /
+          shadow without leaving the nexus. Same component used on
+          /characters/[id]; collapsed by default here. */}
+      <div style={{ padding: '0 0.75rem' }}>
+        <SubtastePicker
+          character={character}
+          onUpdated={() => onRefresh?.()}
+        />
+      </div>
 
       {character.bio && (
         <div className="detail-section">
