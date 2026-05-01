@@ -171,6 +171,8 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       voiceSamples?: string[];
       compositionKind?: 'solo' | 'duo' | 'group' | 'collective';
       setting?: 'modern' | 'mystical' | 'archaic' | 'past_life' | 'mythic' | 'surreal' | 'mixed';
+      gender?: string | null;
+      pronouns?: string | null;
       tongue?: {
         primaryLanguage?: string;
         dialect?: string;
@@ -1446,7 +1448,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Lazy import so route file stays light.
     const { callLlm, hasLlmProvider, LlmBudgetError } = await import('../lib/llm.js');
-    const { stripEmDashes } = await import('../lib/strip-em-dashes.js');
+    const { cleanGeneratedText } = await import('../lib/strip-em-dashes.js');
     if (!hasLlmProvider()) {
       return reply.code(400).send({
         error: 'No LLM provider configured. Set ANTHROPIC_API_KEY in apps/api/.env.',
@@ -1505,7 +1507,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       }
       return reply.send({
         characterId: character.id,
-        draft: stripEmDashes(result.text),
+        draft: cleanGeneratedText(result.text),
         source: result.source,
         usage: result.usage,
       });

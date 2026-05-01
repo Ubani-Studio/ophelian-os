@@ -5,7 +5,7 @@ import { prisma } from '../db.js';
 import { callLlm, hasLlmProvider, LlmBudgetError } from '../lib/llm.js';
 import { LINEAGES, lineageContext, listLineages } from '../lib/lineages.js';
 import { isFieldLocked } from '../lib/identity-lock.js';
-import { stripEmDashes } from '../lib/strip-em-dashes.js';
+import { stripEmDashes, cleanGeneratedText } from '../lib/strip-em-dashes.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -396,6 +396,7 @@ function buildAlignmentSystem(): string {
     '3. Specifics from real diasporic / cultural worlds (Lagos, London, Brooklyn, Croydon, Port-au-Prince, Joburg, Walthamstow, etc) when the setting calls for them.',
     '4. The public LLM corpus is the LAST resort. When voice samples exist, the public corpus must not be the primary draw.',
     'Generation rules:',
+    '- Characters live inside their world. They are not meta-aware. Never name "Bóveda", "the bóveda", "the cube", "the system", "the threshold" (as platform), "the vault" (as platform), or any other Bóveda-platform vocabulary in the bio or backstory. The character does not know they are in a system. Write them living in their own life.',
     '- Names within the named lineage. No "Celtic demon" mash-ups unless lineage IS celtic.',
     '- Voice register matches the lineage notes and any voice samples given.',
     '- Subtaste signature shapes how the character speaks and what they reach for; it does not get quoted in the bio.',
@@ -540,8 +541,8 @@ function parseDraft(text: string): AlignedDraft | null {
     const parsed = JSON.parse(cleaned.slice(start, end + 1));
     if (!parsed || typeof parsed !== 'object') return null;
     const draft: AlignedDraft = {};
-    if (typeof parsed.bio === 'string') draft.bio = stripEmDashes(parsed.bio.trim());
-    if (typeof parsed.backstory === 'string') draft.backstory = stripEmDashes(parsed.backstory.trim());
+    if (typeof parsed.bio === 'string') draft.bio = cleanGeneratedText(parsed.bio.trim());
+    if (typeof parsed.backstory === 'string') draft.backstory = cleanGeneratedText(parsed.backstory.trim());
     if (Array.isArray(parsed.aliases))
       draft.aliases = parsed.aliases.filter((a: unknown) => typeof a === 'string').map((a: string) => a.trim()).filter(Boolean);
     if (Array.isArray(parsed.personaTags))

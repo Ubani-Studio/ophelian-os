@@ -23,6 +23,7 @@ import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
 import { CompositionKindPicker } from '@/components/CompositionKindPicker';
 import { SubtastePicker } from '@/components/SubtastePicker';
+import { IdentityRegisterPanel } from '@/components/IdentityRegisterPanel';
 import { LoraPanel } from '@/components/LoraPanel';
 import { ModePill } from '@/components/ModePill';
 import { TimelineStrip } from '@/components/TimelineStrip';
@@ -941,6 +942,7 @@ export default function CharacterDetailPage() {
                 characters (the default). Surfaced when composition
                 is duo / group / collective. */}
             <SubtastePicker character={character} onUpdated={setCharacter} />
+            <IdentityRegisterPanel character={character} onUpdated={setCharacter} />
             <CompositionKindPicker character={character} onUpdated={setCharacter} />
             {character.compositionKind && character.compositionKind !== 'solo' && (
               <GroupMembersPanel

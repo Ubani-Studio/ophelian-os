@@ -134,6 +134,14 @@ model Character {
   //   mixed      — generator picks (default)
   setting String @default("mixed")
 
+  // Gender + pronouns. Real variance signal that affects cadence
+  // and pronoun-grammar. Free-text so any register fits (English
+  // she/her, they/them, e/em; Yoruba ó (gender-neutral); Mande;
+  // Igbo). Optional. When unset, tick prompt uses the character's
+  // name and avoids pronouns where possible.
+  gender   String?
+  pronouns String?
+
   // Agency mode. Determines how this Character acts in the system.
   //   manual    — author-only (the human user). Cannot act
   //               autonomously. Other entities can address them;

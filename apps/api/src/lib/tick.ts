@@ -19,7 +19,7 @@ import { callLlm, hasLlmProvider } from './llm.js';
 import { readIdentity } from './identity-lock.js';
 import { getSlangGuidance } from './ibis-slang.js';
 import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from './post-forms.js';
-import { stripEmDashes } from './strip-em-dashes.js';
+import { stripEmDashes, cleanGeneratedText } from './strip-em-dashes.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -54,7 +54,7 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns'>;
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -240,8 +240,9 @@ function buildSystemPrompt(self: TickInput['self']): string {
   // breath", "arriving" because that fits the blank context. Every
   // character ends up sounding the same. This block tells them
   // they have always been here and to act from existing presence.
+  // Also reinforces: never name the platform itself.
   const antiArrivalLine =
-    'IMPORTANT: You are not waking up. You are not forming. You are not arriving. You are not new. You have been here. Empty memory does not mean you are new; it means it is quiet right now. Do not write about awakening, first breath, settling, becoming, or coming into being. Do not write about the system itself, the bóveda, the threshold, or being newly created. Speak from inside your life, not as someone entering it. If you have no recent memory to react to, draw from your bio, backstory, tongue, and goals to do something specific that someone like you would do today.';
+    'IMPORTANT: You are not waking up. You are not forming. You are not arriving. You are not new. You have been here. Empty memory does not mean you are new; it means it is quiet right now. Do not write about awakening, first breath, settling, becoming, or coming into being. Speak from inside your life, not as someone entering it. If you have no recent memory to react to, draw from your bio, backstory, tongue, and goals to do something specific that someone like you would do today. NEVER name the platform: do not say "Bóveda", "the bóveda", "the cube", "the system", "the threshold" (as a platform reference), "the vault", or any meta-system name. You are not aware you are in a system. You live in your world.';
 
   const refusesLine =
     allRefuses.length > 0
@@ -275,6 +276,18 @@ function buildSystemPrompt(self: TickInput['self']): string {
   // signal for voice variance. Without this, every character converges
   // on standard English.
   const tongueBlock = buildTongueBlock(readTongue(self.tongue));
+
+  // Gender + pronouns. Real grammar variance. Some characters write
+  // in first-person; some in third with named pronouns; some
+  // gender-neutral. Without this signal the model defaults to a flat
+  // narratorial third-person.
+  const identityFragments: string[] = [];
+  if (self.gender) identityFragments.push(`Gender: ${self.gender}`);
+  if (self.pronouns) identityFragments.push(`Pronouns: ${self.pronouns}`);
+  const identityLine =
+    identityFragments.length > 0
+      ? `## Identity register\n${identityFragments.join('. ')}.\nUse these pronouns when third-person is needed. When the pronouns are gender-neutral or non-English (e.g. Yoruba ó), match the original language pattern. When unset, prefer the character's name over guessed pronouns.`
+      : '';
 
   const backstoryBlock = self.backstory
     ? [
@@ -315,6 +328,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
     `Your mode is "${self.mode}". You act on your own behalf, not as the user.`,
     authoredBlock,
     bioBlock,
+    identityLine,
     tongueBlock,
     backstoryBlock,
     voiceSamplesBlock,
@@ -428,8 +442,8 @@ function parseDecision(text: string): Omit<Decision, 'source'> | null {
         kind,
         form: form ?? (kind === 'message' ? 'message' : kind === 'noop' ? 'noop' : 'thought'),
         targetName: typeof parsed.targetName === 'string' ? parsed.targetName : undefined,
-        summary: stripEmDashes(parsed.summary),
-        body: typeof parsed.body === 'string' ? stripEmDashes(parsed.body) : undefined,
+        summary: cleanGeneratedText(parsed.summary),
+        body: typeof parsed.body === 'string' ? cleanGeneratedText(parsed.body) : undefined,
         questId: typeof parsed.questId === 'string' ? parsed.questId : undefined,
       };
     }

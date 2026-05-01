@@ -103,6 +103,10 @@ export interface Character {
    *  a specific kind of texture (modern / mystical / archaic /
    *  past_life / mythic / surreal / mixed). */
   setting?: Setting;
+  /** Free-text gender. Affects tick prompt grammar / cadence. */
+  gender?: string | null;
+  /** Free-text pronouns ("she/her", "they/them", "ó/ó", etc.). */
+  pronouns?: string | null;
   /** Agency mode. Determines how this character acts in the system.
    *  manual = author-only (the human user); twin = paired AI version
    *  (Ai-8O is twin to Ubani); espíritu = fully autonomous; relic =
