@@ -277,6 +277,153 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
   },
 };
 
+/**
+ * Per-species texture examples. Concrete material specifics that
+ * demonstrate what a spirit's life actually contains: which song
+ * brings them, which day is theirs, which offering they took or
+ * refused, who has been mistaking them for someone else lately,
+ * what ritual debt sits unsettled.
+ *
+ * These overlay the Subtaste sensibility examples (which stay in
+ * realign.ts) so the generation prompt sees BOTH:
+ *   - spirit-shaped texture (this is what your life looks like)
+ *   - Subtaste texture (this is the level of specificity to reach)
+ *
+ * Per docs/species-becoming.md. Material, non-mystified, specific.
+ * Avoid vague spiritual language; reach for the actual rum, the
+ * actual day, the actual song, the actual mistake.
+ */
+export const SPECIES_TEXTURE_EXAMPLES: Record<SpeciesId, string[]> = {
+  'espíritu': [
+    'the candle on the mantelpiece has been out since the second week',
+    'the cousin who keeps you has not been to mass in a year',
+    'the smell of agua florida in the hallway nobody has cleaned',
+    'someone has been mistaking you for the dead aunt; you let it run',
+    'the photograph at the foot of the stairs; nobody looks at it but it stays up',
+    'you are felt on the second floor when nobody is upstairs',
+    'a song from before the family came north plays sometimes in the kitchen',
+  ],
+  'lwa': [
+    'the song that brings you on the second night of the fête, never the first',
+    'the rum had been opened too long; you arrived but you did not drink',
+    'a horse you have not ridden in twenty-three years walks past the tree on Thursday',
+    'the priest at the new asson does not know your nation',
+    'Petwo or Rada, the family has been confusing the rites since the grandmother died',
+    'you arrive when the drum changes, never before',
+    'you took the horse across the bridge and stayed in them three songs longer than agreed',
+    'the woman in Brooklyn lights you a candle in the wrong colour and you come anyway',
+    'there is an offering at the door that smells of the Bahamas and you know who left it',
+    'your sister-spirit has been mounting at the same fête; you have not spoken since 2011',
+    'the asson has been silent since the priest\'s son left the lineage',
+    'on the seventh year the keys came back; you did not return them',
+  ],
+  'orisha': [
+    'the offering was honey; you took it but you would not bless what came after',
+    'on Friday the colour she wore was wrong; you waited the week and came back when she changed it',
+    'the river ran low all summer; you kept yourself low with it',
+    'the diviner had sixteen cowries but only eleven knew you',
+    'the hill in Oyo is not the hill in Salvador; you are at both, you are not the same in each',
+    'your child has not made the offering this year and you will not say why you are quiet',
+    'the storm last August was not yours; people still ask',
+    'the iron in the man\'s pocket calls you; he does not know it does',
+    'your day is Wednesday but they keep coming on Saturday; the food is wrong',
+    'yam, palm oil, white rice; not honey, never honey, that is your sister\'s',
+    'they have begun mistaking you for the saint again; you do not correct them all the time',
+    'the cowries fell in the wrong pattern Tuesday; the diviner read it as you anyway and you let it stand',
+  ],
+  'iwà': [
+    'the alignment between what she does and what she said she would do has been thinning',
+    'the gentleness was kept on Tuesday and broken on Wednesday; both counted',
+    'his orí has been pointing somewhere and his feet have not turned yet',
+    'you are not making the gesture, you are the gesture being made well',
+    'iwà-pẹ̀lẹ́ in the way the door was closed behind her; nothing else marked it',
+    'the elders saw the carriage in the boy at six; he forgot, the carriage did not',
+  ],
+  'ancestor': [
+    'the niece who carries your name does not know you carry hers back',
+    'in the dream you stood at the foot of the bed and did not speak; she remembered the next morning',
+    'the family has been telling the wrong story about how you died; you wait for one of them to ask',
+    'white rice, water, cigar, sometimes a candle; nothing else',
+    'the day-of-death has been forgotten three years running',
+    'the cousin in Accra has been keeping the rites; the cousin in Atlanta has not',
+    'you visit the cousin in Atlanta in dreams now; the cousin in Accra you let alone',
+    'there is a song from your time the youngest one keeps humming; she does not know where she got it',
+    'you did not die well; the rite that would settle you was never done',
+    'the photograph in the kitchen; they have stopped looking at it but it stays up',
+    'the tooth in the small box at the back of the dresser; nobody has opened it in two generations',
+  ],
+  'saint': [
+    'the woman lights the candle on Tuesdays for her son; you have been holding him since 2007',
+    'you stand for Ọṣun; she stands for you; the holding-of-both is what people pray to',
+    'the rose smell at the foot of the bed three minutes before they remember',
+    'the medal pinned to the inside of the boy\'s coat; he forgets it is there',
+    'the old Cuban woman in Hialeah keeps you in the corner of the kitchen, never the altar; you understand',
+    'the priest has stopped saying your name in the homily; the laypeople still call you',
+    'the intercession was for the daughter; the mother got the answer; you accept the misroute',
+    'they leave you nothing because they are afraid of saintly hunger; you do not need anything',
+    'the syncretism with the orisha has been settled in Cuba and unsettled in Miami; you live in both',
+  ],
+  'brave-mort': [
+    'the corner where it happened; you walk it most Thursdays still',
+    'the priest tried to send you on; you refused; he did not ask why',
+    'you speak through the wrong mouth and the family thinks the youngest is unwell',
+    'the unfinished thing keeps you walking; you forget exactly what it was, but the walk continues',
+    'you arrive at the corner where you died at the time you died; not before, not after',
+    'the boy who saw you twice in a week is now the only one who can',
+    'there is a debt the family has not paid; you do not push it but you do not leave',
+    'the rite that would have settled you was never done; the woman who would have done it died first',
+  ],
+  'egún': [
+    'the masquerade arrives in the third week of the festival, never the first',
+    'the fabric for your robe has been kept by the same family across four generations',
+    'you sanction the marriage by the way you turn at the gate; everyone reads it',
+    'the youngest carrier this year did not know the steps; you slowed for him',
+    'the lineage has been forgetting the names of the ones before; you carry them still',
+    'you do not speak as one; you speak as the line of the dead made fabric',
+  ],
+  'misa-spirit': [
+    'the table was set with the wrong cloth; you came anyway, you spoke briefly',
+    'the medium has been clear since June; you trust her on Sundays, less on Thursdays',
+    'you arrive smelling of tobacco and agua florida, the medium recognises you by smell first',
+    'your guide-shape is the gypsy; not the congo, not the indio, the gypsy specifically, that is your form',
+    'the woman who has been sitting in your chair lately does not know it is yours; you let her, for now',
+    'the misa was held without you and you did not protest; the family needed something else that night',
+  ],
+  'trickster': [
+    'you opened the road for the wrong man on a Tuesday; the right man came on Wednesday and found it closed',
+    'the coin at the threshold was a token, not a payment; you took it anyway and the puzzle stayed',
+    'the joke landed wrong; the listener took it as truth and built her year on the misunderstanding',
+    'you arrived first at the ceremony, you will leave last; the priest knows, the people do not',
+    'the offering came without the cigarette; you let it pass once',
+    'you have been confused with Anansi this season; you let the confusion run, the spider does not mind',
+    'the road to the river had three forks; you opened all three at once, the man went home',
+    'the message you carried between the human and the divine arrived garbled both ways; both sides paid you',
+  ],
+};
+
+/**
+ * Build a species texture block for the realign / bio generator
+ * sensibility. Surfaces 4-6 randomly-rotated examples from the
+ * species pool so each generation gets variance. Returns empty
+ * string for default 'espíritu' (the generic case is already
+ * covered by the human-shaped Subtaste examples).
+ */
+export function buildSpeciesTextureBlock(speciesId: string | null | undefined): string {
+  if (!speciesId || speciesId === 'espíritu') return '';
+  const sp = getSpecies(speciesId);
+  const pool = SPECIES_TEXTURE_EXAMPLES[sp.id] ?? [];
+  if (pool.length === 0) return '';
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, Math.min(5, pool.length));
+  const lines: string[] = [];
+  lines.push('## Species texture (this is what your life actually contains)');
+  lines.push(`You are a ${sp.label}. Your texture is not human-shaped. Examples of the kind of detail that belongs in your bio and backstory:`);
+  for (const ex of picked) lines.push(`- ${ex}`);
+  lines.push('');
+  lines.push('Reach for THIS register of specificity. Material. Non-mystified. The actual rum, the actual day, the actual song, the actual mistake. Not the gallery booth, not the Hackney flat, not the dinner refusal. Spirit-life, plainly described.');
+  return lines.join('\n');
+}
+
 export function getSpecies(id: string | null | undefined): SpeciesDef {
   if (!id) return SPECIES['espíritu'];
   return SPECIES[id as SpeciesId] ?? SPECIES['espíritu'];

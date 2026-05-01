@@ -9,6 +9,7 @@ import { stripEmDashes, cleanGeneratedText } from '../lib/strip-em-dashes.js';
 import { cohortSlangMoatLine } from '../lib/voice-moat.js';
 import { getSlangGuidance } from '../lib/ibis-slang.js';
 import { readEmbracePhrases } from '../lib/cohort-phrases.js';
+import { buildSpeciesTextureBlock, getSpecies } from '../lib/species.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -538,6 +539,12 @@ function buildAlignmentUser(opts: {
   //   embracePhrases ← active CohortPhrase rows (lineage / Subtaste filtered)
   ibisAvoid?: string[];
   embracePhrases?: string[];
+  // Species (lwa / orisha / ancestor / etc.). When set to non-default,
+  // surfaces a species texture block so generation produces
+  // spirit-shaped textures (sedimentation, ritual debt, syncretic
+  // confusion) instead of human autobiographies. Per
+  // docs/species-becoming.md.
+  species?: string;
 }): string {
   const lines: string[] = [];
 
@@ -564,6 +571,26 @@ function buildAlignmentUser(opts: {
     );
   }
 
+  // Species texture overlay. When character is non-default species
+  // (lwa / orisha / ancestor / etc.), surface spirit-shaped texture
+  // examples BEFORE the Subtaste sensibility. Order matters: species
+  // sets the kind-of-life ("which song brings you, which day is
+  // yours"), Subtaste sets the level-of-specificity. Both stack.
+  // For the default 'espíritu', this is a no-op and the human-shaped
+  // Subtaste examples carry the texture alone.
+  if (opts.species && opts.species !== 'espíritu') {
+    const speciesBlock = buildSpeciesTextureBlock(opts.species);
+    if (speciesBlock.length > 0) {
+      lines.push('');
+      lines.push(speciesBlock);
+      const sp = getSpecies(opts.species);
+      lines.push('');
+      lines.push(
+        `Spirit-life note: write the bio + backstory as a ${sp.label}. NOT a human autobiography. NO chronological "she was born... she moved... she trained..." narrative arc. Spirits are positional, not psychological. Anchor in: who calls you, who has been mistreating you, which song brings you, which offering you accept or refuse, who you are being mistaken for, what threshold you hold. The actual rum, the actual day, the actual mistake. Material. Plain.`
+      );
+    }
+  }
+
   if (opts.subtasteCode) {
     const meta = SUBTASTE_GLYPHS[opts.subtasteCode];
     if (meta) {
@@ -573,9 +600,11 @@ function buildAlignmentUser(opts: {
       lines.push('');
       lines.push(subtasteSensibility(opts.subtasteCode, opts.setting));
       lines.push('');
-      lines.push(
-        'CRITICAL: write with concrete lifestyle specifics, not abstract description. Reference real-feeling places, refusals, habits, expertise. The bio should read like the worked example texture in the sensibility above. Avoid generic phrases like "they value depth" or "they refuse easy answers." Show the depth and the refusal through specific behaviour.'
-      );
+      const calibrationNote =
+        opts.species && opts.species !== 'espíritu'
+          ? 'CRITICAL: the Subtaste examples above are calibration for LEVEL OF SPECIFICITY. Reach for that depth of detail. But TRANSLATE the textures into spirit-life: the gallery booth becomes the misa table, the dinner refusal becomes an offering refusal, the Soho address becomes the corner where you walk most Thursdays. Subtaste = level of specificity. Species = kind of life. Both stack.'
+          : 'CRITICAL: write with concrete lifestyle specifics, not abstract description. Reference real-feeling places, refusals, habits, expertise. The bio should read like the worked example texture in the sensibility above. Avoid generic phrases like "they value depth" or "they refuse easy answers." Show the depth and the refusal through specific behaviour.';
+      lines.push(calibrationNote);
     }
   }
 
@@ -782,6 +811,7 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
         setting: body.setting ?? (character.setting as Setting | undefined) ?? undefined,
         ibisAvoid,
         embracePhrases,
+        species: character.species ?? undefined,
       });
 
       let result;
