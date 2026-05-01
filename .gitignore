@@ -38,3 +38,4 @@ storage/
 # Prisma
 *.db
 *.db-journal
+__pycache__/
