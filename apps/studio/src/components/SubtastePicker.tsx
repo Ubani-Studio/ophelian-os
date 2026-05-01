@@ -70,6 +70,12 @@ export function SubtastePicker({
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  // Subdominant + shadow are advanced. Default-collapsed so the
+  // picker reads as one decision (dominant) for sandbox use.
+  const [showMore, setShowMore] = useState(initial.secondary !== null || initial.shadow !== null);
+  // Shadow override is even further behind: auto-display only,
+  // override grid revealed when the user clicks "override".
+  const [shadowOverride, setShadowOverride] = useState(initial.shadow !== null);
 
   const isUser = character.isUser === true;
 
@@ -203,7 +209,7 @@ export function SubtastePicker({
       </button>
 
       {open && (
-        <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+        <div style={{ marginTop: '0.85rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {error && (
             <div style={{ fontSize: '0.7rem', color: 'var(--error)' }}>{error}</div>
           )}
@@ -211,11 +217,11 @@ export function SubtastePicker({
           {isUser && (
             <p
               style={{
-                fontSize: '0.72rem',
+                fontSize: '0.78rem',
                 color: 'var(--muted-foreground)',
                 fontStyle: 'italic',
                 fontFamily: '"Canela", serif',
-                lineHeight: 1.55,
+                lineHeight: 1.6,
               }}
             >
               Your Subtaste is inherited from your Starforge Nommo quiz. Run
@@ -226,29 +232,33 @@ export function SubtastePicker({
           {/* Current selection summary */}
           <div
             style={{
-              padding: '0.7rem 0.85rem',
+              padding: '0.95rem 1rem',
               border: '1px solid var(--border)',
               background: 'rgba(102,2,60,0.04)',
-              fontSize: '0.78rem',
-              lineHeight: 1.55,
+              fontSize: '0.82rem',
+              lineHeight: 1.65,
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.25rem',
+              gap: '0.35rem',
             }}
           >
             <SummaryRow label="dominant" meta={primaryMeta ?? null} />
-            <SummaryRow label="subdominant" meta={secondaryMeta ?? null} />
-            <SummaryRow
-              label="shadow"
-              meta={shadowMeta ?? null}
-              suggestion={!shadowMeta && autoShadowMeta ? autoShadowMeta : null}
-            />
+            {(showMore || secondaryMeta) && (
+              <SummaryRow label="subdominant" meta={secondaryMeta ?? null} />
+            )}
+            {(showMore || shadowMeta) && (
+              <SummaryRow
+                label="shadow"
+                meta={shadowMeta ?? null}
+                suggestion={!shadowMeta && autoShadowMeta ? autoShadowMeta : null}
+              />
+            )}
           </div>
 
-          {/* Dominant picker */}
+          {/* Dominant picker · always visible */}
           {!isUser && (
             <div>
-              <div style={pickerLabelStyle}>Pick dominant</div>
+              <div style={pickerLabelStyle}>Dominant</div>
               <div style={gridStyle}>
                 {SUBTASTE_TWELVE.map((s) => (
                   <SubtasteButton
@@ -265,10 +275,32 @@ export function SubtastePicker({
             </div>
           )}
 
-          {/* Subdominant picker */}
+          {/* More toggle · reveals subdominant and shadow */}
           {!isUser && primary && (
+            <button
+              type="button"
+              onClick={() => setShowMore((v) => !v)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: 'var(--muted-foreground)',
+                fontSize: '0.6rem',
+                fontFamily: 'monospace',
+                letterSpacing: '0.24em',
+                textTransform: 'none',
+                cursor: 'pointer',
+                alignSelf: 'flex-start',
+              }}
+            >
+              {showMore ? '− less' : '+ more (subdominant, shadow)'}
+            </button>
+          )}
+
+          {/* Subdominant picker · behind more toggle */}
+          {!isUser && primary && showMore && (
             <div>
-              <div style={pickerLabelStyle}>Pick subdominant (counterpoint)</div>
+              <div style={pickerLabelStyle}>Subdominant (optional counterpoint)</div>
               <div style={gridStyle}>
                 {SUBTASTE_TWELVE.map((s) => (
                   <SubtasteButton
@@ -286,48 +318,94 @@ export function SubtastePicker({
             </div>
           )}
 
-          {/* Shadow picker */}
-          {!isUser && primary && (
+          {/* Shadow · auto-displayed read-only behind more toggle.
+              Override link reveals the picker grid one click further. */}
+          {!isUser && primary && showMore && (
             <div>
-              <div style={pickerLabelStyle}>
-                Pick shadow (the register they reach for least)
-              </div>
-              <p
+              <div
                 style={{
-                  fontSize: '0.62rem',
-                  color: 'var(--muted-foreground)',
-                  fontStyle: 'italic',
-                  fontFamily: '"Canela", serif',
-                  margin: '0 0 0.4rem 0',
-                  lineHeight: 1.5,
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
+                  marginBottom: '0.4rem',
                 }}
               >
-                {autoShadowMeta ? (
-                  <>
-                    Auto-suggested by Wu Xing: <strong style={{ color: 'var(--foreground)' }}>{autoShadowMeta.code} {autoShadowMeta.glyph}</strong>. Click any cell to override.
-                  </>
-                ) : (
-                  'Pick to override the auto-suggestion.'
-                )}
-              </p>
-              <div style={gridStyle}>
-                {SUBTASTE_TWELVE.map((s) => {
-                  const isAuto = !shadow && autoShadow === s.code;
-                  return (
-                    <SubtasteButton
-                      key={'sh-' + s.code}
-                      code={s.code}
-                      glyph={s.glyph}
-                      label={s.label}
-                      essence={s.essence}
-                      selected={shadow === s.code || isAuto}
-                      disabled={s.code === primary || s.code === secondary}
-                      ghost={isAuto}
-                      onClick={() => onShadowClick(s.code)}
-                    />
-                  );
-                })}
+                <div style={pickerLabelStyle}>
+                  Shadow (auto, computed by Wu Xing)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShadowOverride((v) => !v)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    color: 'var(--muted-foreground)',
+                    fontSize: '0.55rem',
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.22em',
+                    textTransform: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {shadowOverride ? 'use auto' : 'override'}
+                </button>
               </div>
+
+              {/* Read-only display when override is closed */}
+              {!shadowOverride && autoShadowMeta && (
+                <div
+                  style={{
+                    padding: '0.7rem 0.85rem',
+                    border: '1px dashed var(--border)',
+                    fontSize: '0.78rem',
+                    color: 'var(--foreground)',
+                    display: 'flex',
+                    gap: '0.5rem',
+                    alignItems: 'baseline',
+                  }}
+                >
+                  <span style={{ color: TYRIAN, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                    {autoShadowMeta.code} {autoShadowMeta.glyph}
+                  </span>
+                  <span style={{ color: 'var(--muted-foreground)' }}>· {autoShadowMeta.label}</span>
+                  <span style={{ flex: 1 }} />
+                  <span
+                    style={{
+                      fontSize: '0.55rem',
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.2em',
+                      color: 'var(--muted-foreground)',
+                      opacity: 0.7,
+                    }}
+                  >
+                    auto · wu xing
+                  </span>
+                </div>
+              )}
+
+              {/* Override grid */}
+              {shadowOverride && (
+                <div style={gridStyle}>
+                  {SUBTASTE_TWELVE.map((s) => {
+                    const isAuto = !shadow && autoShadow === s.code;
+                    return (
+                      <SubtasteButton
+                        key={'sh-' + s.code}
+                        code={s.code}
+                        glyph={s.glyph}
+                        label={s.label}
+                        essence={s.essence}
+                        selected={shadow === s.code || isAuto}
+                        disabled={s.code === primary || s.code === secondary}
+                        ghost={isAuto}
+                        onClick={() => onShadowClick(s.code)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
