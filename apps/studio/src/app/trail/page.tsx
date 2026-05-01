@@ -3,19 +3,23 @@
 /**
  * Trail · the morning ritual.
  *
- * Phase 4 of agentic-build.md. The user opens Bóveda in the
- * morning (or whenever) and reads what every espíritu / twin has
- * been up to since their last visit. Curate as you read: promote
- * worth-keeping events to canonical, demote noise back to
- * ephemeral, "mark all seen" footer to close the day's reading.
+ * Magazine-shaped, not admin-log-shaped. One Canela H1, one date
+ * line, no banner. Each character is a section divider with their
+ * photo, name, mode + sovereignty + tongue badges. Their acts flow
+ * under as form-aware posts: ritual centred, song verse-shaped,
+ * fragment fragment-shaped, monologue full-bleed, etc.
  *
- * The morning trail is the protest against feed-shaped social.
- * Curated, not accumulated. Bóveda's daily ritual.
+ * Whitespace is the structuring element. Refusal of the feed shape
+ * is the brand. The reader should feel like they opened a quarterly
+ * magazine their world wrote overnight.
+ *
+ * Tend buttons absorbed from the deprecated Altar surface.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SovereigntyBadge } from '@/components/SovereigntyBadge';
+import { TrailPost, type TrailPostData } from '@/components/trail/TrailPost';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5130';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'ophelian-dev-key-2026';
@@ -69,15 +73,12 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json();
 }
 
-function formatRelative(ts: string): string {
-  const ms = Date.now() - new Date(ts).getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  if (ms < minute) return 'just now';
-  if (ms < hour) return `${Math.floor(ms / minute)}m ago`;
-  if (ms < day) return `${Math.floor(ms / hour)}h ago`;
-  return `${Math.floor(ms / day)}d ago`;
+function formatDateLine(): string {
+  const d = new Date();
+  const dayName = d.toLocaleDateString(undefined, { weekday: 'long' });
+  const hour = d.getHours();
+  const partOfDay = hour < 5 ? 'night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  return `${dayName} ${partOfDay}`;
 }
 
 function formatSinceWindow(sinceTs: string, lastSeenAt: string | null): string {
@@ -154,8 +155,6 @@ export default function TrailPage() {
     setMarking(true);
     try {
       await api('/trail/mark-seen', { method: 'POST', body: JSON.stringify({}) });
-      // Re-fetch the trail; events that were within the window before
-      // mark-seen drop out, leaving an empty trail until new acts land.
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to mark seen');
@@ -164,8 +163,6 @@ export default function TrailPage() {
     }
   };
 
-  // Tend a single character (manual tick). Absorbed from Altar so
-  // Trail is the one place to read + act.
   const tendOne = async (characterId: string) => {
     setTending(characterId);
     setError(null);
@@ -182,8 +179,6 @@ export default function TrailPage() {
     }
   };
 
-  // Fire one full scheduler pass (all autonomous characters) so the
-  // world moves now without waiting for the cron.
   const tendAll = async () => {
     setTending('all');
     setError(null);
@@ -197,126 +192,64 @@ export default function TrailPage() {
     }
   };
 
-  const summaryLine = useMemo(() => {
-    if (!data) return '';
-    if (data.totalEvents === 0) return 'no acts since you were last here';
-    const charCount = data.characters.length;
-    return `${data.totalEvents} act${data.totalEvents === 1 ? '' : 's'} across ${charCount} character${charCount === 1 ? '' : 's'}`;
-  }, [data]);
+  const headline = useMemo(() => formatDateLine(), []);
+  const isQuiet = !data || data.characters.length === 0;
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-          <div>
-            <h1 className="page-title">Trail</h1>
-            {data && (
-              <p
-                style={{
-                  marginTop: '0.5rem',
-                  maxWidth: '60ch',
-                  color: 'var(--muted-foreground)',
-                  fontSize: '0.85rem',
-                  lineHeight: 1.6,
-                }}
-              >
-                What your espíritus and twins have been doing{' '}
-                {formatSinceWindow(data.sinceTs, data.userLastSeenAt)}.
-                {' '}
-                {data.totalEvents > 0
-                  ? 'Read the trail. Curate as you go. Mark seen when you\'re done.'
-                  : 'The trail is quiet right now.'}
-              </p>
-            )}
-            {data && (
-              <p
-                style={{
-                  marginTop: '0.4rem',
-                  fontSize: '0.55rem',
-                  fontFamily: 'monospace',
-                  letterSpacing: '0.28em',
-                  color: 'var(--muted-foreground)',
-                  textTransform: 'lowercase',
-                }}
-              >
-                {summaryLine}
-              </p>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={load}
-              disabled={loading}
-              style={{
-                padding: '0.45rem 0.85rem',
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--muted-foreground)',
-                fontSize: '0.6rem',
-                fontFamily: 'monospace',
-                letterSpacing: '0.2em',
-                textTransform: 'lowercase',
-                cursor: loading ? 'wait' : 'pointer',
-                borderRadius: 0,
-              }}
-            >
-              refresh
-            </button>
-            <button
-              type="button"
-              onClick={tendAll}
-              disabled={tending !== null}
-              title="Run one tick for every autonomous character"
-              style={{
-                padding: '0.5rem 1rem',
-                border: `1px solid ${TYRIAN}`,
-                background: 'transparent',
-                color: TYRIAN,
-                fontSize: '0.65rem',
-                fontFamily: 'monospace',
-                letterSpacing: '0.22em',
-                textTransform: 'lowercase',
-                cursor: tending !== null ? 'wait' : 'pointer',
-                opacity: tending !== null ? 0.5 : 1,
-                borderRadius: 0,
-              }}
-            >
-              {tending === 'all' ? 'tending.' : 'tend all'}
-            </button>
-            <button
-              type="button"
-              onClick={markAllSeen}
-              disabled={marking || !data || data.totalEvents === 0}
-              style={{
-                padding: '0.5rem 1rem',
-                border: `1px solid ${TYRIAN}`,
-                background: TYRIAN,
-                color: '#fff',
-                fontSize: '0.65rem',
-                fontFamily: 'monospace',
-                letterSpacing: '0.22em',
-                textTransform: 'lowercase',
-                cursor: marking || !data || data.totalEvents === 0 ? 'not-allowed' : 'pointer',
-                opacity: marking || !data || data.totalEvents === 0 ? 0.5 : 1,
-                borderRadius: 0,
-              }}
-            >
-              {marking ? 'marking.' : 'mark all seen'}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div
+      className="page-container"
+      style={{
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: '3.5rem 1.5rem 6rem 1.5rem',
+        fontFamily: 'var(--font-ui), system-ui, sans-serif',
+      }}
+    >
+      {/* Masthead */}
+      <header
+        style={{
+          marginBottom: '3rem',
+          paddingBottom: '1.25rem',
+          borderBottom: '1px solid var(--border)',
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: '"Canela", serif',
+            fontWeight: 300,
+            fontSize: '3rem',
+            letterSpacing: '-0.015em',
+            margin: 0,
+            lineHeight: 1,
+          }}
+        >
+          Trail
+        </h1>
+        {data && (
+          <p
+            style={{
+              marginTop: '0.85rem',
+              fontFamily: '"Canela", serif',
+              fontStyle: 'italic',
+              fontWeight: 300,
+              fontSize: '0.95rem',
+              color: 'var(--muted-foreground)',
+              lineHeight: 1.55,
+            }}
+          >
+            {headline}. {formatSinceWindow(data.sinceTs, data.userLastSeenAt)}.
+          </p>
+        )}
+      </header>
 
       {error && (
         <div
           style={{
-            marginTop: '1rem',
             padding: '0.75rem 1rem',
             border: '1px solid var(--error)',
             color: 'var(--error)',
             fontSize: '0.8rem',
+            marginBottom: '2rem',
           }}
         >
           {error}
@@ -324,32 +257,45 @@ export default function TrailPage() {
       )}
 
       {loading ? (
-        <p style={{ marginTop: '1.5rem', color: 'var(--muted-foreground)', fontSize: '0.8rem' }}>
-          Loading.
+        <p
+          style={{
+            color: 'var(--muted-foreground)',
+            fontFamily: '"Canela", serif',
+            fontStyle: 'italic',
+            fontSize: '0.95rem',
+          }}
+        >
+          Reading the trail.
         </p>
-      ) : !data || data.characters.length === 0 ? (
+      ) : isQuiet ? (
         <div
           style={{
-            marginTop: '2rem',
-            padding: '2.5rem 2rem',
-            border: '1px solid var(--border)',
-            background: 'rgba(255,255,255,0.015)',
+            padding: '4rem 2rem',
             textAlign: 'center',
             fontFamily: '"Canela", serif',
             fontStyle: 'italic',
+            fontWeight: 300,
             color: 'var(--muted-foreground)',
-            fontSize: '0.95rem',
+            fontSize: '1.15rem',
             lineHeight: 1.7,
           }}
         >
-          The trail is quiet. No espíritu or twin has acted since you were
-          last here. Click <em>tend all</em> above to fire one tick for
-          every autonomous character, or wait for the scheduler to run.
+          The trail is quiet. Your espíritus rest.
+          <div style={{ marginTop: '1.5rem' }}>
+            <button
+              type="button"
+              onClick={tendAll}
+              disabled={tending !== null}
+              style={tendButtonStyle(tending !== null, true)}
+            >
+              {tending === 'all' ? 'tending.' : 'tend all'}
+            </button>
+          </div>
         </div>
       ) : (
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {data.characters.map((c) => (
-            <CharacterCard
+        <main>
+          {data!.characters.map((c) => (
+            <CharacterIssue
               key={c.id}
               character={c}
               busyEvent={busyEvent}
@@ -358,13 +304,71 @@ export default function TrailPage() {
               tending={tending === c.id || tending === 'all'}
             />
           ))}
-        </div>
+        </main>
       )}
+
+      {/* Footer ritual */}
+      <footer
+        style={{
+          marginTop: '5rem',
+          paddingTop: '2rem',
+          borderTop: '1px solid var(--border)',
+          textAlign: 'center',
+        }}
+      >
+        <p
+          style={{
+            fontFamily: '"Canela", serif',
+            fontStyle: 'italic',
+            fontWeight: 300,
+            fontSize: '1rem',
+            color: 'var(--muted-foreground)',
+            margin: '0 0 1.5rem 0',
+            lineHeight: 1.6,
+          }}
+        >
+          Mark this morning seen. Curate as you go.
+        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={tendAll}
+            disabled={tending !== null}
+            style={tendButtonStyle(tending !== null, false)}
+          >
+            {tending === 'all' ? 'tending.' : 'tend all'}
+          </button>
+          <button
+            type="button"
+            onClick={markAllSeen}
+            disabled={marking || !data || data.totalEvents === 0}
+            style={tendButtonStyle(marking || !data || data.totalEvents === 0, true)}
+          >
+            {marking ? 'marking.' : 'mark all seen'}
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
 
-function CharacterCard({
+function tendButtonStyle(disabled: boolean, primary: boolean): React.CSSProperties {
+  return {
+    padding: '0.55rem 1.2rem',
+    border: `1px solid ${TYRIAN}`,
+    background: primary ? TYRIAN : 'transparent',
+    color: primary ? '#fff' : TYRIAN,
+    fontSize: '0.65rem',
+    fontFamily: 'monospace',
+    letterSpacing: '0.24em',
+    textTransform: 'lowercase',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.45 : 1,
+    borderRadius: 0,
+  };
+}
+
+function CharacterIssue({
   character,
   busyEvent,
   onToggleRetention,
@@ -378,35 +382,32 @@ function CharacterCard({
   tending: boolean;
 }) {
   return (
-    <section
-      style={{
-        border: '1px solid var(--border)',
-        background: 'rgba(255,255,255,0.015)',
-      }}
-    >
+    <section style={{ marginBottom: '4.5rem' }}>
+      {/* Section divider */}
       <header
         style={{
-          padding: '0.85rem 1.1rem',
-          borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.85rem',
+          gap: '1rem',
+          paddingBottom: '1rem',
+          marginBottom: '1.5rem',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         <div
           style={{
-            width: 36,
-            height: 36,
+            width: 44,
+            height: 44,
             borderRadius: '50%',
             overflow: 'hidden',
             border: '1px solid var(--border)',
             background: '#000',
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '0.8rem',
+            fontSize: '0.85rem',
             color: 'var(--muted-foreground)',
-            flexShrink: 0,
           }}
         >
           {character.avatarUrl || character.tizitaRepresentativeUrl ? (
@@ -421,142 +422,102 @@ function CharacterCard({
           )}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.55rem' }}>
-            <Link
-              href={`/characters/${character.id}`}
-              style={{
-                fontFamily: '"Canela", serif',
-                fontWeight: 300,
-                fontSize: '1.1rem',
-                color: 'var(--foreground)',
-                textDecoration: 'none',
-              }}
-            >
-              {character.name}
-            </Link>
-            <span
-              style={{
-                fontSize: '0.5rem',
-                fontFamily: 'monospace',
-                letterSpacing: '0.24em',
-                color: character.mode === 'twin' ? TYRIAN : 'var(--muted-foreground)',
-                textTransform: 'lowercase',
-              }}
-            >
+          <Link
+            href={`/characters/${character.id}`}
+            style={{
+              fontFamily: '"Canela", serif',
+              fontWeight: 300,
+              fontSize: '1.55rem',
+              color: 'var(--foreground)',
+              textDecoration: 'none',
+              letterSpacing: '-0.005em',
+              display: 'block',
+              lineHeight: 1.1,
+            }}
+          >
+            {character.name}
+          </Link>
+          <div
+            style={{
+              marginTop: '0.35rem',
+              display: 'flex',
+              gap: '0.6rem',
+              alignItems: 'baseline',
+              fontSize: '0.5rem',
+              fontFamily: 'monospace',
+              letterSpacing: '0.28em',
+              color: 'var(--muted-foreground)',
+              textTransform: 'lowercase',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span style={{ color: character.mode === 'twin' ? TYRIAN : 'var(--muted-foreground)' }}>
               {character.mode}
             </span>
             <SovereigntyBadge identity={character.identity} size="small" />
-          </div>
-          <div
-            style={{
-              fontSize: '0.55rem',
-              fontFamily: 'monospace',
-              letterSpacing: '0.22em',
-              color: 'var(--muted-foreground)',
-              textTransform: 'lowercase',
-              marginTop: '0.2rem',
-            }}
-          >
-            {character.events.length} act{character.events.length === 1 ? '' : 's'}
+            <span style={{ opacity: 0.5 }}>·</span>
+            <span style={{ opacity: 0.65 }}>
+              {character.events.length} act{character.events.length === 1 ? '' : 's'}
+            </span>
           </div>
         </div>
         <button
           type="button"
           onClick={onTend}
           disabled={tending}
-          title="Run one tick now"
+          title="tend now"
           style={{
-            padding: '0.3rem 0.7rem',
-            border: `1px solid ${TYRIAN}`,
-            background: TYRIAN,
-            color: '#fff',
-            fontSize: '0.6rem',
+            padding: '0.3rem 0.65rem',
+            border: '1px solid var(--border)',
+            background: 'transparent',
+            color: 'var(--muted-foreground)',
+            fontSize: '0.55rem',
             fontFamily: 'monospace',
-            letterSpacing: '0.18em',
+            letterSpacing: '0.22em',
             textTransform: 'lowercase',
             cursor: tending ? 'wait' : 'pointer',
             borderRadius: 0,
             flexShrink: 0,
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = TYRIAN;
+            e.currentTarget.style.color = TYRIAN;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border)';
+            e.currentTarget.style.color = 'var(--muted-foreground)';
           }}
         >
           {tending ? '...' : 'tend'}
         </button>
       </header>
 
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {/* Posts flow */}
+      <div>
         {character.events.map((ev) => {
           const key = `${ev.edgeId}|${ev.ts}`;
-          const canonical = ev.retention === 'canonical';
+          const post: TrailPostData = {
+            ts: ev.ts,
+            edgeId: ev.edgeId,
+            kind: ev.kind,
+            form: ev.form,
+            summary: ev.summary,
+            body: ev.body,
+            retention: ev.retention,
+            rolled_back: ev.rolled_back,
+            counterpartName: ev.counterpartName,
+          };
           return (
-            <li
+            <TrailPost
               key={key}
-              style={{
-                padding: '0.85rem 1.1rem',
-                borderBottom: '1px solid var(--border)',
-                display: 'grid',
-                gridTemplateColumns: '120px 1fr auto',
-                gap: '0.85rem',
-                alignItems: 'baseline',
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: '0.6rem',
-                  letterSpacing: '0.12em',
-                  color: 'var(--muted-foreground)',
-                }}
-                title={ev.ts}
-              >
-                {formatRelative(ev.ts)}
-                <div style={{ marginTop: '0.15rem', textTransform: 'lowercase', opacity: 0.7 }}>
-                  {ev.form ?? ev.kind} · w/ {ev.counterpartName}
-                </div>
-              </div>
-
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.85rem', lineHeight: 1.55, color: 'var(--foreground)' }}>
-                  {ev.summary}
-                </div>
-                {ev.body && ev.body !== ev.summary && (
-                  <div
-                    style={{
-                      fontSize: '0.75rem',
-                      lineHeight: 1.6,
-                      color: 'var(--muted-foreground)',
-                      marginTop: '0.3rem',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    {ev.body}
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onToggleRetention(ev)}
-                disabled={busyEvent === key}
-                title={canonical ? 'Canonical · click to demote' : 'Ephemeral · click to promote'}
-                style={{
-                  fontSize: '0.55rem',
-                  fontFamily: 'monospace',
-                  letterSpacing: '0.2em',
-                  padding: '0.25rem 0.6rem',
-                  border: `1px solid ${canonical ? TYRIAN : 'var(--border)'}`,
-                  background: canonical ? TYRIAN : 'transparent',
-                  color: canonical ? '#fff' : 'var(--muted-foreground)',
-                  cursor: busyEvent === key ? 'wait' : 'pointer',
-                  borderRadius: 0,
-                  textTransform: 'lowercase',
-                }}
-              >
-                {busyEvent === key ? '...' : canonical ? 'canonical' : 'ephemeral'}
-              </button>
-            </li>
+              post={post}
+              onToggleRetention={() => onToggleRetention(ev)}
+              busy={busyEvent === key}
+            />
           );
         })}
-      </ul>
+      </div>
     </section>
   );
 }
