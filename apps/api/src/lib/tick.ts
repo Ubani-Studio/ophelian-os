@@ -20,7 +20,8 @@ import { readIdentity } from './identity-lock.js';
 import { getSlangGuidance } from './ibis-slang.js';
 import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from './post-forms.js';
 import { stripEmDashes, cleanGeneratedText } from './strip-em-dashes.js';
-import { cohortSlangMoatLine, COHORT_SLANG_AVOID } from './voice-moat.js';
+import { cohortSlangMoatLine } from './voice-moat.js';
+import { readEmbracePhrases } from './cohort-phrases.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -190,7 +191,10 @@ function readGoals(raw: unknown): string[] {
   return raw.filter((g) => typeof g === 'string' && g.trim().length > 0) as string[];
 }
 
-function buildSystemPrompt(self: TickInput['self']): string {
+function buildSystemPrompt(
+  self: TickInput['self'],
+  embracePhrases: string[] = []
+): string {
   const identity = readIdentity(self.identity);
   const sovereignty = identity.sovereignty;
   const characterRefuses = (Array.isArray(self.toneForbidden) ? self.toneForbidden : []).filter(
@@ -211,7 +215,6 @@ function buildSystemPrompt(self: TickInput['self']): string {
       ...characterRefuses,
       ...sovereigntyRefuses,
       ...slang.avoid,
-      ...COHORT_SLANG_AVOID,
     ])
   );
 
@@ -327,6 +330,11 @@ function buildSystemPrompt(self: TickInput['self']): string {
   const cohortSlangBlock = cohortSlangMoatLine({
     hasVoiceSamples: voiceSamples.length > 0,
     hasAuthor: Boolean(self.authoredBy),
+    // Refuses live in the refusesLine block already (Ibis-sourced)
+    // so we pass an empty avoid list here to keep the moat block
+    // focused on the thesis + embrace, not duplicate the refuses.
+    ibisAvoid: [],
+    embracePhrases,
   });
 
   return [
@@ -540,7 +548,13 @@ export async function decideTick(input: TickInput): Promise<Decision> {
     }
   }
 
-  const system = buildSystemPrompt(input.self);
+  // Active CohortPhrase rows for embrace surfacing. Lineage /
+  // Subtaste isn't trivially derivable from TickInput.self today
+  // so we fetch the lineage-agnostic active set; future work pulls
+  // the character's lineage / Subtaste codes for tighter filtering.
+  const embracePhrases = await readEmbracePhrases({});
+
+  const system = buildSystemPrompt(input.self, embracePhrases);
   const user = buildUserPrompt(input);
   const result = await callLlm({
     system,

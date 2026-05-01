@@ -199,6 +199,7 @@ model Character {
   genome           CharacterGenome?
   consentRecords   ConsentRecord[]
   memberships      EnsembleMember[]
+  cohortPhrases    CohortPhrase[]
 
   @@index([tizitaPersonaId])
 }
@@ -658,4 +659,56 @@ model WaitlistRequest {
 
   @@index([status])
   @@index([createdAt])
+}
+
+// CohortPhrase
+//
+// Cohort-invented language captured with provenance. Source: voice
+// samples + authored material. Status path: proposed → active →
+// promoted (moves to Ibis frontier zone) or revoked. Per
+// docs/slang-cohort.md this is the in-Bóveda half of the slang
+// MOAT; the other half is Ibis temporal-dictionary read by
+// ibis-slang.ts. Active CohortPhrases surface as embrace
+// candidates in the tick + realign system prompt.
+//
+// Why this is its own model and not a JSON field on Character:
+// phrases need cross-character provenance (one phrase from
+// contributor X used by characters A, B, C), royalty event
+// targeting, lineage indexing, and lifecycle independent of any
+// single character.
+model CohortPhrase {
+  id              String   @id @default(cuid())
+  phrase          String
+  // The character that originated the phrase (provenance head).
+  // Multi-character LoRA-tied attribution is deferred; for now
+  // first-extraction wins.
+  sourceCharacterId String?
+  sourceCharacter Character? @relation(fields: [sourceCharacterId], references: [id], onDelete: SetNull)
+  // The lineage(s) this phrase is rooted in. Single string for v1
+  // (e.g. "yoruba_diaspora_uk"); future: array.
+  lineage         String?
+  // Subtaste designation code (S-0, L-3, etc.) when known. Used
+  // for filtering embrace candidates by Subtaste affinity.
+  subtasteCode    String?
+  // Source evidence: which voice sample / authored line surfaced
+  // it. Stored as raw substring for auditability.
+  sourceQuote     String?
+  // Optional human-friendly gloss explaining the phrase to
+  // cultural advisors during review.
+  gloss           String?
+  // Lifecycle. proposed = freshly extracted, awaiting review.
+  // active = visible to embrace lists. promoted = sent to Ibis
+  // frontier (write-back, deferred). revoked = contributor
+  // pulled it back per right-to-forget.
+  status          String   @default("proposed")
+  // Times this phrase has been embraced in generations. Will tie
+  // to Imperium royalty when the cohort LoRA pipeline ships.
+  useCount        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([phrase, sourceCharacterId])
+  @@index([status])
+  @@index([lineage])
+  @@index([subtasteCode])
 }

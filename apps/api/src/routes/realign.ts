@@ -7,6 +7,8 @@ import { LINEAGES, lineageContext, listLineages } from '../lib/lineages.js';
 import { isFieldLocked } from '../lib/identity-lock.js';
 import { stripEmDashes, cleanGeneratedText } from '../lib/strip-em-dashes.js';
 import { cohortSlangMoatLine } from '../lib/voice-moat.js';
+import { getSlangGuidance } from '../lib/ibis-slang.js';
+import { readEmbracePhrases } from '../lib/cohort-phrases.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -531,6 +533,11 @@ function buildAlignmentUser(opts: {
   authoredBy?: string;
   voiceSamples?: string[];
   setting?: Setting;
+  // Slang MOAT inputs. Sourced upstream:
+  //   ibisAvoid     ← ibis-slang.ts danger zone
+  //   embracePhrases ← active CohortPhrase rows (lineage / Subtaste filtered)
+  ibisAvoid?: string[];
+  embracePhrases?: string[];
 }): string {
   const lines: string[] = [];
 
@@ -612,15 +619,18 @@ function buildAlignmentUser(opts: {
   }
 
   // Cohort-invented slang MOAT. We are language-source not
-  // language-consumer. Public-LLM slang signatures get refused;
-  // lineage-rooted invention gets promoted. Applied to every
-  // realign generation regardless of voice samples; samples just
-  // change the strength of the source clause.
+  // language-consumer. Refuses come from Ibis temporal-dictionary
+  // (single source of truth for public-LLM signatures). Embrace
+  // phrases come from active CohortPhrase rows extracted from
+  // contributor voice samples. Both lists feed into the same
+  // moat directive so the LLM sees the inversion clearly.
   lines.push('');
   lines.push(
     cohortSlangMoatLine({
       hasVoiceSamples: !!(opts.voiceSamples && opts.voiceSamples.length > 0),
       hasAuthor: !!opts.authoredBy,
+      ibisAvoid: opts.ibisAvoid ?? [],
+      embracePhrases: opts.embracePhrases ?? [],
     })
   );
 
@@ -746,6 +756,15 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
         }
       }
 
+      // Slang MOAT inputs: Ibis danger zone (refuses) + active
+      // cohort phrases scoped to this character's lineage / Subtaste
+      // (embrace). Both pulled here so buildAlignmentUser stays sync.
+      const ibisAvoid = getSlangGuidance().avoid;
+      const embracePhrases = await readEmbracePhrases({
+        lineage: lineageIds[0] ?? null,
+        subtasteCode: subtasteCode ?? null,
+      });
+
       const system = buildAlignmentSystem();
       const user = buildAlignmentUser({
         characterName: character.name,
@@ -761,6 +780,8 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
           ? (character.voiceSamples as string[]).filter((s): s is string => typeof s === 'string')
           : undefined,
         setting: body.setting ?? (character.setting as Setting | undefined) ?? undefined,
+        ibisAvoid,
+        embracePhrases,
       });
 
       let result;

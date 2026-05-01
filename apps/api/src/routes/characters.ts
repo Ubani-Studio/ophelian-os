@@ -1533,4 +1533,93 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
 
     return reply.send({ synced: results.length, results });
   });
+
+  // POST /characters/:id/cohort-phrases/extract
+  //
+  // Reads the character's voice samples and asks the LLM to identify
+  // cohort-rooted phrasings unlikely to appear in the public LLM
+  // corpus. Persists each as a CohortPhrase row with status =
+  // "proposed". Returns the persisted rows.
+  //
+  // The in-Bóveda half of the slang MOAT (docs/slang-cohort.md). The
+  // proposed → active gate is manual review for v1; cultural-advisor
+  // signoff layers on top once the cohort onboarding ships.
+  fastify.post<{ Params: { id: string } }>(
+    '/characters/:id/cohort-phrases/extract',
+    async (request, reply) => {
+      const { id } = request.params;
+      const character = await prisma.character.findUnique({ where: { id } });
+      if (!character) return reply.code(404).send({ error: 'Character not found' });
+
+      const { extractCohortPhrases } = await import('../lib/cohort-phrases.js');
+
+      const voiceSamples = Array.isArray(character.voiceSamples)
+        ? (character.voiceSamples as unknown[]).filter((s): s is string => typeof s === 'string')
+        : [];
+
+      const ts = (character.timelineState as Record<string, unknown>) || {};
+      const oripheonGen = ((ts.oripheon as Record<string, unknown>)?.generated ?? {}) as Record<string, unknown>;
+      const subtaste = oripheonGen.subtaste as { code?: string } | undefined;
+
+      // Lineage on Character isn't a single column; pull from
+      // identity envelope or persona tags. For v1 we use the first
+      // persona tag that looks like a lineage handle, or null.
+      const lineage =
+        character.personaTags.find((t) => /diaspora|yoruba|akan|mande|caribbean|drill|trap/i.test(t)) ?? null;
+
+      const result = await extractCohortPhrases({
+        characterId: character.id,
+        voiceSamples,
+        authoredBy: character.authoredBy,
+        lineage,
+        subtasteCode: subtaste?.code ?? null,
+      });
+
+      return reply.send(result);
+    }
+  );
+
+  // GET /characters/:id/cohort-phrases
+  //
+  // List proposed + active CohortPhrase rows sourced from this
+  // character. Used by the studio review surface for promotion to
+  // active (and eventual write-back to Ibis frontier zone).
+  fastify.get<{ Params: { id: string } }>(
+    '/characters/:id/cohort-phrases',
+    async (request, reply) => {
+      const { id } = request.params;
+      const rows = await prisma.cohortPhrase.findMany({
+        where: { sourceCharacterId: id },
+        orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      });
+      return reply.send({ phrases: rows });
+    }
+  );
+
+  // PATCH /characters/cohort-phrases/:phraseId
+  //
+  // Update a CohortPhrase status (proposed → active → promoted /
+  // revoked) and optional gloss edit. Used by the review surface.
+  fastify.patch<{
+    Params: { phraseId: string };
+    Body: { status?: 'proposed' | 'active' | 'promoted' | 'revoked'; gloss?: string };
+  }>('/characters/cohort-phrases/:phraseId', async (request, reply) => {
+    const { phraseId } = request.params;
+    const { status, gloss } = request.body || {};
+    const data: Record<string, unknown> = {};
+    if (status) data.status = status;
+    if (typeof gloss === 'string') data.gloss = gloss;
+    if (Object.keys(data).length === 0) {
+      return reply.code(400).send({ error: 'No updates supplied' });
+    }
+    try {
+      const updated = await prisma.cohortPhrase.update({
+        where: { id: phraseId },
+        data,
+      });
+      return reply.send(updated);
+    } catch {
+      return reply.code(404).send({ error: 'CohortPhrase not found' });
+    }
+  });
 }
