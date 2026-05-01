@@ -182,6 +182,35 @@ export async function mirrorCharacterFrom(
   });
 }
 
+export interface ComposedSubtastePreview {
+  composed: {
+    code: string;
+    glyph: string;
+    label: string;
+    secondaryCode?: string;
+    secondaryGlyph?: string;
+    secondaryLabel?: string;
+    shadowCode?: string;
+    shadowGlyph?: string;
+    shadowLabel?: string;
+    composedFrom: Array<{ characterId: string; name: string; code: string; secondaryCode?: string }>;
+    reason: 'majority' | 'tension' | 'singleton';
+  };
+  applied: boolean;
+}
+
+/** Compose Subtaste for a group character from its members. Pass
+ *  apply=true to persist; default returns a preview only. */
+export async function composeGroupSubtaste(
+  characterId: string,
+  apply: boolean = false
+): Promise<ComposedSubtastePreview> {
+  return apiFetch<ComposedSubtastePreview>(`/characters/${characterId}/compose-subtaste`, {
+    method: 'POST',
+    body: JSON.stringify({ apply }),
+  });
+}
+
 /** Two-call helper: create a fresh character, then mirror its
  *  identity from the source. Result is a twin sharing Subtaste +
  *  lineage + voice samples but with its own name (and optional

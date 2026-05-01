@@ -1534,6 +1534,42 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ synced: results.length, results });
   });
 
+  // POST /characters/:id/compose-subtaste
+  //
+  // For a group / duo / collective character, derive a group-level
+  // Subtaste from members' Subtastes (sheaf-theory composition).
+  // Default returns a preview without persisting; pass apply=true
+  // to persist onto timelineState.oripheon.generated.subtaste.
+  fastify.post<{ Params: { id: string }; Body?: { apply?: boolean } }>(
+    '/characters/:id/compose-subtaste',
+    async (request, reply) => {
+      const { id } = request.params;
+      const apply = (request.body as { apply?: boolean } | undefined)?.apply === true;
+
+      const character = await prisma.character.findUnique({ where: { id } });
+      if (!character) return reply.code(404).send({ error: 'Character not found' });
+      if (character.compositionKind === 'solo') {
+        return reply.code(400).send({
+          error: 'Cannot compose Subtaste on a solo character. Set compositionKind to duo / group / collective first.',
+        });
+      }
+
+      const { composeSubtasteFromMembers, applyComposedSubtaste } = await import('../lib/compose-subtaste.js');
+      const composed = await composeSubtasteFromMembers(id);
+      if (!composed) {
+        return reply.code(400).send({
+          error: 'No member Subtastes to compose from. Link group members and set their Subtastes first.',
+        });
+      }
+
+      if (apply) {
+        await applyComposedSubtaste(id, composed);
+      }
+
+      return reply.send({ composed, applied: apply });
+    },
+  );
+
   // POST /characters/:id/cohort-phrases/extract
   //
   // Reads the character's voice samples and asks the LLM to identify

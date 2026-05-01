@@ -21,6 +21,7 @@ import { RepositionableCircleAvatar } from '@/components/RepositionableCircleAva
 import { ArchetypeDynamics } from '@/components/genome';
 import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
+import { ComposeGroupSubtasteButton } from '@/components/ComposeGroupSubtasteButton';
 import { CompositionKindPicker } from '@/components/CompositionKindPicker';
 import { SubtastePicker } from '@/components/SubtastePicker';
 import { IdentityRegisterPanel } from '@/components/IdentityRegisterPanel';
@@ -948,10 +949,18 @@ export default function CharacterDetailPage() {
             <IdentityRegisterPanel character={character} onUpdated={setCharacter} />
             <CompositionKindPicker character={character} onUpdated={setCharacter} />
             {character.compositionKind && character.compositionKind !== 'solo' && (
-              <GroupMembersPanel
-                characterId={character.id}
-                initialMembers={character.groupMembers ?? []}
-              />
+              <>
+                <GroupMembersPanel
+                  characterId={character.id}
+                  initialMembers={character.groupMembers ?? []}
+                />
+                <ComposeGroupSubtasteButton
+                  character={character}
+                  onApplied={() => {
+                    void getCharacter(character.id).then(setCharacter);
+                  }}
+                />
+              </>
             )}
 
             {/* LoRA category slots: visual / voice / writing / music /
