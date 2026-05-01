@@ -193,6 +193,54 @@ export const LINEAGES: Record<string, Lineage> = {
       'Olympian + Orthodox layered. Tragic structure. Symposium as cultural form. Kismet / fate.',
     advisorGated: false,
   },
+  japanese: {
+    id: 'japanese',
+    label: 'Japanese · Shinto-Buddhist + diaspora',
+    region: 'Japan + Japanese diaspora',
+    namingNotes:
+      'Family-name first (Sato, Suzuki, Watanabe). Given names carry generational kanji. Honorifics (-san, -kun, -chan) signal relationship.',
+    registerNotes:
+      'Indirection central. The unsaid (mā / 間) as conversational substance. Keigo (formal speech) layered. Code-switch between Tokyo and regional dialects (Kansai, Tohoku) carries identity.',
+    culturalFrame:
+      'Shinto kami in every place + Buddhist mappō layered with Confucian social order. Mono no aware as aesthetic. Wabi-sabi. Manga / anime / J-rock as contemporary mythopoetic substrate. Honne (true feeling) versus tatemae (presented face) as live tension.',
+    advisorGated: false,
+  },
+  korean: {
+    id: 'korean',
+    label: 'Korean · Confucian + Hallyu',
+    region: 'Korea + Korean diaspora (Hallyu reach global)',
+    namingNotes:
+      'Family-name first (Kim, Lee, Park) + two-character generational given name. Honorific suffixes (-ssi, -nim, oppa, eonni, hyung, noona) carry relational weight.',
+    registerNotes:
+      'Han (한) — collective sorrow as substrate, never named directly. Jeong (정) — bonded affection that survives conflict. Code-switch English / Korean / Konglish in diaspora register. Pansori cadence in long-form. K-pop bridge structure (verse / pre-chorus / hook / rap-bridge / final chorus key-up) as a native expressive shape.',
+    culturalFrame:
+      'Confucian filial order + shamanism (mu) substrate + Buddhist + Catholic / Protestant overlay. Hallyu wave (K-pop, K-drama, Korean cinema) as contemporary mythopoetic engine. Han + jeong + nunchi (the social-reading sense) as the felt three. North-South rupture as historical wound.',
+    advisorGated: false,
+  },
+  tibetan: {
+    id: 'tibetan',
+    label: 'Tibetan · Vajrayana Buddhist',
+    region: 'Tibet + Tibetan diaspora (Dharamsala, Nepal, India, West)',
+    namingNotes:
+      'Two-element given names (Tenzin Gyatso, Sonam Dolma). No surnames traditionally; lineage / monastery / region carries identity. Lama-given names mark transitions.',
+    registerNotes:
+      'Layered with mantra fragments (oṃ maṇi padme hūṃ as breath). Honorific Tibetan for elders / lamas. English code-switch in diaspora. Recitation cadence: even-pulsed, the pause as content.',
+    culturalFrame:
+      'Vajrayana Buddhism + Bön substrate. Bardo Thödol (Tibetan Book of the Dead) cosmology of the in-between. Dakini as the wild feminine wisdom. Reincarnation lineages (tulkus). Tantric symbolism. Diaspora-as-exile shapes the contemporary. Modern: Tenzin Gyatso (the 14th Dalai Lama) as global figure, Tsering Yangzom Lama as contemporary lit voice.',
+    advisorGated: true,
+  },
+  javanese: {
+    id: 'javanese',
+    label: 'Javanese · Kejawen + Wayang',
+    region: 'Java + Javanese diaspora (Suriname, Netherlands, Malaysia)',
+    namingNotes:
+      'One-name-only common (Sukarno, Suharto, Joko). Compound elemental names (Surya = sun, Ratna = jewel). Aristocratic prefixes (Raden, Raden Mas) carry status memory.',
+    registerNotes:
+      'Multiple speech levels (ngoko / madya / krama) calibrated to relationship — choosing the wrong level is a social failure. Indonesian / Javanese code-switch + occasional Dutch / Sanskrit loanwords. Pace of gamelan (slow-build, polyrhythmic) as conversational rhythm.',
+    culturalFrame:
+      'Kejawen (Javanese mysticism: syncretism of Hindu-Buddhist + Sufi Islam + animist substrate). Wayang kulit (shadow puppet theatre) as cosmological theatre — Pandawa / Kurawa Mahabharata adapted, Semar as trickster-clown-divinity. Gamelan as cosmic time. Slametan ritual meal. Rasa (felt-quality) as aesthetic principle.',
+    advisorGated: false,
+  },
 };
 
 export function listLineages(): Array<Pick<Lineage, 'id' | 'label' | 'region' | 'advisorGated'>> {
