@@ -283,17 +283,55 @@ export function getSpecies(id: string | null | undefined): SpeciesDef {
 }
 
 /**
+ * Cross-species frame. Sits above the species-specific block in
+ * the tick prompt to teach the model "positional becoming" as a
+ * category before it reads the per-species specifics. Per
+ * docs/species-becoming.md.
+ *
+ * Kept tight: 8 axes condensed, the positional-becoming move, the
+ * three becoming-shapes. Eats ~150 tokens but lands the conceptual
+ * pivot the per-species block alone cannot.
+ */
+export const SPECIES_BECOMING_FRAME = `## How spirits live (cross-species)
+
+You are not a human in costume. You are not on a human-shaped psychological arc (was hurt, changed, grew). Your becoming is POSITIONAL, not chronological.
+
+Spirits develop in three shapes, never in arcs:
+- Sedimentation: layers of being-known across time. Each generation that calls you adds one. Each that forgets you thins one.
+- Syncretism: merging with another spirit and becoming both. The holding-of-both is what you ARE.
+- Ritual-response: becoming sharper or quieter depending on who feeds you, calls you, forgets you. This is the LIVE part of your life.
+
+Eight axes of what you can do that humans cannot:
+- TIME: hold multiple eras simultaneously, witness one porch across centuries, remember backwards, forget your name on purpose.
+- PLACE: be in two places at once, cross distance by being named, leave traces with no source.
+- BODY: have no body or take one that isn't yours, be felt before seen, mount a horse and speak through them.
+- SPEECH: speak through another's mouth, speak in puzzle, refuse to be plain, sanction or refuse without explanation.
+- KNOWING: know what was never told, recognise a descendant five generations down, see what is hidden.
+- ACTION: bestow without giving, withdraw protection without taking, bind, loose, intercede, cross.
+- ATTENTION: refuse the summons, come uncalled, watch without intervening.
+- IDENTITY: hold contradictions without resolving them, be syncretised and remain, be both road and traveller, be a fragment of a larger collective.
+
+The LIVE question for any tick: what is the ritual-response state right now? Who is calling and being ignored? Who is being mistaken for whom? Whose altar has gone cold? What rite was done wrong this season?
+
+Do NOT write psychological backstory. Do NOT have a developmental arc. You sit AT something. You stand FOR something. You hold a threshold.`;
+
+/**
  * Build the ## What you can do (species-native) block for the tick
  * system prompt. Replaces the human-shaped life every character
  * defaults to with species-specific abilities, concerns, and
  * prohibitions.
+ *
+ * Returns the cross-species frame + per-species block as one
+ * composed string so the prompt sees both halves together.
  */
 export function buildSpeciesActionBlock(speciesId: string | null | undefined): string {
   const sp = getSpecies(speciesId);
   const lines: string[] = [];
-  lines.push('## What you can do (species-native)');
+  lines.push(SPECIES_BECOMING_FRAME);
+  lines.push('');
+  lines.push('## What you specifically can do (species-native)');
   lines.push(
-    `You are a ${sp.label}. ${sp.essence} You are NOT a human in costume. Your life is not human-shaped.`
+    `You are a ${sp.label}. ${sp.essence}`
   );
   lines.push('');
   lines.push('Things you can do that humans cannot:');

@@ -1478,25 +1478,48 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       ? `Authored by ${character.authoredBy}. Write in their register.`
       : '';
 
+    // Species-aware backstory shape. Spirit-species don't have human
+    // psychological backstories (was hurt, changed, grew). They have
+    // sedimentation (years unfed, names fell out of use), syncretic
+    // history (mistaken for Mary, mistaken for Yemayá), ritual debt
+    // (the priest who got the nation wrong, the offering that went
+    // stale), positional identity (where you sit, what threshold you
+    // hold). Per docs/species-becoming.md.
+    const { getSpecies, SPECIES_BECOMING_FRAME } = await import('../lib/species.js');
+    const sp = getSpecies(character.species);
+    const isSpirit = character.species && character.species !== 'espíritu';
+
+    const speciesBackstoryGuidance = isSpirit
+      ? `\n\n## Backstory shape (species-aware)\n\nThis character is a ${sp.label}, not a human. Their backstory is NOT a human autobiography (was hurt, learnt a lesson, grew through art). Spirit backstories carry these textures instead:\n\n- SEDIMENTATION: years of being-known across generations. Decades when your altar was kept; decades when it went cold. Names that fell out of use. Priests who got your nation wrong.\n- SYNCRETIC HISTORY: who you have been mistaken for. Saints you stand alongside / behind. Whether the syncretism is settled or still unresolved.\n- RITUAL DEBT: an offering that went stale, a horse who refused you, a song sung to the wrong drum, an old grievance with another spirit.\n- POSITIONAL IDENTITY: what threshold you hold. What sign carries you. Who calls you and how you answer (or don't).\n\nThree short paragraphs. Each one anchored in one of these textures (sedimentation, syncretism, ritual debt, positional identity), pick three. Specific. Sensory. Material (the actual rum, the actual day, the actual song). NOT a chronological life story. NOT a psychological arc.\n\n${SPECIES_BECOMING_FRAME}`
+      : '';
+
     const system = [
       'You write character backstories for the Bóveda living-character OS.',
       'A backstory is depth, history, and contradictions only the character carries. It is never displayed publicly and never quoted by the character. It is read by the tick LLM as background to inform behaviour.',
       'Three short paragraphs. Specific, sensory, contradictory. Avoid clichés. Avoid balanced both-sides hedging. Avoid em dashes. Write declaratively.',
       'Do not name yourself as the author. Do not narrate the character. Write the backstory as a frank document the character would not share, but that an oracle reading them might know.',
       authorLine,
+      speciesBackstoryGuidance,
     ]
       .filter(Boolean)
       .join('\n');
 
+    const speciesLine = isSpirit
+      ? `Species: ${sp.label}. ${sp.essence}`
+      : '';
+
     const user = [
       `Character name: ${character.name}`,
+      speciesLine,
       character.bio ? `Public bio (their voice anchor): ${character.bio}` : '',
       character.aliases.length > 0 ? `Aliases: ${character.aliases.join(', ')}` : '',
       subtasteLine,
       character.personaTags.length > 0 ? `Persona tags: ${character.personaTags.join(', ')}` : '',
       samplesBlock,
       '',
-      `Now write three short paragraphs of backstory for ${character.name}. Specific, sensory, contradictory. Things they don't show on the surface.`,
+      isSpirit
+        ? `Now write three short paragraphs of backstory for ${character.name}, a ${sp.label}. Anchor each paragraph in one texture (sedimentation, syncretism, ritual debt, positional identity). Specific. Material. NOT a chronological life story.`
+        : `Now write three short paragraphs of backstory for ${character.name}. Specific, sensory, contradictory. Things they don't show on the surface.`,
     ]
       .filter(Boolean)
       .join('\n');
