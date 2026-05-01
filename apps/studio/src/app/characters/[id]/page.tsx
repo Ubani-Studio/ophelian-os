@@ -23,6 +23,7 @@ import { TizitaPanel, IkengaEmblem } from '@/components/TizitaPanel';
 import { GroupMembersPanel } from '@/components/GroupMembersPanel';
 import { ComposeGroupSubtasteButton } from '@/components/ComposeGroupSubtasteButton';
 import { SpeciesPicker } from '@/components/SpeciesPicker';
+import { TonguePanel } from '@/components/TonguePanel';
 import { CompositionKindPicker } from '@/components/CompositionKindPicker';
 import { SubtastePicker } from '@/components/SubtastePicker';
 import { IdentityRegisterPanel } from '@/components/IdentityRegisterPanel';
@@ -948,6 +949,7 @@ export default function CharacterDetailPage() {
                 is duo / group / collective. */}
             <SubtastePicker character={character} onUpdated={setCharacter} />
             <SpeciesPicker character={character} onUpdated={setCharacter} />
+            <TonguePanel character={character} onUpdated={setCharacter} />
             <IdentityRegisterPanel character={character} onUpdated={setCharacter} />
             <CompositionKindPicker character={character} onUpdated={setCharacter} />
             {character.compositionKind && character.compositionKind !== 'solo' && (
