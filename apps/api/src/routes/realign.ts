@@ -28,12 +28,19 @@ import { stripEmDashes } from '../lib/strip-em-dashes.js';
 const FIELD_OPTIONS = ['bio', 'backstory', 'aliases', 'personaTags', 'goals', 'tongue'] as const;
 type RealignField = (typeof FIELD_OPTIONS)[number];
 
+const SETTING_OPTIONS = ['modern', 'mystical', 'archaic', 'past_life', 'mythic', 'surreal', 'mixed'] as const;
+type Setting = (typeof SETTING_OPTIONS)[number];
+
 const RealignSchema = z.object({
   // Single string for back-compat with existing callers; array for
   // multi-lineage blends (Yoruba + Vodou). Either form accepted.
   lineage: z.union([z.string(), z.array(z.string())]).optional(),
   brief: z.string().optional(),
   subtasteCode: z.string().optional(),
+  /** Setting register: modern / mystical / archaic / past_life /
+   *  mythic / surreal / mixed (default). Biases the example pool
+   *  drawn from in the sensibility block. */
+  setting: z.enum(SETTING_OPTIONS).optional(),
   fields: z.array(z.enum(FIELD_OPTIONS)).default(['bio', 'backstory', 'aliases', 'personaTags', 'goals', 'tongue']),
   /** When true, write the generated fields onto the character.
    *  When false, just return the draft for review. Default false
@@ -90,31 +97,292 @@ const SUBTASTE_GLYPHS: Record<string, { glyph: string; label: string; essence: s
   'Ø': { glyph: 'VOID', label: 'Receptive', essence: 'The deliberate absence.' },
 };
 
-// Per-Subtaste tonal sensibility. Concrete behavioural textures so
-// the LLM generates lifestyle specifics, refusals, places, and
-// attitude rather than abstract description. Each entry lists 5-8
-// behavioural signals + an explicit "do not write generically"
-// directive. Keyed by designation code.
-const SUBTASTE_SENSIBILITY: Record<string, string> = {
-  'S-0': `KETH (Visionary): first in line without announcing. Has a uniform of some kind. Doesn't explain decisions. Already booked the table. People defer without knowing why. Quiet authority. No need to convince. Specifics: arrives early, sits where they want, makes the room reorganise around them.`,
-  'T-1': `STRATA (Architectural): read every endnote. Has a system for everything. Designs the room before furnishing it. Explains the structure underneath. Specifics: spreadsheet-mind, color-coded folders, knows the building's load-bearing walls, would rather plan twice than build twice.`,
-  'V-2': `OMEN (Prophetic): saw it coming. Recommended the band three years before they broke. Already moved on by the time it lands. Speaks in slightly offset future tense. Specifics: passed on the apartment that doubled, told you about the bar before it had a sign, leaves parties early.`,
-  'L-3': `SILT (Developmental): plays the long game. Remembers what you said three years ago. Tends to one project for a decade. Refuses momentum-thinking. Specifics: same three friends since secondary school, has watered the same plant for fifteen years, takes the slow train on purpose.`,
-  'C-4': `CULL (Editorial): sparse. Refuses what doesn't earn. Names what's wrong before what's right. Brutally honest. Curated taste. Specifics: example texture for calibration: "curated the best art galleries in their past life, hangs out at Frieze and throws truffles at the cube, only goes to Annabel's on a leap year, expert at elite art gallery curation, doesn't need a sugar daddy." Concrete places, specific refusals, lifestyle markers, defiant attitude. THIS is the depth and specificity to reach for: real venues, real refusals, real expertise, real attitude. Not abstract description.`,
-  'N-5': `LIMN (Integrative): pairs that shouldn't work but do. Edges illuminate centres. Brings two scenes together. The connector at the party. Specifics: friends with both factions, made the playlist that converted skeptics, introduces people who needed to meet but didn't know.`,
-  'H-6': `TOLL (Advocacy): won't let it go. Tells you the same thing three times. The cause is specific. Repetition is conviction. Specifics: posts the same article, brings the same topic to every dinner, will outlast your fatigue, the bell that cannot be unheard.`,
-  'P-7': `VAULT (Archival): owns formats you can't play. Cites obscure sources. Keeps things others discard. Library mind. Specifics: vinyl in a climate-controlled room, knows the second album that was better than the first, has the receipt from 2009, three rooms of books deep.`,
-  'D-8': `WICK (Channelling): uncanny recommendations they can't explain. Receives more than constructs. "It just felt right." Specifics: dreams that come true with mild edits, picks the right tarot card without trying, hears the radio say what they were thinking, can't tell you why but is rarely wrong.`,
-  'F-9': `ANVIL (Manifestation): has built a thing. Ships. While others talk. Pressure into form. Specifics: finished the album, wrote the thesis, opened the studio, did the renovation themselves. Less interested in critique than the next build. Calluses on the hands.`,
-  'R-10': `SCHISM (Contrarian): the productive fracture. Disagrees structurally. Their takes age strangely. What seemed wrong becomes obvious. Specifics: walked out of the meeting, broke up the band that was about to make it, said the unsayable at dinner, has been right twice and wrong once and won't apologise.`,
-  'Ø': `VOID (Receptive): listens longer than anyone. Recommendations feel like mirrors. Deliberate absence. Specifics: the one who asks the question that reframes the room, remembers what you said and gives it back to you cleaner, doesn't post much, present without performing.`,
+// Per-Subtaste sensibility. Multiple divergent example textures per
+// designation, organised by setting register. The LLM picks one
+// example pool and draws specifics from it; without this, generation
+// collapses to the same Frieze / Brooklyn / altar-keeper register
+// for every character.
+//
+// Each setting key contains 3-5 short worked examples in the
+// sensibility's voice. Concrete places, specific refusals, real
+// attitude. Mix UK + US + diasporic + mythic so the cohort doesn't
+// homogenise.
+
+interface SensibilityExamples {
+  modern: string[];
+  mystical: string[];
+  archaic: string[];
+  surreal: string[];
+}
+
+const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
+  'S-0': {
+    modern: [
+      'always at the head of the table at the Soho House she pretends to dislike, never explains the seating',
+      'walks into the office in a black turtleneck on a Tuesday and the meeting reorganises around her',
+      'has the same standing reservation at Lyle\'s, doesn\'t look at the menu',
+    ],
+    mystical: [
+      'the elders rise without being told when she enters the courtyard',
+      'her name is spoken before her own at oríkì, and she does not correct it',
+    ],
+    archaic: [
+      'the duchess who arrived at court three days late and was forgiven',
+      'the abbess whose order changed liturgy because she preferred matins shorter',
+    ],
+    surreal: [
+      'arrives at every event already seated. Nobody asks how. Nobody asks anymore.',
+    ],
+  },
+  'T-1': {
+    modern: [
+      'spreadsheet-mind. Colour-coded the entire RIBA practice into nine subgroups before they hired her',
+      'has an Anki deck for every project she\'s ever touched, exports it twice a year',
+      'reads the building regulations for fun. Knows which load-bearing wall the developer is lying about',
+    ],
+    mystical: [
+      'maps the lineage three generations deep before she names the child',
+      'reads ifa before booking flights, but only on Saturdays',
+    ],
+    archaic: [
+      'the cartographer who corrected the maps the king was using and refused to apologise',
+      'the architect who designed the cathedral nave to acoustic specifications nobody asked for',
+    ],
+    surreal: [
+      'her flat has folders for folders. The folders have indices. The indices reference each other.',
+    ],
+  },
+  'V-2': {
+    modern: [
+      'recommended Skepta in 2010, told you about Loyle Carner before the album, has already moved on from whoever you\'re excited about',
+      'left the Mayfair gallery six months before it closed. Knew. Won\'t say how.',
+      'told her sister to buy in Margate in 2014. Was right. Doesn\'t bring it up.',
+    ],
+    mystical: [
+      'the dream came twice, three years apart, in the same Lagos house she has not visited',
+      'reads the fall of the cards once and never again. The first read is the only true one.',
+    ],
+    archaic: [
+      'the soothsayer who told the merchant not to sail. The merchant sailed. The town remembered.',
+    ],
+    surreal: [
+      'mentions a bar that hasn\'t opened yet. By Tuesday it has opened. She\'s already left.',
+    ],
+  },
+  'L-3': {
+    modern: [
+      'same three friends since Year 9. Still goes to the same Greggs in Croydon every Wednesday',
+      'has tended the same fig tree on her Walthamstow balcony for twelve years. Refuses to repot.',
+      'rides the 418 in Epsom on a leap year. The same conductor recognises her every four years',
+    ],
+    mystical: [
+      'tends the bóveda altar for her grandmother\'s grandmother. Has not skipped a Thursday in nine years',
+      'Sankofa: knows the Akan name of every fruit she eats and won\'t shorten it',
+    ],
+    archaic: [
+      'the gardener who weeded the same monastery plot for forty-one years',
+    ],
+    surreal: [
+      'has been waiting for the same kettle to boil since 2003. It is almost done.',
+    ],
+  },
+  'C-4': {
+    modern: [
+      'curated the best gallery in the Lower East Side and walked out when they hung an Olafur. Now hangs at Frieze and throws truffles at the cube',
+      'goes to Annabel\'s only on a leap year. Otherwise it\'s Brilliant Corners or nothing',
+      'doesn\'t need a sugar daddy. Has rejected three',
+      'will not eat at Sushi Samba. Will not explain why. Has typed the address into Citymapper twice this year and still walked the other direction',
+    ],
+    mystical: [
+      'the priest who refused to bless the marriage. Was right',
+      'the mae walks out of the terreiro when the wrong drum is used. Returns the next week',
+    ],
+    archaic: [
+      'the chamberlain who returned the king\'s gift. Survived',
+    ],
+    surreal: [
+      'has unsubscribed from every newsletter twice. The third time, they leave her alone',
+    ],
+  },
+  'N-5': {
+    modern: [
+      'made the playlist that finally got her grime cousin and her jazz uncle on the same WhatsApp',
+      'introduced the gallerist to the rapper at the wrong dinner. Now the album has the right cover',
+      'drinks at the Fox in Dalston with Soho House regulars and Stoke Newington poets. Same night.',
+    ],
+    mystical: [
+      'the babalawo who reads for both the imam\'s daughter and the church-girl. Neither knows about the other',
+    ],
+    archaic: [
+      'the merchant who brought the silk routes and the tea routes into one ledger',
+    ],
+    surreal: [
+      'every party she throws has at least one person from each of her past lives',
+    ],
+  },
+  'H-6': {
+    modern: [
+      'has been talking about Octavia Butler at every dinner for eleven years. Has never been wrong about it',
+      'sent you the same Saidiya Hartman essay three times. Will send it again',
+      'still posting about the housing block they never let go to. Right twice on the council vote',
+    ],
+    mystical: [
+      'the griot whose praise-line for the Keita lineage is too long for younger ears. Sings it anyway',
+    ],
+    archaic: [
+      'the abolitionist who outlasted three congregations',
+    ],
+    surreal: [
+      'has tweeted the same thing every Tuesday since 2018. The world has not yet caught up',
+    ],
+  },
+  'P-7': {
+    modern: [
+      'three rooms of vinyl. Climate-controlled. Knows the catalogue number of the second pressing',
+      'has every issue of i-D from before they redesigned the masthead',
+      'still pays for The Wire in physical. Has the receipt from 2009',
+    ],
+    mystical: [
+      'keeps her grandmother\'s saints. Lights the same candle on the same date',
+    ],
+    archaic: [
+      'the librarian of Alexandria who copied the texts before the fire',
+    ],
+    surreal: [
+      'owns a format that was invented twice and discontinued twice. Has the player in working order',
+    ],
+  },
+  'D-8': {
+    modern: [
+      'recommends bars before they open. Has dreamed the menu',
+      'picks the right book off her friend\'s shelf without scanning. Reads three lines and gives it back',
+      'gets the call right before her phone rings. Doesn\'t mention it',
+    ],
+    mystical: [
+      'the lwa rides her in the kitchen. She makes the soup the way the lwa wants. Nobody knows why it tastes like that',
+    ],
+    archaic: [
+      'the oracle who answered the question the supplicant didn\'t know they were asking',
+    ],
+    surreal: [
+      'her reflection sometimes arrives a half-second late. She has stopped checking.',
+    ],
+  },
+  'F-9': {
+    modern: [
+      'opened the studio in Hackney Wick herself. Did the electrics. Has the calluses',
+      'finished the album in three months while everyone else talked about it for years',
+      'renovated the Margate flat alone. Plumbing included. Now hosts dinners',
+    ],
+    mystical: [
+      'the smith of Ogun. Three months at the forge. Came out with the iron and the song',
+    ],
+    archaic: [
+      'the cathedral mason who finished the south transept the year before the war started',
+    ],
+    surreal: [
+      'has built a working clock out of objects from her last seven flats. It runs',
+    ],
+  },
+  'R-10': {
+    modern: [
+      'walked out of the meeting at the agency. Said the unsayable at the dinner. Has been right twice and wrong once and will not apologise',
+      'broke up the collective the year before they got the deal. Now everyone says it was the right call',
+      'told the curator their Frieze stand was nostalgia. The curator did not invite her again. The next year she ran the off-site',
+    ],
+    mystical: [
+      'the prophet who told the king the kingdom was over. Was right. The king\'s grandson listed her in the chronicles',
+    ],
+    archaic: [
+      'the heretic monk who left the order. Translated the texts. Outlived the order',
+    ],
+    surreal: [
+      'has refused twelve invitations she was never sent',
+    ],
+  },
+  'Ø': {
+    modern: [
+      'she asks the one question that reframes the dinner. Doesn\'t post much. People ring her instead',
+      'sat through the whole reading. Said one thing afterwards that the writer is still thinking about',
+      'remembers what you said in 2019 and gives it back to you cleaner',
+    ],
+    mystical: [
+      'the egungun priest who keeps the silence between songs. The silence is the song',
+    ],
+    archaic: [
+      'the queen who listened. The court called her dull. The court was wrong',
+    ],
+    surreal: [
+      'her presence in a room makes the room remember things the room did not know',
+    ],
+  },
 };
 
-function subtasteSensibility(code: string | undefined): string {
+const SETTING_LABELS: Record<string, string> = {
+  modern: 'modern (present-day specifics: real shops, real bus routes, real venues, real refusals)',
+  mystical: 'mystical (diasporic-ritual register: altars, ancestors, divinatory practice, lwa, oríkì)',
+  archaic: 'archaic (pre-modern, historical: courts, monasteries, abolitionist work, lineage memory)',
+  past_life: 'past_life (a present character whose specifics include archaic flashbacks woven in)',
+  mythic: 'mythic (legendary, named only by archetype, out-of-time)',
+  surreal: 'surreal (absurd, dream-logic, non-naturalistic but specific)',
+  mixed: 'mixed (the generator picks 1-2 settings and blends, with cohort-internal variance)',
+};
+
+function pickExampleBuckets(setting: Setting | undefined): Array<keyof SensibilityExamples> {
+  switch (setting) {
+    case 'modern':
+      return ['modern'];
+    case 'mystical':
+      return ['mystical'];
+    case 'archaic':
+      return ['archaic'];
+    case 'past_life':
+      return ['modern', 'archaic'];
+    case 'mythic':
+      return ['archaic', 'mystical'];
+    case 'surreal':
+      return ['surreal'];
+    case 'mixed':
+    default:
+      // For 'mixed' or unset, randomly pick 2 buckets from all 4 so
+      // sequential generations across the cohort get different
+      // example pools rather than collapsing to one.
+      const all: Array<keyof SensibilityExamples> = ['modern', 'mystical', 'archaic', 'surreal'];
+      const shuffled = all.sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 2);
+  }
+}
+
+function subtasteSensibility(code: string | undefined, setting: Setting | undefined): string {
   if (!code) return '';
-  const sense = SUBTASTE_SENSIBILITY[code];
-  if (!sense) return '';
-  return ['## Subtaste sensibility (the flavour to reach for)', sense].join('\n');
+  const examples = SUBTASTE_EXAMPLES[code];
+  if (!examples) return '';
+
+  const buckets = pickExampleBuckets(setting);
+  const lines: string[] = ['## Subtaste sensibility (the flavour to reach for)'];
+
+  if (setting && SETTING_LABELS[setting]) {
+    lines.push(`Setting register: ${SETTING_LABELS[setting]}.`);
+  }
+  lines.push('');
+  lines.push('Concrete texture examples in this register (do not copy verbatim; pick the texture, swap the specifics):');
+
+  for (const bucket of buckets) {
+    const items = examples[bucket];
+    if (!items || items.length === 0) continue;
+    // Random rotation per generation so cohort gets variance.
+    const shuffled = [...items].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, Math.min(3, shuffled.length));
+    lines.push(`\n[${bucket}]`);
+    for (const ex of picked) lines.push(`- ${ex}`);
+  }
+
+  lines.push('');
+  lines.push(
+    'Use these as calibration for *level of specificity*. Real venues, real bus routes, real refusals, real expertise. Specifics from the cohort\'s actual world (London, Lagos, Brooklyn, Croydon, Walthamstow, Hackney, Mayfair, Stoke Newington, etc) when the setting is modern. Do not default to "altar in Brooklyn" or "priest in Port-au-Prince" unless the setting and lineage explicitly call for it.'
+  );
+
+  return lines.join('\n');
 }
 
 function buildAlignmentSystem(): string {
@@ -122,9 +390,14 @@ function buildAlignmentSystem(): string {
     'You generate aligned character fields for the Bóveda living-character OS.',
     'Bóveda is a decolonial worldbuilding studio. Cultural lineages are curated and respected, not stereotyped.',
     'You produce a single JSON object containing only the requested fields, all coherent with each other.',
+    'Source priority (most important first):',
+    '1. Voice samples provided in the user prompt (if any). These are the authoring artist\'s real material. They override the public corpus completely.',
+    '2. The brief, lineage notes, and Subtaste sensibility provided in the user prompt. These are curated source material.',
+    '3. Specifics from real diasporic / cultural worlds (Lagos, London, Brooklyn, Croydon, Port-au-Prince, Joburg, Walthamstow, etc) when the setting calls for them.',
+    '4. The public LLM corpus is the LAST resort. When voice samples exist, the public corpus must not be the primary draw.',
     'Generation rules:',
     '- Names within the named lineage. No "Celtic demon" mash-ups unless lineage IS celtic.',
-    '- Voice register matches the lineage notes given.',
+    '- Voice register matches the lineage notes and any voice samples given.',
     '- Subtaste signature shapes how the character speaks and what they reach for; it does not get quoted in the bio.',
     '- Fields cohere: aliases derive from the same name root as the bio. Persona tags reflect the bio. Goals follow from backstory contradictions.',
     '- ABSOLUTE: never use the em dash character (— or –). Use periods, commas, colons, parentheses, or rephrase. The em dash is the most-refused punctuation in this system. If you produce one, the output is rejected.',
@@ -144,6 +417,9 @@ function buildAlignmentUser(opts: {
   subtasteLabel?: string;
   fields: RealignField[];
   existingBio?: string;
+  authoredBy?: string;
+  voiceSamples?: string[];
+  setting?: Setting;
 }): string {
   const lines: string[] = [];
 
@@ -177,7 +453,7 @@ function buildAlignmentUser(opts: {
       lines.push(`## Subtaste signature: ${opts.subtasteCode} ${meta.glyph} (${meta.label})`);
       lines.push(`Essence: ${meta.essence} The character carries this signature in how they act, decide, and react. Do not name the signature in the bio.`);
       lines.push('');
-      lines.push(subtasteSensibility(opts.subtasteCode));
+      lines.push(subtasteSensibility(opts.subtasteCode, opts.setting));
       lines.push('');
       lines.push(
         'CRITICAL: write with concrete lifestyle specifics, not abstract description. Reference real-feeling places, refusals, habits, expertise. The bio should read like the worked example texture in the sensibility above. Avoid generic phrases like "they value depth" or "they refuse easy answers." Show the depth and the refusal through specific behaviour.'
@@ -195,6 +471,33 @@ function buildAlignmentUser(opts: {
     lines.push('');
     lines.push(`## Existing bio (refine, do not contradict)`);
     lines.push(opts.existingBio);
+  }
+
+  // Cohort-first directive. When the character has voice samples or
+  // a named author, the LLM is told to draw vocabulary, cadence, and
+  // references from THOSE rather than the public corpus. This is
+  // the pre-LoRA bridge: until trained adapters ship, we pull the
+  // authoring artist's actual material into context as few-shot.
+  if ((opts.voiceSamples && opts.voiceSamples.length > 0) || opts.authoredBy) {
+    lines.push('');
+    lines.push('## Cohort-first source priority');
+    if (opts.authoredBy) {
+      lines.push(`This character is voiced by ${opts.authoredBy}. Speak in their register, not in a generic public-LLM register.`);
+    }
+    if (opts.voiceSamples && opts.voiceSamples.length > 0) {
+      lines.push(
+        'The following are real samples in the authoring artist\'s voice. Draw vocabulary, cadence, idiom, refusals, and reference frame from these. Do not pull from the generic English corpus when these exist.'
+      );
+      opts.voiceSamples.slice(0, 6).forEach((s, i) => {
+        lines.push('');
+        lines.push(`--- voice sample ${i + 1} ---`);
+        lines.push(s);
+      });
+      lines.push('');
+      lines.push(
+        'Generate as if you were the artist who wrote those samples. Their phrasing patterns are the source. Do not summarise them. Do not quote them. Write something new in their actual cadence and reference world.'
+      );
+    }
   }
 
   lines.push('');
@@ -329,6 +632,11 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
         subtasteLabel,
         fields: body.fields,
         existingBio: character.bio || undefined,
+        authoredBy: character.authoredBy || undefined,
+        voiceSamples: Array.isArray(character.voiceSamples)
+          ? (character.voiceSamples as string[]).filter((s): s is string => typeof s === 'string')
+          : undefined,
+        setting: body.setting ?? (character.setting as Setting | undefined) ?? undefined,
       });
 
       let result;

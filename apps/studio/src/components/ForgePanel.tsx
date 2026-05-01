@@ -181,7 +181,7 @@ export function ForgePanel({
             letterSpacing: '0.32em',
             color: 'var(--muted-foreground)',
             fontFamily: 'monospace',
-            textTransform: 'uppercase',
+            textTransform: 'none',
           }}
         >
           Forge · aligned chaos
@@ -199,10 +199,10 @@ export function ForgePanel({
       </button>
 
       {open && (
-        <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <p
             style={{
-              fontSize: '0.65rem',
+              fontSize: '0.78rem',
               color: 'var(--muted-foreground)',
               fontStyle: 'italic',
               fontFamily: '"Canela", serif',
@@ -279,21 +279,69 @@ export function ForgePanel({
             )}
           </div>
 
-          {/* Subtaste pin */}
+          {/* Subtaste pin · 12-glyph pill picker (matches lineage). */}
           <div>
-            <label style={labelStyle}>Subtaste anchor (optional · pulls from character if blank)</label>
-            <select
-              value={subtasteCode}
-              onChange={(e) => setSubtasteCode(e.target.value)}
-              style={inputStyle}
-            >
-              <option value="">use character's existing</option>
-              {SUBTASTE_OPTIONS.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.display}
-                </option>
-              ))}
-            </select>
+            <label style={labelStyle}>
+              Subtaste anchor{subtasteCode ? '' : ' (optional, uses character\'s existing)'}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              <button
+                type="button"
+                onClick={() => setSubtasteCode('')}
+                style={{
+                  padding: '0.4rem 0.7rem',
+                  fontSize: '0.7rem',
+                  fontFamily: 'inherit',
+                  letterSpacing: '0.04em',
+                  border: `1px solid ${subtasteCode === '' ? TYRIAN : 'var(--border)'}`,
+                  background: subtasteCode === '' ? TYRIAN : 'transparent',
+                  color: subtasteCode === '' ? '#fff' : 'var(--foreground)',
+                  cursor: 'pointer',
+                  borderRadius: 0,
+                  fontStyle: 'italic',
+                }}
+              >
+                use existing
+              </button>
+              {SUBTASTE_OPTIONS.map((s) => {
+                const on = subtasteCode === s.code;
+                // s.display = "S-0 KETH · Visionary"
+                const match = s.display.match(/^(\S+)\s+(\S+)\s+·\s+(.+)$/);
+                const code = match?.[1] ?? s.code;
+                const glyph = match?.[2] ?? '';
+                const mode = match?.[3] ?? '';
+                return (
+                  <button
+                    key={s.code}
+                    type="button"
+                    onClick={() => setSubtasteCode(s.code)}
+                    title={s.display}
+                    style={{
+                      padding: '0.4rem 0.7rem',
+                      fontSize: '0.7rem',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.04em',
+                      border: `1px solid ${on ? TYRIAN : 'var(--border)'}`,
+                      background: on ? TYRIAN : 'transparent',
+                      color: on ? '#fff' : 'var(--foreground)',
+                      cursor: 'pointer',
+                      borderRadius: 0,
+                      display: 'inline-flex',
+                      alignItems: 'baseline',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.6rem', opacity: 0.7 }}>
+                      {code}
+                    </span>
+                    <span style={{ fontFamily: 'monospace' }}>{glyph}</span>
+                    <span style={{ opacity: 0.65, fontSize: '0.62rem' }}>
+                      {mode.toLowerCase()}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Brief */}
@@ -461,7 +509,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.28em',
   color: 'var(--muted-foreground)',
   fontFamily: 'monospace',
-  textTransform: 'uppercase',
+  textTransform: 'none',
   display: 'block',
   marginBottom: '0.3rem',
 };
@@ -503,60 +551,67 @@ function DraftRow({
   applying: boolean;
 }) {
   return (
-    <div
+    <article
       style={{
-        padding: '0.6rem 0.8rem',
+        padding: '1.5rem 1.4rem',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
-        gap: '0.7rem',
-        alignItems: 'flex-start',
+        flexDirection: 'column',
+        gap: '0.85rem',
       }}
     >
-      <span
+      <header
         style={{
-          fontSize: '0.55rem',
-          fontFamily: 'monospace',
-          letterSpacing: '0.22em',
-          color: TYRIAN,
-          textTransform: 'uppercase',
-          width: '70px',
-          flexShrink: 0,
-          paddingTop: '0.15rem',
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: '1rem',
         }}
       >
-        {label}
-      </span>
+        <h3
+          style={{
+            fontFamily: '"Canela", serif',
+            fontWeight: 300,
+            fontSize: '1.1rem',
+            color: 'var(--foreground)',
+            margin: 0,
+            letterSpacing: '0.005em',
+          }}
+        >
+          {label}
+        </h3>
+        <button
+          type="button"
+          onClick={onApply}
+          disabled={applying}
+          style={{
+            padding: '0.35rem 0.85rem',
+            border: `1px solid ${TYRIAN}`,
+            background: 'transparent',
+            color: TYRIAN,
+            fontSize: '0.6rem',
+            fontFamily: 'monospace',
+            letterSpacing: '0.22em',
+            textTransform: 'lowercase',
+            cursor: applying ? 'wait' : 'pointer',
+            borderRadius: 0,
+            flexShrink: 0,
+          }}
+        >
+          {applying ? 'applying.' : 'apply'}
+        </button>
+      </header>
       <div
         style={{
-          flex: 1,
-          fontSize: '0.78rem',
-          lineHeight: 1.55,
+          fontSize: '0.92rem',
+          lineHeight: 1.7,
           color: 'var(--foreground)',
           whiteSpace: 'pre-wrap',
+          maxWidth: '60ch',
         }}
       >
         {body}
       </div>
-      <button
-        type="button"
-        onClick={onApply}
-        disabled={applying}
-        style={{
-          padding: '0.2rem 0.55rem',
-          border: '1px solid var(--border)',
-          background: 'transparent',
-          color: 'var(--foreground)',
-          fontSize: '0.55rem',
-          fontFamily: 'monospace',
-          letterSpacing: '0.2em',
-          textTransform: 'lowercase',
-          cursor: applying ? 'wait' : 'pointer',
-          borderRadius: 0,
-          flexShrink: 0,
-        }}
-      >
-        {applying ? '...' : 'apply'}
-      </button>
-    </div>
+    </article>
   );
 }

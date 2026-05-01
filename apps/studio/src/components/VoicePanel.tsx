@@ -135,7 +135,7 @@ export function VoicePanel({
             letterSpacing: '0.32em',
             color: 'var(--muted-foreground)',
             fontFamily: 'monospace',
-            textTransform: 'uppercase',
+            textTransform: 'none',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
@@ -196,7 +196,7 @@ export function VoicePanel({
                 letterSpacing: '0.28em',
                 color: 'var(--muted-foreground)',
                 fontFamily: 'monospace',
-                textTransform: 'uppercase',
+                textTransform: 'none',
                 display: 'block',
                 marginBottom: '0.3rem',
               }}
@@ -242,7 +242,7 @@ export function VoicePanel({
                   letterSpacing: '0.28em',
                   color: 'var(--muted-foreground)',
                   fontFamily: 'monospace',
-                  textTransform: 'uppercase',
+                  textTransform: 'none',
                 }}
               >
                 Voice samples ({samples.length}/{MAX_SAMPLES})

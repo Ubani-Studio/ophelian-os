@@ -101,7 +101,7 @@ export function GoalsPanel({
             letterSpacing: '0.32em',
             color: 'var(--muted-foreground)',
             fontFamily: 'monospace',
-            textTransform: 'uppercase',
+            textTransform: 'none',
           }}
         >
           Goals · perimeter

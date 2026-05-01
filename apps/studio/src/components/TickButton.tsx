@@ -99,7 +99,7 @@ export function TickButton({
             fontFamily: 'monospace',
             letterSpacing: '0.22em',
             color: lastSource === 'stub' ? 'var(--muted-foreground)' : TYRIAN,
-            textTransform: 'uppercase',
+            textTransform: 'none',
             opacity: 0.7,
           }}
           title={lastSource === 'stub' ? 'No ANTHROPIC_API_KEY set; stub fallback ran' : 'Real LLM tick'}

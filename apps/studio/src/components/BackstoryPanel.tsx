@@ -89,7 +89,7 @@ export function BackstoryPanel({
             letterSpacing: '0.32em',
             color: 'var(--muted-foreground)',
             fontFamily: 'monospace',
-            textTransform: 'uppercase',
+            textTransform: 'none',
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
@@ -135,7 +135,7 @@ export function BackstoryPanel({
           >
             Depth, history, contradictions, secrets. Never displayed in
             cards. Never quoted by {character.name}. Read by the tick
-            LLM as context only — the deeper this is, the more
+            LLM as context only. The deeper this is, the more
             dimensional they become.
           </p>
 

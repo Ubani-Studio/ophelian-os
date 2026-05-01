@@ -120,6 +120,20 @@ model Character {
   //   collective — open-ended (movement, scene, lineage)
   compositionKind String @default("solo")
 
+  // Setting register. Biases bio + backstory generation toward
+  // specific kinds of texture examples. Without it everything
+  // collapses to the most-quoted register (mystic / Brooklyn /
+  // altar-keeper). With it, different characters land in
+  // different worlds.
+  //   modern     — present-day specifics (Greggs, the 418 bus, Frieze, Tube stations)
+  //   mystical   — diasporic-ritual register (altars, lwa, ancestors, divination)
+  //   archaic    — historical / pre-modern (saint's days, market towns, courts)
+  //   past_life  — present character with archaic flashbacks woven in
+  //   mythic     — legendary / out-of-time (named only by archetype)
+  //   surreal    — absurd, dream-logic, non-naturalistic
+  //   mixed      — generator picks (default)
+  setting String @default("mixed")
+
   // Agency mode. Determines how this Character acts in the system.
   //   manual    — author-only (the human user). Cannot act
   //               autonomously. Other entities can address them;

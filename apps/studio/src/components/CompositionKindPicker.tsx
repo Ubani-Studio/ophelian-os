@@ -50,7 +50,7 @@ export function CompositionKindPicker({
           letterSpacing: '0.32em',
           color: 'var(--muted-foreground)',
           fontFamily: 'monospace',
-          textTransform: 'uppercase',
+          textTransform: 'none',
           marginBottom: '0.4rem',
         }}
       >

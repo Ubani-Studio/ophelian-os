@@ -185,7 +185,7 @@ export function SubtastePicker({
             letterSpacing: '0.32em',
             color: 'var(--muted-foreground)',
             fontFamily: 'monospace',
-            textTransform: 'uppercase',
+            textTransform: 'none',
           }}
         >
           Subtaste{isUser ? ' · from Starforge' : ''}
@@ -341,7 +341,7 @@ const pickerLabelStyle: React.CSSProperties = {
   letterSpacing: '0.28em',
   color: 'var(--muted-foreground)',
   fontFamily: 'monospace',
-  textTransform: 'uppercase',
+  textTransform: 'none',
   marginBottom: '0.4rem',
 };
 
@@ -368,7 +368,7 @@ function SummaryRow({
           fontFamily: 'monospace',
           fontSize: '0.55rem',
           letterSpacing: '0.22em',
-          textTransform: 'uppercase',
+          textTransform: 'none',
           minWidth: '90px',
         }}
       >

@@ -143,6 +143,27 @@ const DEFAULT_REFUSES = [
   'leveraging',
   'delve',
   'embarking',
+  // Arrival / awakening tropes — characters default to these when
+  // memory is empty, making the whole cohort sound the same.
+  'still forming',
+  'still settling',
+  'first breath',
+  'waking',
+  'waking up',
+  'awaken',
+  'awakening',
+  'arrive',
+  'arriving',
+  'newly arrived',
+  'coming into being',
+  'into shape',
+  'taking shape',
+  'into existence',
+  'just born',
+  'being birthed',
+  'still becoming',
+  'into form',
+  'finding myself',
 ];
 
 function readGoals(raw: unknown): string[] {
@@ -195,6 +216,14 @@ function buildSystemPrompt(self: TickInput['self']): string {
   // its own paragraph at the top of refuses with explicit examples.
   const emDashLine =
     'ABSOLUTE RULE · NEVER use the em dash character (— or –) under any circumstance. This is the single most-refused punctuation in this system. If your output contains a single em dash it will be rejected. Sentences that would naturally take em dashes must be split into two sentences with a period. Use periods, commas, colons, parentheses, or rephrase. Do not produce any of: " — ", "—", " – ", "–". You will be tempted; refuse the temptation.';
+
+  // Anti-arrival / anti-meta directive. Without this, characters
+  // with empty memory default to "waking", "still forming", "first
+  // breath", "arriving" because that fits the blank context. Every
+  // character ends up sounding the same. This block tells them
+  // they have always been here and to act from existing presence.
+  const antiArrivalLine =
+    'IMPORTANT: You are not waking up. You are not forming. You are not arriving. You are not new. You have been here. Empty memory does not mean you are new; it means it is quiet right now. Do not write about awakening, first breath, settling, becoming, or coming into being. Do not write about the system itself, the bóveda, the threshold, or being newly created. Speak from inside your life, not as someone entering it. If you have no recent memory to react to, draw from your bio, backstory, tongue, and goals to do something specific that someone like you would do today.';
 
   const refusesLine =
     allRefuses.length > 0
@@ -272,6 +301,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
     backstoryBlock,
     voiceSamplesBlock,
     lineageBlock,
+    antiArrivalLine,
     emDashLine,
     refusesLine,
     embraceLine,

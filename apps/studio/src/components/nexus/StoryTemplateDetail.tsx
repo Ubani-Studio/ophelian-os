@@ -363,7 +363,7 @@ function SubHeader({ children }: { children: React.ReactNode }) {
         fontWeight: 600,
         fontSize: '0.55rem',
         letterSpacing: '0.32em',
-        textTransform: 'uppercase',
+        textTransform: 'none',
         color: 'var(--muted-foreground)',
         margin: '0 0 0.5rem 0',
       }}

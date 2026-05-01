@@ -191,7 +191,7 @@ function FormBody({
               fontFamily: 'monospace',
               letterSpacing: '0.32em',
               color: TYRIAN,
-              textTransform: 'uppercase',
+              textTransform: 'none',
             }}
           >
             → {counterpart}
@@ -272,7 +272,7 @@ function FormBody({
               fontSize: '0.55rem',
               fontFamily: 'monospace',
               letterSpacing: '0.28em',
-              textTransform: 'uppercase',
+              textTransform: 'none',
               color: 'var(--muted-foreground)',
             }}
           >
@@ -313,7 +313,7 @@ function FormBody({
               fontFamily: 'monospace',
               letterSpacing: '0.32em',
               color: TYRIAN,
-              textTransform: 'uppercase',
+              textTransform: 'none',
             }}
           >
             quest → {counterpart}
