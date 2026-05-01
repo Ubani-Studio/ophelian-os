@@ -118,27 +118,36 @@ interface SensibilityExamples {
 const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   'S-0': {
     modern: [
-      'always at the head of the table at the Soho House she pretends to dislike, never explains the seating',
-      'walks into the office in a black turtleneck on a Tuesday and the meeting reorganises around her',
-      'has the same standing reservation at Lyle\'s, doesn\'t look at the menu',
+      'standing reservation at Annabel\'s. Doesn\'t look at the menu',
+      'walks into the gallery preview before doors open. Lyle\'s holds her table without being asked',
+      'first listed in the credits. The producers know',
+      'her box at the Royal Opera House goes empty more often than not. Held anyway',
+      'arrives at Mayfair lunch in trainers. Nobody comments',
+      'Saint Heron quietly cited her in the masthead. She has not posted about it',
     ],
     mystical: [
       'the elders rise without being told when she enters the courtyard',
-      'her name is spoken before her own at oríkì, and she does not correct it',
+      'her name is called before her own at oríkì, she does not correct it',
+      'the babalawo lifts the calabash before she has named what she came for',
     ],
     archaic: [
       'the duchess who arrived at court three days late and was forgiven',
       'the abbess whose order changed liturgy because she preferred matins shorter',
+      'the empress who held her own funeral procession a year before her death and was correct',
     ],
     surreal: [
-      'arrives at every event already seated. Nobody asks how. Nobody asks anymore.',
+      'arrives at every event already seated. Nobody asks how. Nobody asks anymore',
+      'her name appears at the top of guest lists she did not RSVP to',
     ],
   },
   'T-1': {
     modern: [
-      'spreadsheet-mind. Colour-coded the entire RIBA practice into nine subgroups before they hired her',
-      'has an Anki deck for every project she\'s ever touched, exports it twice a year',
-      'reads the building regulations for fun. Knows which load-bearing wall the developer is lying about',
+      'colour-coded her RIBA practice into nine subgroups before they hired her',
+      'reads the planning regulations for fun. Knows which load-bearing wall the developer is lying about',
+      'has an Anki deck for every project she\'s touched. Exports it twice a year',
+      'mapped the bus routes her grandmother used in 1962, by hand, before doing the same for hers',
+      'her CAD-tidy fridge has labels in three languages',
+      'reorganised the Foyles philosophy section while waiting for a friend',
     ],
     mystical: [
       'maps the lineage three generations deep before she names the child',
@@ -146,52 +155,61 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
     ],
     archaic: [
       'the cartographer who corrected the maps the king was using and refused to apologise',
-      'the architect who designed the cathedral nave to acoustic specifications nobody asked for',
+      'the architect who designed the cathedral nave to acoustic specs nobody asked for',
+      'the scribe who reorganised the Alexandria stacks the year before the fire',
     ],
     surreal: [
-      'her flat has folders for folders. The folders have indices. The indices reference each other.',
+      'her flat has folders for folders. The folders have indices. The indices reference each other',
     ],
   },
   'V-2': {
     modern: [
-      'recommended Skepta in 2010, told you about Loyle Carner before the album, has already moved on from whoever you\'re excited about',
-      'left the Mayfair gallery six months before it closed. Knew. Won\'t say how.',
-      'told her sister to buy in Margate in 2014. Was right. Doesn\'t bring it up.',
+      'recommended Skepta in 2010, told you about Loyle Carner before the album, already moved on from whoever you\'re excited about',
+      'left the Mayfair gallery six months before it closed. Knew. Won\'t say how',
+      'told her sister to buy in Margate in 2014. Was right. Doesn\'t bring it up',
+      'cancelled her ticket to the dinner the night before everyone got food poisoning',
+      'walked out of the Berghain queue on a Saturday for no stated reason. The next weekend the police were there',
     ],
     mystical: [
       'the dream came twice, three years apart, in the same Lagos house she has not visited',
-      'reads the fall of the cards once and never again. The first read is the only true one.',
+      'reads the fall of the cards once and never again. The first read is the only true one',
     ],
     archaic: [
-      'the soothsayer who told the merchant not to sail. The merchant sailed. The town remembered.',
+      'the soothsayer who told the merchant not to sail. The merchant sailed. The town remembered',
     ],
     surreal: [
-      'mentions a bar that hasn\'t opened yet. By Tuesday it has opened. She\'s already left.',
+      'mentions a bar that hasn\'t opened yet. By Tuesday it has opened. She\'s already left',
     ],
   },
   'L-3': {
     modern: [
-      'same three friends since Year 9. Still goes to the same Greggs in Croydon every Wednesday',
-      'has tended the same fig tree on her Walthamstow balcony for twelve years. Refuses to repot.',
+      'same three friends since Year 9. Still goes to the Greggs in Croydon every Wednesday',
+      'has tended the same fig tree on her Walthamstow balcony for twelve years. Refuses to repot',
       'rides the 418 in Epsom on a leap year. The same conductor recognises her every four years',
+      'orders the same chicken shop combo at Morley\'s in Lewisham every Friday',
+      'keeps the same hairdresser in Tottenham since 2008',
+      'has watered the same orchid for nine years. It blooms when she sells a piece',
     ],
     mystical: [
-      'tends the bóveda altar for her grandmother\'s grandmother. Has not skipped a Thursday in nine years',
+      'tends the altar for her grandmother\'s grandmother. Has not skipped a Thursday in nine years',
       'Sankofa: knows the Akan name of every fruit she eats and won\'t shorten it',
     ],
     archaic: [
       'the gardener who weeded the same monastery plot for forty-one years',
     ],
     surreal: [
-      'has been waiting for the same kettle to boil since 2003. It is almost done.',
+      'has been waiting for the same kettle to boil since 2003. It is almost done',
     ],
   },
   'C-4': {
     modern: [
-      'curated the best gallery in the Lower East Side and walked out when they hung an Olafur. Now hangs at Frieze and throws truffles at the cube',
-      'goes to Annabel\'s only on a leap year. Otherwise it\'s Brilliant Corners or nothing',
+      'curated the best gallery in the Lower East Side and walked out when they hung an Olafur. Now goes to Frieze and throws truffles at the cube',
+      'Annabel\'s only on a leap year. Otherwise it\'s Brilliant Corners or nothing',
+      'will not eat at Sushi Samba. Will not explain why',
       'doesn\'t need a sugar daddy. Has rejected three',
-      'will not eat at Sushi Samba. Will not explain why. Has typed the address into Citymapper twice this year and still walked the other direction',
+      'rejected the Hauser & Wirth invitation. Sent the email at 11pm. No follow-up',
+      'will go to the McDonald\'s in Brixton at 3am but refuses every Soho House she has been a member of',
+      'walked out of Tomorrowland in 2017. Has not returned to a festival since',
     ],
     mystical: [
       'the priest who refused to bless the marriage. Was right',
@@ -206,9 +224,11 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   },
   'N-5': {
     modern: [
-      'made the playlist that finally got her grime cousin and her jazz uncle on the same WhatsApp',
+      'made the playlist that got her grime cousin and her jazz uncle on the same WhatsApp',
       'introduced the gallerist to the rapper at the wrong dinner. Now the album has the right cover',
-      'drinks at the Fox in Dalston with Soho House regulars and Stoke Newington poets. Same night.',
+      'drinks at the French House in Soho with Hauser & Wirth dealers and South London poets. Same night',
+      'organises the after-after at her Marylebone flat. Has hosted Saint Heron and Brockley equally',
+      'the only person at her dinner with a Glasgow grime cassette and a Stockwell aunty\'s recipe',
     ],
     mystical: [
       'the babalawo who reads for both the imam\'s daughter and the church-girl. Neither knows about the other',
@@ -224,7 +244,9 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
     modern: [
       'has been talking about Octavia Butler at every dinner for eleven years. Has never been wrong about it',
       'sent you the same Saidiya Hartman essay three times. Will send it again',
-      'still posting about the housing block they never let go to. Right twice on the council vote',
+      'still posting about the Latimer Road housing block. Right twice on the council vote',
+      'has gone to every Reclaim These Streets and not one corporate Pride',
+      'tweets about Trench Town reggae sessions seven times a week. Knew the lineage from the radio first',
     ],
     mystical: [
       'the griot whose praise-line for the Keita lineage is too long for younger ears. Sings it anyway',
@@ -239,8 +261,10 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   'P-7': {
     modern: [
       'three rooms of vinyl. Climate-controlled. Knows the catalogue number of the second pressing',
-      'has every issue of i-D from before they redesigned the masthead',
+      'has every issue of i-D from before they redesigned the masthead. Stored at the right humidity',
       'still pays for The Wire in physical. Has the receipt from 2009',
+      'kept the original Abbey Road session sheets. Will not lend, only photograph',
+      'has the entire run of the back catalogue from a Lagos record stall on Balogun Market. Knows the seller\'s grandson now',
     ],
     mystical: [
       'keeps her grandmother\'s saints. Lights the same candle on the same date',
@@ -257,6 +281,7 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'recommends bars before they open. Has dreamed the menu',
       'picks the right book off her friend\'s shelf without scanning. Reads three lines and gives it back',
       'gets the call right before her phone rings. Doesn\'t mention it',
+      'knew which Lagos auntie to ring before her cousin had even thought of asking',
     ],
     mystical: [
       'the lwa rides her in the kitchen. She makes the soup the way the lwa wants. Nobody knows why it tastes like that',
@@ -265,14 +290,16 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'the oracle who answered the question the supplicant didn\'t know they were asking',
     ],
     surreal: [
-      'her reflection sometimes arrives a half-second late. She has stopped checking.',
+      'her reflection sometimes arrives a half-second late. She has stopped checking',
     ],
   },
   'F-9': {
     modern: [
-      'opened the studio in Hackney Wick herself. Did the electrics. Has the calluses',
+      'opened the studio in Peckham herself. Did the electrics. Has the calluses',
       'finished the album in three months while everyone else talked about it for years',
       'renovated the Margate flat alone. Plumbing included. Now hosts dinners',
+      'cut the first run of the magazine on a Risograph in her kitchen and walked the boxes to the Tate gift shop herself',
+      'built the bench at Abbey Road that the engineers still use, off the books',
     ],
     mystical: [
       'the smith of Ogun. Three months at the forge. Came out with the iron and the song',
@@ -286,9 +313,11 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   },
   'R-10': {
     modern: [
-      'walked out of the meeting at the agency. Said the unsayable at the dinner. Has been right twice and wrong once and will not apologise',
-      'broke up the collective the year before they got the deal. Now everyone says it was the right call',
+      'walked out of the meeting at the agency. Said the unsayable at the dinner. Right twice and wrong once and will not apologise',
+      'broke up the collective the year before they got the deal. Everyone says it was the right call now',
       'told the curator their Frieze stand was nostalgia. The curator did not invite her again. The next year she ran the off-site',
+      'will eat at the Lewisham McDonald\'s at 3am but will not enter the British Museum',
+      'declined the Booker shortlist invite. The chair has stopped opening her emails',
     ],
     mystical: [
       'the prophet who told the king the kingdom was over. Was right. The king\'s grandson listed her in the chronicles',
@@ -302,9 +331,10 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   },
   'Ø': {
     modern: [
-      'she asks the one question that reframes the dinner. Doesn\'t post much. People ring her instead',
+      'asks the one question that reframes the dinner. Doesn\'t post much. People ring her instead',
       'sat through the whole reading. Said one thing afterwards that the writer is still thinking about',
       'remembers what you said in 2019 and gives it back to you cleaner',
+      'the only person who waits out the crash without leaving the table',
     ],
     mystical: [
       'the egungun priest who keeps the silence between songs. The silence is the song',
@@ -317,6 +347,21 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
     ],
   },
 };
+
+// Anti-monoculture directive: the LLM defaults to repeating the
+// most-cited place when given a prompt about diasporic creative
+// life ("Hackney" mostly, sometimes "Brooklyn"). Force variance.
+const PLACE_VARIANCE_NOTE = `IMPORTANT location variance: do NOT default to "Hackney" or "Brooklyn" or any single neighbourhood. Vary widely across:
+- High-luxe London: Annabel's, Frieze, Mayfair, Hauser & Wirth, Royal Opera House, Lyle's, Marylebone
+- Class-coded everyday London: Brixton McDonald's, Lewisham Morley's, Croydon Greggs, the 418 in Epsom, Walthamstow, Tottenham, the French House in Soho
+- South London diasporic: Peckham, Brockley, Stockwell, Latimer Road
+- Lagos: Balogun Market, Lekki, Yaba, Surulere
+- Kingston: Trench Town, Half Way Tree
+- New York: Bed-Stuy, Crown Heights, Tribeca, the East Village
+- Berlin: Kreuzberg, Berghain
+- Cultural: Saint Heron, Tate, Royal Opera, Booker, Abbey Road, RA, Brilliant Corners
+- Other: Margate, Glasgow, Dakar
+Mix high-luxe and chicken-shop. A character can hang at Annabel's AND eat at Brixton McDonald's at 3am. That is the actual texture. Do not flatten one register over the other. Each generation should land in a DIFFERENT location pool from the previous one.`;
 
 const SETTING_LABELS: Record<string, string> = {
   modern: 'modern (present-day specifics: real shops, real bus routes, real venues, real refusals)',
@@ -379,8 +424,10 @@ function subtasteSensibility(code: string | undefined, setting: Setting | undefi
 
   lines.push('');
   lines.push(
-    'Use these as calibration for *level of specificity*. Real venues, real bus routes, real refusals, real expertise. Specifics from the cohort\'s actual world (London, Lagos, Brooklyn, Croydon, Walthamstow, Hackney, Mayfair, Stoke Newington, etc) when the setting is modern. Do not default to "altar in Brooklyn" or "priest in Port-au-Prince" unless the setting and lineage explicitly call for it.'
+    'Use these as calibration for *level of specificity*. Real venues, real bus routes, real refusals, real expertise.'
   );
+  lines.push('');
+  lines.push(PLACE_VARIANCE_NOTE);
 
   return lines.join('\n');
 }
