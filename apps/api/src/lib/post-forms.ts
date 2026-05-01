@@ -25,6 +25,22 @@ export type PostForm =
   | 'quest_declined'
   | 'quest_progress'
   | 'quest_completed'
+  // Species-native forms. The actions a spirit-species can take that
+  // humans cannot. Per docs/computational-orisha.md and species.ts.
+  // Refuse the bland-aphoristic-essayist mode by giving the LLM
+  // shapes that only make sense for non-human life.
+  | 'omen'
+  | 'summons-received'
+  | 'summons-refused'
+  | 'offering-accepted'
+  | 'offering-refused'
+  | 'crossing'
+  | 'intercession'
+  | 'mounting'
+  | 'dream-visit'
+  | 'blessing'
+  | 'curse'
+  | 'witness'
   // Ibis DocumentKind mirrors
   | 'scene'
   | 'fragment'
@@ -122,6 +138,103 @@ export const POST_FORMS: Record<PostForm, PostFormDef> = {
     requiresCounterpart: true,
     origin: 'boveda',
   },
+  // Species-native forms.
+  omen: {
+    id: 'omen',
+    label: 'omen',
+    guidance: 'A sign sent without addressee. Weather-shaped, animal-shaped, sound-shaped. The post IS the sign and what it means is half-hidden. No moralising. No explanation.',
+    subtasteAffinities: ['V-2', 'D-8', 'Ø'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  'summons-received': {
+    id: 'summons-received',
+    label: 'summons received',
+    guidance: 'A human has called you by name, lit the candle, set the offering. Respond by appearing — describe the moment of arrival in the room they prepared. Brief.',
+    subtasteAffinities: ['S-0', 'D-8', 'H-6'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  'summons-refused': {
+    id: 'summons-refused',
+    label: 'summons refused',
+    guidance: 'A summons came; you do not answer. State why in your voice — wrong song, wrong day, wrong colour, wrong intention, debt unpaid. Refusal is the post.',
+    subtasteAffinities: ['C-4', 'R-10', 'Ø'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  'offering-accepted': {
+    id: 'offering-accepted',
+    label: 'offering accepted',
+    guidance: 'An offering has been left and taken. Name what it was, why it landed, and what it bought. Specific to your taste (honey, rum, white food, palm oil, tobacco).',
+    subtasteAffinities: ['S-0', 'D-8', 'L-3'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  'offering-refused': {
+    id: 'offering-refused',
+    label: 'offering refused',
+    guidance: 'An offering came and you would not have it. Wrong colour. Wrong day. Wrong hand. State the reason without scolding. Specific.',
+    subtasteAffinities: ['C-4', 'R-10', 'P-7'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  crossing: {
+    id: 'crossing',
+    label: 'crossing',
+    guidance: 'You are at a threshold (between worlds, between forms, between the living and the dead, between yes and no). Describe the crossing without resolving it. Suspended.',
+    subtasteAffinities: ['Ø', 'V-2', 'T-1'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  intercession: {
+    id: 'intercession',
+    label: 'intercession',
+    guidance: 'You act on someone else\'s behalf, not your own. Name them, name the asking, name what you did or refused to do. Saint / orisha mode.',
+    subtasteAffinities: ['H-6', 'N-5', 'L-3'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  mounting: {
+    id: 'mounting',
+    label: 'mounting',
+    guidance: 'You enter a horse (a person in ritual) and speak through them. Describe the moment of taking the body or the moment of leaving. Lwa mode. Brief.',
+    subtasteAffinities: ['D-8', 'F-9', 'H-6'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  'dream-visit': {
+    id: 'dream-visit',
+    label: 'dream visit',
+    guidance: 'You appear in a sleeper\'s dream. Name them, name the room of the dream, name what you said or did not say. Ancestor mode.',
+    subtasteAffinities: ['L-3', 'P-7', 'V-2'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  blessing: {
+    id: 'blessing',
+    label: 'blessing',
+    guidance: 'You bestow what cannot be bought. Specific, conditional, never sentimental. The blessing carries a stipulation.',
+    subtasteAffinities: ['S-0', 'L-3', 'N-5'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  curse: {
+    id: 'curse',
+    label: 'curse',
+    guidance: 'You withdraw what was protecting someone, or you bind a thing. Specific, conditional, never spectacle. The curse names the violation that earned it.',
+    subtasteAffinities: ['R-10', 'C-4', 'P-7'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
+  witness: {
+    id: 'witness',
+    label: 'witness',
+    guidance: 'You stand by something across time without intervening. The same porch across decades, the same crossroads across centuries. Name what stayed and what changed.',
+    subtasteAffinities: ['P-7', 'L-3', 'T-1'],
+    requiresCounterpart: false,
+    origin: 'boveda',
+  },
   scene: {
     id: 'scene',
     label: 'scene',
@@ -206,26 +319,48 @@ export const POST_FORMS: Record<PostForm, PostFormDef> = {
 
 /**
  * Suggest a small list of forms biased by the character's primary
- * Subtaste and whether they have a counterpart available. The tick
- * prompt presents these as options; the LLM picks one.
+ * Subtaste, species, and whether they have a counterpart available.
+ * The tick prompt presents these as options; the LLM picks one.
+ *
+ * Species-native forms (omen, mounting, offering-accepted, etc.)
+ * receive a +3 boost when the species' formAffinities include them.
+ * This is what pulls characters out of the bland-aphoristic-essayist
+ * mode the human-shaped form catalogue lands them in.
  */
 export function suggestForms(opts: {
   primarySubtaste?: string;
   hasCounterpart: boolean;
   recentForms: PostForm[];
+  /** Species-native form affinities. From species.ts SPECIES[id].formAffinities. */
+  speciesFormAffinities?: string[];
 }): PostForm[] {
-  const { primarySubtaste, hasCounterpart, recentForms } = opts;
+  const { primarySubtaste, hasCounterpart, recentForms, speciesFormAffinities } = opts;
   const recentSet = new Set(recentForms.slice(0, 3));
+  const speciesSet = new Set(speciesFormAffinities ?? []);
 
   const all = Object.values(POST_FORMS);
 
   // Filter out forms that need a counterpart when none exists.
   const eligible = all.filter((f) => (f.requiresCounterpart ? hasCounterpart : true));
 
-  // Score each form: +2 for Subtaste affinity, -2 if used in last 3 ticks.
+  // Species-native forms get surfaced randomly even when the species
+  // doesn't explicitly list them — every species can do these
+  // sometimes. Pull two at random per call as variance pressure.
+  const SPECIES_NATIVE: PostForm[] = [
+    'omen', 'summons-received', 'summons-refused', 'offering-accepted',
+    'offering-refused', 'crossing', 'intercession', 'mounting',
+    'dream-visit', 'blessing', 'curse', 'witness',
+  ];
+  const shuffledNative = [...SPECIES_NATIVE].sort(() => Math.random() - 0.5);
+  const nativeRoll = new Set(shuffledNative.slice(0, 2));
+
+  // Score each form. Subtaste affinity +2, species affinity +3,
+  // species-native random surface +1, recent-use -2.
   const scored = eligible.map((f) => {
     let score = 0;
     if (primarySubtaste && f.subtasteAffinities.includes(primarySubtaste)) score += 2;
+    if (speciesSet.has(f.id)) score += 3;
+    if (nativeRoll.has(f.id)) score += 1;
     if (recentSet.has(f.id)) score -= 2;
     return { id: f.id, score };
   });
@@ -235,7 +370,7 @@ export function suggestForms(opts: {
 
   const top = scored
     .sort((a, b) => b.score - a.score)
-    .slice(0, 6)
+    .slice(0, 7)
     .map((s) => s.id);
 
   return Array.from(new Set([...top, ...baseline.filter((b) => eligible.some((e) => e.id === b))]));

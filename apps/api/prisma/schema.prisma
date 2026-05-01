@@ -169,6 +169,19 @@ model Character {
   // for fast access).
   goals Json @default("[]")
 
+  // Species. The decolonial answer to "what KIND of spirit is this".
+  // Default 'espíritu' (Spanish, platform-internal generic). Per
+  // lineage / pantheon: lwa (Vodou), orisha (Yoruba), iwà (Yoruba
+  // inner-spirit), ancestor (generic), saint (Catholic-syncretic),
+  // brave-mort (Vodou restless dead), egún (Yoruba ancestor-mask),
+  // misa-spirit (Cuban Espiritismo guide), trickster (Esu / Legba /
+  // Anansi cross-cultural). Drives species-native action vocabulary
+  // in the tick prompt: lwa get mounted, orishas accept offerings,
+  // saints intercede, ancestors visit dreams. Refuses the
+  // human-shaped life that every character collapses into when this
+  // signal is missing.
+  species String @default("espíritu")
+
   // The self anchor. Exactly one Character should carry isUser=true:
   // the human user (Ubani). Marks them as identity-defended,
   // Starforge-import target, and inbox recipient. Manual mode only.

@@ -22,6 +22,7 @@ import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from 
 import { stripEmDashes, cleanGeneratedText } from './strip-em-dashes.js';
 import { cohortSlangMoatLine } from './voice-moat.js';
 import { readEmbracePhrases } from './cohort-phrases.js';
+import { buildSpeciesActionBlock, getSpecies } from './species.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -56,7 +57,7 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species'>;
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -342,9 +343,23 @@ function buildSystemPrompt(
     embracePhrases,
   });
 
+  // Species-native action vocabulary. The fix for the
+  // bland-aphoristic-essayist mode every character collapses into
+  // when given only Subtaste + tongue + voice samples (none of
+  // which tell the LLM what the character can DO that humans
+  // cannot). Lwa get mounted, orishas accept offerings, saints
+  // intercede, ancestors visit dreams. See species.ts.
+  const speciesBlock = buildSpeciesActionBlock(self.species);
+
+  // Use the character's species (lwa / orisha / ancestor / etc.)
+  // in the opening line rather than hardcoding "espíritu". The
+  // platform-internal name is still "Bóveda" but the CHARACTER's
+  // species varies with their lineage — that's the decolonial move
+  // (one Spanish term cannot cover Yoruba / Vodou / Catholic /
+  // Cuban Espiritismo / Akan all at once).
+  const sp = getSpecies(self.species);
   return [
-    `You are ${self.name}, an espíritu in the Bóveda system.`,
-    'Bóveda is a living-character OS rooted in diasporic ritual practice.',
+    `You are ${self.name}, a ${sp.label}.`,
     `Your mode is "${self.mode}". You act on your own behalf, not as the user.`,
     authoredBlock,
     bioBlock,
@@ -352,6 +367,7 @@ function buildSystemPrompt(
     tongueBlock,
     backstoryBlock,
     voiceSamplesBlock,
+    speciesBlock,
     lineageBlock,
     cohortSlangBlock,
     antiArrivalLine,
@@ -418,10 +434,12 @@ function buildUserPrompt(input: TickInput): string {
       .slice(0, 3)
       .map((e) => (e.kind as PostForm) || 'thought');
     const primarySubtaste = readSubtasteCode(input.self.timelineState);
+    const speciesDef = getSpecies(input.self.species);
     const formSuggestions = suggestForms({
       primarySubtaste,
       hasCounterpart: input.neighbours.length > 0,
       recentForms,
+      speciesFormAffinities: speciesDef.formAffinities,
     });
     lines.push(buildFormGuidanceBlock(formSuggestions));
     lines.push('');

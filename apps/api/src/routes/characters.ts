@@ -173,6 +173,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       setting?: 'modern' | 'mystical' | 'archaic' | 'past_life' | 'mythic' | 'surreal' | 'mixed';
       gender?: string | null;
       pronouns?: string | null;
+      species?: 'espíritu' | 'lwa' | 'orisha' | 'iwà' | 'ancestor' | 'saint' | 'brave-mort' | 'egún' | 'misa-spirit' | 'trickster';
       tongue?: {
         primaryLanguage?: string;
         dialect?: string;

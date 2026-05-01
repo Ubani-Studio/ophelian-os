@@ -107,6 +107,10 @@ export interface Character {
   gender?: string | null;
   /** Free-text pronouns ("she/her", "they/them", "ó/ó", etc.). */
   pronouns?: string | null;
+  /** Species (lwa, orisha, ancestor, saint, etc.). Drives the
+   *  species-native action vocabulary in the tick prompt so the
+   *  character does spirit-things, not human-things. */
+  species?: SpeciesId;
   /** Agency mode. Determines how this character acts in the system.
    *  manual = author-only (the human user); twin = paired AI version
    *  (Ai-8O is twin to Ubani); espíritu = fully autonomous; relic =
@@ -240,6 +244,18 @@ export async function updateCharacter(id: string, data: Partial<Character>): Pro
     body: JSON.stringify(data),
   });
 }
+
+export type SpeciesId =
+  | 'espíritu'
+  | 'lwa'
+  | 'orisha'
+  | 'iwà'
+  | 'ancestor'
+  | 'saint'
+  | 'brave-mort'
+  | 'egún'
+  | 'misa-spirit'
+  | 'trickster';
 
 /** Manually set Subtaste dominant + subdominant + shadow for a
  *  non-user character. Refused for isUser=true (use the Starforge

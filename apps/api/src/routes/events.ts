@@ -360,6 +360,7 @@ export async function eventRoutes(fastify: FastifyInstance): Promise<void> {
           gender: character.gender,
           pronouns: character.pronouns,
           timelineState: character.timelineState,
+          species: character.species,
         },
         forceForm: (typeof forceFormRaw === 'string' && POST_FORMS[forceFormRaw as PostForm])
           ? (forceFormRaw as PostForm)
