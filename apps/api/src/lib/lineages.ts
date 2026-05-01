@@ -22,6 +22,20 @@ export interface Lineage {
   /** Whether this lineage requires cultural-advisor gating before
    *  use on public-facing cubes. Sacred traditions = true. */
   advisorGated: boolean;
+  /** Soft-deprecated lineages: hidden from the studio picker but
+   *  retained in the catalogue so existing characters keep working
+   *  and the registers stay reachable as compositional influences
+   *  for non-Western lineages. Per the moat thesis — Western
+   *  canonical traditions (Norse / Celtic / Greek) are saturated
+   *  by mainstream AI and don't fit the extraction-resistance
+   *  frame. Their *forms* (dithyramb, saga, fili praise) remain
+   *  available via subtaste-register fallback when other lineages
+   *  borrow them. */
+  deprecated?: boolean;
+  /** Optional remap suggestion for deprecated lineages. The studio
+   *  surfaces this when a character is anchored to a deprecated
+   *  entry. */
+  remapSuggestion?: string;
 }
 
 export const LINEAGES: Record<string, Lineage> = {
@@ -156,6 +170,8 @@ export const LINEAGES: Record<string, Lineage> = {
     culturalFrame:
       'Nine worlds. Ragnarok inevitability. Honour culture. Eddic poetry. Skald tradition.',
     advisorGated: false,
+    deprecated: true,
+    remapSuggestion: 'Norse forms (saga prose, kenning, flyting) remain available as compositional influences within other lineages. Consider remapping to a non-Western lineage; the saga-shape can still be borrowed.',
   },
   celtic: {
     id: 'celtic',
@@ -168,6 +184,8 @@ export const LINEAGES: Record<string, Lineage> = {
     culturalFrame:
       'Triple-goddess motifs. Otherworld (Tír na nÓg) adjacent. Bardic memory. Druidic remnants. Cailleach winter-weight.',
     advisorGated: false,
+    deprecated: true,
+    remapSuggestion: 'Celtic forms (fili praise / curse, bardic shape, lyric cadence) remain available as compositional influences. Consider remapping to a non-Western lineage; the bardic register can still be borrowed.',
   },
   hebraic: {
     id: 'hebraic',
@@ -192,6 +210,8 @@ export const LINEAGES: Record<string, Lineage> = {
     culturalFrame:
       'Olympian + Orthodox layered. Tragic structure. Symposium as cultural form. Kismet / fate.',
     advisorGated: false,
+    deprecated: true,
+    remapSuggestion: 'Greek forms (dithyramb, Pindar ode, chorus, Cavafy lyric) remain available as compositional influences within other lineages. Consider remapping to a non-Western lineage; the dithyramb-cadence can still be borrowed.',
   },
   japanese: {
     id: 'japanese',
@@ -243,13 +263,30 @@ export const LINEAGES: Record<string, Lineage> = {
   },
 };
 
-export function listLineages(): Array<Pick<Lineage, 'id' | 'label' | 'region' | 'advisorGated'>> {
-  return Object.values(LINEAGES).map((l) => ({
-    id: l.id,
-    label: l.label,
-    region: l.region,
-    advisorGated: l.advisorGated,
-  }));
+export function listLineages(opts?: {
+  includeDeprecated?: boolean;
+}): Array<Pick<Lineage, 'id' | 'label' | 'region' | 'advisorGated' | 'deprecated' | 'remapSuggestion'>> {
+  const includeDeprecated = opts?.includeDeprecated === true;
+  return Object.values(LINEAGES)
+    .filter((l) => includeDeprecated || !l.deprecated)
+    .map((l) => ({
+      id: l.id,
+      label: l.label,
+      region: l.region,
+      advisorGated: l.advisorGated,
+      deprecated: l.deprecated,
+      remapSuggestion: l.remapSuggestion,
+    }));
+}
+
+/**
+ * Detect whether a lineage id refers to a deprecated entry. Used by
+ * the studio to surface a soft remap warning on existing characters
+ * anchored to Norse / Celtic / Greek.
+ */
+export function isLineageDeprecated(id: string | null | undefined): boolean {
+  if (!id) return false;
+  return LINEAGES[id]?.deprecated === true;
 }
 
 export function lineageContext(id: string | null | undefined): string {

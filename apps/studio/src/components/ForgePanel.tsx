@@ -42,6 +42,14 @@ const FIELD_LABELS: Record<RealignField, string> = {
   tongue: 'tongue',
 };
 
+// Soft-deprecated lineages. The studio hides them from the picker
+// (the API also filters them by default) but a character anchored
+// to one of these surfaces a remap warning so the user knows the
+// brand has shifted away from Western canonical traditions. Per the
+// moat-thesis prune. Their forms remain reachable as compositional
+// influences within other lineages.
+const DEPRECATED_LINEAGE_IDS = new Set(['norse', 'celtic', 'greek']);
+
 const SPECIES_OPTIONS: Array<{ id: SpeciesId; label: string; essence: string }> = [
   { id: 'espíritu', label: 'espíritu', essence: 'Generic Caribbean / Catholic-syncretic spirit. Default.' },
   { id: 'lwa', label: 'lwa', essence: 'Vodou pantheon. Mounted by horses, fed by nation.' },
@@ -258,6 +266,57 @@ export function ForgePanel({
 
       {open && (
         <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Legacy lineage warning · surfaces when the character is
+              anchored to a soft-deprecated lineage (Norse / Celtic /
+              Greek). These were pruned from the picker per the
+              moat-thesis: Western canonical traditions are saturated
+              by mainstream AI and don't fit the extraction-resistance
+              frame. The character keeps working; this nudges a remap. */}
+          {(() => {
+            const charLineages = (character.lineageIds ?? []).filter((id) => DEPRECATED_LINEAGE_IDS.has(id));
+            if (charLineages.length === 0) return null;
+            return (
+              <div
+                style={{
+                  border: '1px solid var(--border)',
+                  background: '#1a1208',
+                  padding: '0.75rem 0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.4rem',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.55rem',
+                    letterSpacing: '0.32em',
+                    color: '#c89c5e',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  Legacy lineage
+                </div>
+                <p
+                  style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--muted-foreground)',
+                    fontFamily: '"Canela", serif',
+                    fontStyle: 'italic',
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}
+                >
+                  This character is anchored to {charLineages.join(' / ')}, which has been
+                  soft-deprecated from the Bóveda picker. Western canonical lineages
+                  (Norse / Celtic / Greek) are saturated by mainstream AI output and
+                  don&apos;t fit the cohort moat thesis (extraction-resistance for
+                  under-served diasporas). The forms remain reachable within other
+                  lineages as compositional influences. Consider remapping below.
+                </p>
+              </div>
+            );
+          })()}
+
           <p
             style={{
               fontSize: '0.78rem',
@@ -335,6 +394,22 @@ export function ForgePanel({
                 register from another, idioms code-switching across.
               </p>
             )}
+            <p
+              style={{
+                fontSize: '0.62rem',
+                color: 'var(--muted-foreground)',
+                marginTop: '0.55rem',
+                fontFamily: '"Canela", serif',
+                fontStyle: 'italic',
+                lineHeight: 1.5,
+              }}
+            >
+              Note: primary language does not have to match lineage. A Yoruba-
+              lineage character living in Paris can speak French primarily and
+              carry Yoruba in idioms, register, and code-switching. Lineage is
+              the cultural anchor; tongue is what comes out of the mouth. Edit
+              tongue in the realign output below.
+            </p>
           </div>
 
           {/* Species · what KIND of spirit. Lineage picks the cultural

@@ -111,6 +111,9 @@ export interface Character {
    *  species-native action vocabulary in the tick prompt so the
    *  character does spirit-things, not human-things. */
   species?: SpeciesId;
+  /** Lineage anchors. Persisted at forge / realign apply time.
+   *  Drives Subtaste × lineage register composition in tick + realign. */
+  lineageIds?: string[];
   /** Agency mode. Determines how this character acts in the system.
    *  manual = author-only (the human user); twin = paired AI version
    *  (Ai-8O is twin to Ubani); espíritu = fully autonomous; relic =
@@ -341,6 +344,13 @@ export interface LineageOption {
   label: string;
   region: string;
   advisorGated: boolean;
+  /** Soft-deprecated: hidden from the picker by default. Norse,
+   *  Celtic, Greek currently. Their forms remain reachable as
+   *  compositional influences within other lineages. */
+  deprecated?: boolean;
+  /** Optional remap suggestion shown when an existing character is
+   *  anchored to a deprecated lineage. */
+  remapSuggestion?: string;
 }
 
 export type RealignField = 'bio' | 'backstory' | 'aliases' | 'personaTags' | 'goals' | 'tongue';

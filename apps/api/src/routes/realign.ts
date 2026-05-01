@@ -750,10 +750,17 @@ function parseDraft(text: string): AlignedDraft | null {
 }
 
 export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
-  // Lineage catalogue for the picker UI.
-  fastify.get('/lineages', async (_request, reply) => {
-    return reply.send({ lineages: listLineages() });
-  });
+  // Lineage catalogue for the picker UI. Defaults to non-deprecated
+  // (Norse / Celtic / Greek hidden by default per the moat-thesis
+  // prune). Pass ?includeDeprecated=true when the studio needs to
+  // resolve labels for legacy characters anchored to deprecated ids.
+  fastify.get<{ Querystring: { includeDeprecated?: string } }>(
+    '/lineages',
+    async (request, reply) => {
+      const includeDeprecated = request.query?.includeDeprecated === 'true';
+      return reply.send({ lineages: listLineages({ includeDeprecated }) });
+    },
+  );
 
   // Per-character realignment.
   fastify.post<{ Params: { id: string } }>(
