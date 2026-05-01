@@ -6,6 +6,7 @@ import { callLlm, hasLlmProvider, LlmBudgetError } from '../lib/llm.js';
 import { LINEAGES, lineageContext, listLineages } from '../lib/lineages.js';
 import { isFieldLocked } from '../lib/identity-lock.js';
 import { stripEmDashes, cleanGeneratedText } from '../lib/strip-em-dashes.js';
+import { cohortSlangMoatLine } from '../lib/voice-moat.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -189,6 +190,12 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'orders the same chicken shop combo at Morley\'s in Lewisham every Friday',
       'keeps the same hairdresser in Tottenham since 2008',
       'has watered the same orchid for nine years. It blooms when she sells a piece',
+      'takes the danfo from Yaba to Surulere on Sundays. The driver knows her stop',
+      'eats agbalumo at the same stall in Balogun Market every season',
+      'goes to the same fish woman at Hellshire in Kingston since 2011',
+      'sits at the same kissaten in Asakusa with the same coffee order. Twelve years',
+      'rides the M14 down to Tribeca and gets off two stops early to walk past the same bookshop',
+      'eats doubles from the same vendor at Bathurst in Toronto every Sunday',
     ],
     mystical: [
       'tends the altar for her grandmother\'s grandmother. Has not skipped a Thursday in nine years',
@@ -206,10 +213,15 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'curated the best gallery in the Lower East Side and walked out when they hung an Olafur. Now goes to Frieze and throws truffles at the cube',
       'Annabel\'s only on a leap year. Otherwise it\'s Brilliant Corners or nothing',
       'will not eat at Sushi Samba. Will not explain why',
-      'doesn\'t need a sugar daddy. Has rejected three',
       'rejected the Hauser & Wirth invitation. Sent the email at 11pm. No follow-up',
       'will go to the McDonald\'s in Brixton at 3am but refuses every Soho House she has been a member of',
       'walked out of Tomorrowland in 2017. Has not returned to a festival since',
+      'banned from the Yoruba demographics committee at one specific Lagos church. Was asked to leave. Will not say why',
+      'left the Saturday session at the Jubilee dub yard in Trench Town. Walked the seven miles back to Kingston rather than ride with the producer who shouted',
+      'will eat suya from the boli woman on Awolowo Road but refuses every banker who frequents Bottles in Lekki',
+      'turned down the Maboneng curation in Joburg. Said the Maboneng curators had stopped listening',
+      'walked out of the cocktail at the Marais opening, took the 11 bus to Bagnolet, and ate frites alone',
+      'has refused every White Cube studio visit since 2019',
     ],
     mystical: [
       'the priest who refused to bless the marriage. Was right',
@@ -300,6 +312,11 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'renovated the Margate flat alone. Plumbing included. Now hosts dinners',
       'cut the first run of the magazine on a Risograph in her kitchen and walked the boxes to the Tate gift shop herself',
       'built the bench at Abbey Road that the engineers still use, off the books',
+      'opened the Yaba studio with three friends. Did the wiring on the Lagos generator. Hosts Saturday afternoon sessions',
+      'shipped the EP from Trench Town to Tokyo and London the same week. Two pressing plants, one runner',
+      'built the lighting rig at the warehouse in Newtown, Joburg, with parts bought at OK Furniture',
+      'opened the late-night ramen counter in Shimokitazawa with savings from the Lagos diaspora gig',
+      'set up the studio in Bushwick over six weeks. Slept in the live room until the rent kicked in',
     ],
     mystical: [
       'the smith of Ogun. Three months at the forge. Came out with the iron and the song',
@@ -348,20 +365,66 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   },
 };
 
-// Anti-monoculture directive: the LLM defaults to repeating the
-// most-cited place when given a prompt about diasporic creative
-// life ("Hackney" mostly, sometimes "Brooklyn"). Force variance.
-const PLACE_VARIANCE_NOTE = `IMPORTANT location variance: do NOT default to "Hackney" or "Brooklyn" or any single neighbourhood. Vary widely across:
-- High-luxe London: Annabel's, Frieze, Mayfair, Hauser & Wirth, Royal Opera House, Lyle's, Marylebone
-- Class-coded everyday London: Brixton McDonald's, Lewisham Morley's, Croydon Greggs, the 418 in Epsom, Walthamstow, Tottenham, the French House in Soho
-- South London diasporic: Peckham, Brockley, Stockwell, Latimer Road
-- Lagos: Balogun Market, Lekki, Yaba, Surulere
-- Kingston: Trench Town, Half Way Tree
-- New York: Bed-Stuy, Crown Heights, Tribeca, the East Village
-- Berlin: Kreuzberg, Berghain
-- Cultural: Saint Heron, Tate, Royal Opera, Booker, Abbey Road, RA, Brilliant Corners
-- Other: Margate, Glasgow, Dakar
-Mix high-luxe and chicken-shop. A character can hang at Annabel's AND eat at Brixton McDonald's at 3am. That is the actual texture. Do not flatten one register over the other. Each generation should land in a DIFFERENT location pool from the previous one.`;
+// Anti-monoculture directive. The LLM defaults to repeating the
+// most-cited place when given a diasporic-creative prompt
+// ("Hackney" mostly, sometimes "Brooklyn"). Force variance across
+// continents and registers.
+const PLACE_VARIANCE_NOTE = `IMPORTANT location variance: do NOT default to "Hackney" or "Brooklyn" or any single neighbourhood. Reach for niche specifics with the precision of "the 418 bus in Epsom on a leap year" or "the boli woman on Awolowo Road" or "the kissaten on the side street in Asakusa" or "doubles at Bathurst on Sunday."
+
+Pull from the GLOBAL pool. Vary widely across:
+
+LONDON
+- High-luxe: Annabel's, Frieze, Mayfair, Hauser & Wirth, White Cube, Royal Opera House, Lyle's, the Walpole, Marylebone, RA
+- Class-coded everyday: Brixton McDonald's, Lewisham Morley's, Croydon Greggs, the 418 in Epsom, the 36 to Peckham, Walthamstow, Tottenham, the French House in Soho, Foyles
+- South London diasporic: Peckham, Brockley, Stockwell, Latimer Road, Bethnal Green, Tooting, New Cross
+- Cultural: Saint Heron archive, Tate, Royal Opera, Booker, Abbey Road, Brilliant Corners, the Wire, the White Pube, i-D, Notting Hill Carnival
+
+LAGOS / WEST AFRICA
+- Markets: Balogun, Idumota, Tejuosho, Mile 12, Computer Village (Ikeja)
+- Spots: Freedom Park, Terra Kulture, Quintessence, Alara, Bottles, Cubana, Cafe Vergnano
+- Routes: the danfo from Yaba, the BRT on Ikorodu, the Lekki tollgate at 2am
+- Class-coded: Surulere vs Lekki vs Ikoyi
+- Specifics: the boli woman on Awolowo Road, suya at midnight in Wuse Zone 4 (Abuja), agbalumo in season at Tejuosho, the trotro to Madina (Accra)
+
+KINGSTON / CARIBBEAN
+- Trench Town Culture Yard, Half Way Tree, the Jubilee dub session, Coronation Market, Hellshire fish, Devon House
+- Routes: the route taxi from Half Way Tree to Cross Roads, Saturday curry goat at Saxon Pub
+- Trinidad: Maracas bake-and-shark, panyards in Laventille, the Savannah, Maraval at carnival
+- Class-coded: Norbrook (uptown) vs Tivoli (downtown)
+
+JOBURG / CAPE TOWN
+- 44 Stanley, Maboneng, Newtown, Diepkloof Extension, Yeoville, Bag Factory, Kitcheners
+- Routes: the Gautrain, the taxi to Soweto
+- Cape Town: Woodstock, Bo-Kaap, the Old Biscuit Mill
+
+NEW YORK
+- Bed-Stuy, Crown Heights, Bushwick (NOT plain Brooklyn), Tribeca, East Village, the Lower East Side, Harlem, Inwood, Flatbush
+- Spots: Russ & Daughters, Le Bain, Lincoln Center, the Strand
+- LA: Leimert Park, View Park, Inglewood, Highland Park, K-Town, Magic City Atlanta, J.R. Crickets
+
+PARIS / FRANCE
+- Marais, 11ème, Belleville, Goutte d'Or
+- Specifics: the 11 bus to Bagnolet, Aux Folies in Belleville, the African market on rue du Faubourg Saint-Denis, Cafe Mabillon refusal
+
+BERLIN
+- Kreuzberg, Neukölln, Wedding, Friedrichshain
+- Berghain, Sisyphos, Mustafa's döner, Späti at 4am, U8 to Kotti
+
+TOKYO
+- Shimokitazawa, Koenji, Daikanyama, Nakameguro, Asakusa, Kichijoji
+- Specifics: the kissaten in Asakusa, Tower Records Shibuya, 24-hour ramen, the curry at Tomoshibi
+- Yamanote loop at midnight
+
+OTHER
+- Toronto: Scarborough, Jane and Finch, Regent Park, Kensington, the Drake, doubles at Bathurst
+- Atlanta: Edgewood, Old Fourth Ward, Beltline, Lenox Square
+- Mexico City: Roma, Condesa, Coyoacán, Tepito, Polanco, Arena Mexico
+- São Paulo: Pinheiros, Vila Madalena, Liberdade, Centro
+- Margate, Glasgow, Dakar (Plateau, Medina), Dublin (Stoneybatter), Lisbon (Alfama)
+
+MIX HIGH-LUXE AND CHICKEN-SHOP. A character can hang at Annabel's AND eat at Brixton McDonald's at 3am. They can attend Frieze AND order doubles from a Bathurst vendor. They can curate at Mayfair AND keep their hair done in Tottenham. The actual texture of diasporic creative life IS the spread; do not flatten one register over the other.
+
+Each generation should land in a DIFFERENT geographical pool from the previous one. If the last character was London-anchored, lean Lagos / Kingston / Tokyo / Paris on the next.`;
 
 const SETTING_LABELS: Record<string, string> = {
   modern: 'modern (present-day specifics: real shops, real bus routes, real venues, real refusals)',
@@ -547,6 +610,19 @@ function buildAlignmentUser(opts: {
       );
     }
   }
+
+  // Cohort-invented slang MOAT. We are language-source not
+  // language-consumer. Public-LLM slang signatures get refused;
+  // lineage-rooted invention gets promoted. Applied to every
+  // realign generation regardless of voice samples; samples just
+  // change the strength of the source clause.
+  lines.push('');
+  lines.push(
+    cohortSlangMoatLine({
+      hasVoiceSamples: !!(opts.voiceSamples && opts.voiceSamples.length > 0),
+      hasAuthor: !!opts.authoredBy,
+    })
+  );
 
   lines.push('');
   lines.push('## Output schema');

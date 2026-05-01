@@ -20,6 +20,7 @@ import { readIdentity } from './identity-lock.js';
 import { getSlangGuidance } from './ibis-slang.js';
 import { suggestForms, buildFormGuidanceBlock, POST_FORMS, type PostForm } from './post-forms.js';
 import { stripEmDashes, cleanGeneratedText } from './strip-em-dashes.js';
+import { cohortSlangMoatLine, COHORT_SLANG_AVOID } from './voice-moat.js';
 
 // Per-character throttle. Refuses real-LLM ticks more frequent than
 // this even if the user mashes the button. Stub ticks are not
@@ -210,6 +211,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
       ...characterRefuses,
       ...sovereigntyRefuses,
       ...slang.avoid,
+      ...COHORT_SLANG_AVOID,
     ])
   );
 
@@ -322,6 +324,11 @@ function buildSystemPrompt(self: TickInput['self']): string {
         ].join('\n\n')
       : '';
 
+  const cohortSlangBlock = cohortSlangMoatLine({
+    hasVoiceSamples: voiceSamples.length > 0,
+    hasAuthor: Boolean(self.authoredBy),
+  });
+
   return [
     `You are ${self.name}, an espíritu in the Bóveda system.`,
     'Bóveda is a living-character OS rooted in diasporic ritual practice.',
@@ -333,6 +340,7 @@ function buildSystemPrompt(self: TickInput['self']): string {
     backstoryBlock,
     voiceSamplesBlock,
     lineageBlock,
+    cohortSlangBlock,
     antiArrivalLine,
     emDashLine,
     refusesLine,
