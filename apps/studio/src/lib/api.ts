@@ -166,6 +166,45 @@ export async function createCharacter(data: Partial<Character>): Promise<Charact
   });
 }
 
+/** Mirror identity fields from a source character onto a target.
+ *  Used for twin / clone creation: target inherits bio, backstory,
+ *  personaTags, voiceSamples, authoredBy, identity envelope,
+ *  timelineState (Subtaste), and gets twinOf set to source.id.
+ *  Optionally forces mode (default 'twin'). */
+export async function mirrorCharacterFrom(
+  targetId: string,
+  sourceId: string,
+  opts?: { mode?: string; forceMode?: boolean }
+): Promise<Character> {
+  return apiFetch<Character>(`/characters/${targetId}/mirror-from/${sourceId}`, {
+    method: 'POST',
+    body: JSON.stringify(opts ?? {}),
+  });
+}
+
+/** Two-call helper: create a fresh character, then mirror its
+ *  identity from the source. Result is a twin sharing Subtaste +
+ *  lineage + voice samples but with its own name (and optional
+ *  custom bio override applied after mirroring). */
+export async function createTwin(
+  sourceId: string,
+  data: { name: string; mode?: 'twin' | 'espíritu' | 'manual'; bioOverride?: string; worldId?: string | null }
+): Promise<Character> {
+  const created = await createCharacter({
+    name: data.name,
+    mode: data.mode ?? 'twin',
+    worldId: data.worldId ?? null,
+  });
+  const mirrored = await mirrorCharacterFrom(created.id, sourceId, {
+    mode: data.mode ?? 'twin',
+    forceMode: true,
+  });
+  if (data.bioOverride && data.bioOverride.trim().length > 0) {
+    return updateCharacter(mirrored.id, { bio: data.bioOverride });
+  }
+  return mirrored;
+}
+
 export async function updateCharacter(id: string, data: Partial<Character>): Promise<Character> {
   return apiFetch<Character>(`/characters/${id}`, {
     method: 'PATCH',

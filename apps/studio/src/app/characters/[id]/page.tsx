@@ -34,6 +34,7 @@ import { SovereigntyBadge } from '@/components/SovereigntyBadge';
 import { BackstoryPanel } from '@/components/BackstoryPanel';
 import { VoicePanel } from '@/components/VoicePanel';
 import { CohortPhrasePanel } from '@/components/CohortPhrasePanel';
+import { CreateTwinButton } from '@/components/CreateTwinButton';
 import { ForgePanel } from '@/components/ForgePanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
@@ -564,6 +565,7 @@ export default function CharacterDetailPage() {
                 mode={character.mode}
                 onTicked={() => setTimelineRefreshKey((k) => k + 1)}
               />
+              <CreateTwinButton source={character} />
               {character.tizitaPersonaId && <IkengaEmblem />}
             </div>
           )}
