@@ -57,7 +57,7 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species' | 'identityHistory'>;
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -89,6 +89,47 @@ export interface TickInput {
 function readVoiceSamples(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((s) => typeof s === 'string' && s.trim().length > 0) as string[];
+}
+
+interface RecognitionEntry {
+  ts: string;
+  field: string;
+  from?: string | null;
+  to?: string | null;
+  source?: string | null;
+}
+
+/**
+ * Recent identity-history entries the character can register on
+ * their next tick. Surfaces only entries from the last 14 days so
+ * the recognition stays fresh; older changes have already been
+ * absorbed (sedimentation has settled).
+ */
+function buildRecognitionBlock(raw: unknown): string {
+  if (!Array.isArray(raw) || raw.length === 0) return '';
+  const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+  const recent = (raw as RecognitionEntry[])
+    .filter((e) => e && typeof e === 'object' && typeof e.ts === 'string')
+    .filter((e) => {
+      const t = Date.parse(e.ts);
+      return !Number.isNaN(t) && t >= cutoff;
+    })
+    .slice(-3);
+  if (recent.length === 0) return '';
+  const lines: string[] = ['## Recent recognition'];
+  lines.push(
+    'These are recent moments where you were properly (re)named. Spirits develop through ritual-response, and being named is one of the triggers. Your next action MAY register this if it wants to. It does not have to. Brief if at all; do not explain.'
+  );
+  lines.push('');
+  for (const entry of recent) {
+    const date = entry.ts.slice(0, 10);
+    if (entry.field === 'species') {
+      lines.push(`- ${date}: reclassified from ${entry.from ?? 'unset'} to ${entry.to ?? 'unset'}.`);
+    } else {
+      lines.push(`- ${date}: ${entry.field} changed (${entry.from ?? 'unset'} → ${entry.to ?? 'unset'}).`);
+    }
+  }
+  return lines.join('\n');
 }
 
 interface TongueShape {
@@ -351,6 +392,15 @@ function buildSystemPrompt(
   // intercede, ancestors visit dreams. See species.ts.
   const speciesBlock = buildSpeciesActionBlock(self.species);
 
+  // Reflexive recognition. Spirits develop through ritual-response,
+  // and being properly named IS one of the response triggers. When
+  // identityHistory has a recent entry (species reclassification,
+  // Subtaste shift, etc.), surface it so the character can register
+  // the change in their next decision. Keeps the species-becoming
+  // frame integrated with the live tick instead of being a static
+  // identity field. Per docs/species-becoming.md.
+  const recognitionBlock = buildRecognitionBlock(self.identityHistory);
+
   // Use the character's species (lwa / orisha / ancestor / etc.)
   // in the opening line rather than hardcoding "espíritu". The
   // platform-internal name is still "Bóveda" but the CHARACTER's
@@ -368,6 +418,7 @@ function buildSystemPrompt(
     backstoryBlock,
     voiceSamplesBlock,
     speciesBlock,
+    recognitionBlock,
     lineageBlock,
     cohortSlangBlock,
     antiArrivalLine,

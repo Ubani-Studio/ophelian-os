@@ -27,6 +27,7 @@ import {
   type RealignField,
   type RealignDraft,
   type Setting,
+  type SpeciesId,
 } from '@/lib/api';
 
 const TYRIAN = '#66023C';
@@ -40,6 +41,19 @@ const FIELD_LABELS: Record<RealignField, string> = {
   goals: 'goals',
   tongue: 'tongue',
 };
+
+const SPECIES_OPTIONS: Array<{ id: SpeciesId; label: string; essence: string }> = [
+  { id: 'espíritu', label: 'espíritu', essence: 'Generic Caribbean / Catholic-syncretic spirit. Default.' },
+  { id: 'lwa', label: 'lwa', essence: 'Vodou pantheon. Mounted by horses, fed by nation.' },
+  { id: 'orisha', label: 'orisha', essence: 'Yoruba pantheon. Colour, number, day, signature.' },
+  { id: 'iwà', label: 'iwà', essence: 'Yoruba inner-spirit / character-destiny.' },
+  { id: 'ancestor', label: 'ancestor', essence: 'Named or unnamed dead. Visits in dreams.' },
+  { id: 'saint', label: 'saint', essence: 'Catholic-syncretic interceding figure.' },
+  { id: 'brave-mort', label: 'brave-mort', essence: 'Vodou restless dead. Walks.' },
+  { id: 'egún', label: 'egún', essence: 'Yoruba ancestor-mask. Collective dead made visible.' },
+  { id: 'misa-spirit', label: 'misa-spirit', essence: 'Cuban Espiritismo guide.' },
+  { id: 'trickster', label: 'trickster', essence: 'Crossroads-aspect. Esu, Legba, Anansi.' },
+];
 
 const SETTING_OPTIONS: Array<{ id: Setting; label: string; hint: string }> = [
   { id: 'modern', label: 'modern', hint: 'present-day specifics, real shops + venues + bus routes' },
@@ -142,6 +156,21 @@ export function ForgePanel({
       onUpdated(updated);
     } catch {
       // non-fatal; the setting still applies to the next forge call
+    }
+  };
+
+  // Species change in Forge. Same persist-on-click pattern as
+  // setting. The high-stakes confirmation flow lives in the
+  // top-level SpeciesPicker (with regenerate option); here in
+  // Forge the user is already in a generation context, so direct
+  // persist + the next forge call will pick up the new species.
+  const onSpeciesClick = async (id: SpeciesId) => {
+    if ((character.species ?? 'espíritu') === id) return;
+    try {
+      const updated = await updateCharacter(character.id, { species: id });
+      onUpdated(updated);
+    } catch {
+      // non-fatal
     }
   };
 
@@ -306,6 +335,54 @@ export function ForgePanel({
                 register from another, idioms code-switching across.
               </p>
             )}
+          </div>
+
+          {/* Species · what KIND of spirit. Lineage picks the cultural
+              soil; species picks the kind of being. Both stack into
+              the bio + backstory generation. */}
+          <div>
+            <label style={labelStyle}>
+              Species{character.species && character.species !== 'espíritu' ? '' : ' (default: espíritu)'}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+              {SPECIES_OPTIONS.map((sp) => {
+                const on = (character.species ?? 'espíritu') === sp.id;
+                return (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    onClick={() => onSpeciesClick(sp.id)}
+                    title={sp.essence}
+                    style={{
+                      padding: '0.4rem 0.7rem',
+                      fontSize: '0.7rem',
+                      fontFamily: 'inherit',
+                      letterSpacing: '0.04em',
+                      border: `1px solid ${on ? TYRIAN : 'var(--border)'}`,
+                      background: on ? TYRIAN : 'transparent',
+                      color: on ? '#fff' : 'var(--foreground)',
+                      cursor: 'pointer',
+                      borderRadius: 0,
+                    }}
+                  >
+                    {sp.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p
+              style={{
+                fontSize: '0.62rem',
+                color: 'var(--muted-foreground)',
+                marginTop: '0.35rem',
+                fontFamily: '"Canela", serif',
+                fontStyle: 'italic',
+                lineHeight: 1.5,
+              }}
+            >
+              Drives what the character can DO that humans cannot.
+              Lwa get mounted. Orishas accept offerings. Ancestors visit dreams.
+            </p>
           </div>
 
           {/* Subtaste pin · 12-glyph pill picker (matches lineage). */}

@@ -224,6 +224,7 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
         pronouns: character.pronouns,
         timelineState: character.timelineState,
         species: character.species,
+        identityHistory: character.identityHistory,
       },
       recentEvents: recentEvents.slice(0, 20),
       neighbours: edges.map((edge) => {

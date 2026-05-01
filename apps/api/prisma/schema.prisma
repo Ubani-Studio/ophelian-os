@@ -169,6 +169,16 @@ model Character {
   // for fast access).
   goals Json @default("[]")
 
+  // Identity history. Append-only log of meaningful identity moves
+  // (species reclassification, Subtaste change, lineage shift). Each
+  // entry is { ts, field, from, to, source? }. The tick prompt
+  // surfaces recent entries as a "## Recent recognition" block so
+  // the character can register the change in their next decision —
+  // spirits develop through ritual-response, and being properly
+  // named IS one of the response triggers. Per
+  // docs/species-becoming.md.
+  identityHistory Json @default("[]")
+
   // Species. The decolonial answer to "what KIND of spirit is this".
   // Default 'espíritu' (Spanish, platform-internal generic). Per
   // lineage / pantheon: lwa (Vodou), orisha (Yoruba), iwà (Yoruba

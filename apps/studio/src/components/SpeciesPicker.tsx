@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { updateCharacter, type Character, type SpeciesId } from '@/lib/api';
+import { updateCharacter, generateBackstoryDraft, type Character, type SpeciesId } from '@/lib/api';
 
 const TYRIAN = '#66023C';
 
@@ -48,15 +48,36 @@ export function SpeciesPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState<SpeciesId | null>(null);
+  // Checkpoint state: a candidate species the user has selected but
+  // not confirmed yet. The picker shows confirm / confirm-and-regen /
+  // cancel inline rather than persisting silently. Spirits-as-
+  // ritual-response: changing species is a meaningful identity move,
+  // not a setting toggle.
+  const [pending, setPending] = useState<SpeciesId | null>(null);
+  const [regenStatus, setRegenStatus] = useState<string | null>(null);
 
   const current: SpeciesId = (character.species as SpeciesId) ?? 'espíritu';
+  const hasContent = (character.bio ?? '').trim().length > 0 || (character.backstory ?? '').trim().length > 0;
 
-  const setSpecies = async (id: SpeciesId) => {
+  // Persist a chosen species. On first set (current === espíritu and
+  // no bio/backstory yet) we skip the checkpoint and persist directly.
+  // Otherwise we stage as pending and wait for explicit confirm.
+  const onPick = (id: SpeciesId) => {
     if (id === current) return;
+    if (current === 'espíritu' && !hasContent) {
+      void persist(id);
+      return;
+    }
+    setPending(id);
+    setRegenStatus(null);
+  };
+
+  const persist = async (id: SpeciesId) => {
     setSaving(id);
     try {
       const updated = await updateCharacter(character.id, { species: id });
       onUpdated(updated);
+      setPending(null);
     } catch {
       // non-fatal
     } finally {
@@ -64,7 +85,28 @@ export function SpeciesPicker({
     }
   };
 
+  const persistAndRegenerate = async (id: SpeciesId) => {
+    setSaving(id);
+    setRegenStatus('updating species...');
+    try {
+      const updated = await updateCharacter(character.id, { species: id });
+      onUpdated(updated);
+      setRegenStatus('regenerating backstory...');
+      const draft = await generateBackstoryDraft(character.id);
+      const withBackstory = await updateCharacter(character.id, { backstory: draft.draft });
+      onUpdated(withBackstory);
+      setRegenStatus('done');
+      setPending(null);
+      setTimeout(() => setRegenStatus(null), 1500);
+    } catch (e) {
+      setRegenStatus(e instanceof Error ? e.message : 'regenerate failed');
+    } finally {
+      setSaving(null);
+    }
+  };
+
   const currentMeta = SPECIES.find((s) => s.id === current) ?? SPECIES[0];
+  const pendingMeta = pending ? SPECIES.find((s) => s.id === pending) : null;
 
   return (
     <div className="mt-4">
@@ -135,21 +177,111 @@ export function SpeciesPicker({
             visit dreams. Without this, every character defaults to a human-shaped life.
           </p>
 
+          {/* Checkpoint card: appears when user has staged a species
+              change but not confirmed yet. Per the design, spirits-as-
+              ritual-response — changing species is a meaningful
+              identity move, not a setting toggle. Three options:
+              change-only / change+regenerate-backstory / cancel. */}
+          {pending && pendingMeta && (
+            <div
+              style={{
+                border: `1px solid ${TYRIAN}`,
+                padding: '0.75rem 0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.55rem',
+                  letterSpacing: '0.32em',
+                  color: TYRIAN,
+                  fontFamily: 'monospace',
+                }}
+              >
+                Confirm species change
+              </div>
+              <p
+                style={{
+                  fontSize: '0.8rem',
+                  fontFamily: '"Canela", serif',
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
+                Reclassifying {character.name} from{' '}
+                <strong>{currentMeta.label}</strong> to{' '}
+                <strong>{pendingMeta.label}</strong>.{' '}
+                {hasContent && (
+                  <span style={{ color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
+                    The existing bio and backstory were written under{' '}
+                    {currentMeta.label} and may not match the new species.
+                  </span>
+                )}
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                <button
+                  type="button"
+                  onClick={() => persist(pending)}
+                  disabled={saving !== null}
+                  style={pillButton(TYRIAN, '#fff', false)}
+                >
+                  change only
+                </button>
+                {hasContent && (
+                  <button
+                    type="button"
+                    onClick={() => persistAndRegenerate(pending)}
+                    disabled={saving !== null}
+                    style={pillButton(TYRIAN, '#fff', false)}
+                  >
+                    change + regenerate backstory
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPending(null);
+                    setRegenStatus(null);
+                  }}
+                  disabled={saving !== null}
+                  style={pillButton('transparent', 'var(--muted-foreground)', true)}
+                >
+                  cancel
+                </button>
+              </div>
+              {regenStatus && (
+                <p
+                  style={{
+                    fontSize: '0.7rem',
+                    color: 'var(--muted-foreground)',
+                    fontFamily: 'monospace',
+                    margin: 0,
+                  }}
+                >
+                  {regenStatus}
+                </p>
+              )}
+            </div>
+          )}
+
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             {SPECIES.map((sp) => {
               const on = sp.id === current;
+              const isPending = sp.id === pending;
               const busy = saving === sp.id;
               return (
                 <li key={sp.id}>
                   <button
                     type="button"
-                    onClick={() => setSpecies(sp.id)}
-                    disabled={busy}
+                    onClick={() => onPick(sp.id)}
+                    disabled={busy || saving !== null}
                     style={{
                       width: '100%',
                       textAlign: 'left',
                       padding: '0.55rem 0.75rem',
-                      border: `1px solid ${on ? TYRIAN : 'var(--border)'}`,
+                      border: `1px ${isPending ? 'dashed' : 'solid'} ${on || isPending ? TYRIAN : 'var(--border)'}`,
                       background: on ? TYRIAN : 'transparent',
                       color: on ? '#fff' : 'var(--foreground)',
                       cursor: busy ? 'wait' : 'pointer',
@@ -157,6 +289,7 @@ export function SpeciesPicker({
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.25rem',
+                      opacity: saving !== null && !busy ? 0.5 : 1,
                     }}
                   >
                     <span
@@ -198,4 +331,18 @@ export function SpeciesPicker({
       )}
     </div>
   );
+}
+
+function pillButton(bg: string, fg: string, ghost: boolean): React.CSSProperties {
+  return {
+    padding: '0.35rem 0.7rem',
+    fontSize: '0.65rem',
+    fontFamily: 'monospace',
+    letterSpacing: '0.08em',
+    border: `1px solid ${ghost ? 'var(--border)' : bg}`,
+    background: bg,
+    color: fg,
+    cursor: 'pointer',
+    borderRadius: 0,
+  };
 }

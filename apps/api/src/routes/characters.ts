@@ -192,6 +192,27 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     const { timelineState, tongue, voiceSamples, ...rest } = body;
+
+    // Identity history. Capture meaningful identity moves (species
+    // change for now; Subtaste / lineage shifts can layer on later)
+    // before the update so the LLM can recognise reclassification on
+    // next tick. Append-only; never edited or deleted. Per
+    // docs/species-becoming.md (ritual-response becoming).
+    const historyEntries: Array<Record<string, unknown>> = Array.isArray(character.identityHistory)
+      ? (character.identityHistory as Array<Record<string, unknown>>)
+      : [];
+    const additions: Array<Record<string, unknown>> = [];
+    if (typeof body.species === 'string' && body.species !== character.species) {
+      additions.push({
+        ts: new Date().toISOString(),
+        field: 'species',
+        from: character.species,
+        to: body.species,
+        source: 'studio',
+      });
+    }
+    const nextHistory = additions.length > 0 ? [...historyEntries, ...additions] : null;
+
     const updated = await prisma.character.update({
       where: { id },
       data: {
@@ -204,6 +225,9 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         }),
         ...(voiceSamples !== undefined && {
           voiceSamples: voiceSamples as unknown as Prisma.InputJsonValue,
+        }),
+        ...(nextHistory !== null && {
+          identityHistory: nextHistory as unknown as Prisma.InputJsonValue,
         }),
       },
     });
