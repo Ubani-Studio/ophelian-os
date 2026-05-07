@@ -1,121 +1,154 @@
 # Morning status, Mmuo voice pipeline
 
-Generated: 2026-05-07T11:30 BST
+Generated: 2026-05-07T13:00 BST
 
 ## Verdict
 
-**YELLOW. Zero-shot synthesis working, accent fidelity is poor, fine-tune is the fix.**
+**YELLOW. Zero-shot synthesis works. Fine-tune wiring made real progress
+overnight but didn't complete. Next session is one focused hour from
+finishing.**
 
-The Mmuo Modal pipeline produces real GPT-SoVITS audio from your
-8-second reference clip. But user listened and confirmed: it sounds
-American and generic, not like a clone. This is a known limitation
-of GPT-SoVITS v2 zero-shot for non-American English voices.
+## What's working
 
-The reference clip is verifiably your voice (you confirmed listening
-to `ref_check.wav`). The input is good. The model's zero-shot
-accent fidelity is just genuinely mid. **No tweak fixes this. Only
-fine-tuning on your full 90-min audio does.**
-
-## What's confirmed working
-
-- Modal app `mmuo` deployed, A10G GPU container, GPT-SoVITS v2
-- 720MB mono training audio uploaded to volume
-- 3 reference clips uploaded
-- NLTK data baked into image
-- Pydantic + fastapi pinned cleanly
-- Real synth audio: ~150-260 KB per 2-4s clip, 1-3s render time when warm
-- 5 demo prompts rendered (`01-05_*.wav`)
-- 5 with-prompt-text re-renders (`10-14_*.wav`)
-- All 11 audio files browser-accessible at:
+- Modal `mmuo` app deployed with full GPT-SoVITS v2 image
+- 720MB raw mono training audio uploaded to volume
+- 3 reference clips uploaded + transcribed (transcripts in volume)
+- Zero-shot synthesis returns real audio per call (proven, ~1-3s warm)
+- 11 demo audio files saved at:
+  `~/mmuo-modal/morning/` and  
   `http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/`
 
-## What's NOT working
+## Honest assessment of the audio
 
-- The voice clone doesn't sound like Bo Ubani. Sounds American,
-  generic. Fine-tune on the full 90 min audio is the fix.
+User listened to zero-shot demos and said: **"sounds American and
+generic, not like a clone of my voice."**
 
-## What's needed next
+Verified the reference clip itself is your voice (you confirmed `ref_check.wav`
+is you reading academic text). So the input is good. The model's
+zero-shot is just genuinely mid for non-American English voices from
+8-second references.
 
-**Wire fine-tune training in Modal.** The `train_gptsovits` function
-is currently a placeholder. To make Bo Ubani audible at proper
-quality requires:
+The honest fix is fine-tune training on the full 90-min audio, NOT
+parameter tweaking on zero-shot. No prompt_text or reference clip swap
+will close that accent gap meaningfully.
 
-1. **Audio slicing**: split 90-min file into 3-10s chunks at silence
-   boundaries. Upstream has `tools/slice_audio.py`.
-2. **Transcription**: each chunk needs text. Whisper API works
-   (proven; chromox OpenAI key has access).
-3. **Format dataset**: write `list` file in upstream format
-   `vocal_path|speaker|lang|text` per line.
-4. **Run upstream prep scripts** via subprocess:
-   - `prepare_datasets/1-get-text.py` (env-var-driven)
-   - `prepare_datasets/2-get-hubert-wav32k.py`
-   - `prepare_datasets/3-get-semantic.py`
-5. **Train SoVITS**: `s2_train.py --config <yaml>`. Audio decoder.
-6. **Train GPT**: `s1_train.py --config <yaml>`. Text-to-token.
-7. **Save checkpoints to volume**, update synth code to use them.
+## What was attempted overnight (fine-tune)
 
-Estimate: 4-8 hours of engineering + debug + 2-3 hours of actual
-training compute. Single A10G run, ~$3-5 in compute.
+Wrote `train_gptsovits_real` Modal function that orchestrates:
+1. Audio slicing (silence-detection chunks)
+2. Whisper transcription per slice
+3. Upstream `prepare_datasets/` scripts (1-get-text, 2-get-hubert, 3-get-semantic)
+4. SoVITS fine-tune (s2_train.py)
+5. GPT fine-tune (s1_train.py)
+6. Save trained checkpoints to volume
 
-## What you'll wake to
+8 deploy/test iterations got it through:
+- Audio slicing ✓ (rewrote inline using slicer2 module after upstream
+  wrapper script had unfixable PYTHONPATH issues in Modal subprocess)
+- Whisper transcription ✓ (~30 slices from 5-min audio subset)
+- Prep step 1-get-text: **STUCK at FileNotFoundError on
+  `chinese-roberta-wwm-ext-large` pretrained models**
 
-Zero-shot demos are listenable but not your voice. Fine-tune wire-up
-is the next session's main work. The path is clear, just hasn't been
-executed.
+The pretrained models ARE in the volume at
+`/models/gptsovits/pretrained_models/chinese-roberta-wwm-ext-large/`.
+The synthesis container symlinks them into
+`/opt/GPT-SoVITS/GPT_SoVITS/pretrained_models/` via @modal.enter().
+The training container needs the same symlink.
 
-## Audio files generated
+I added the symlink to `train_gptsovits_real` but the test that fired
+right after the deploy may have hit a stale container.
 
-| File | What | Render time |
-|---|---|---|
-| 00_first_real_synth.wav | "hello bo ubani" | 42s cold |
-| 01_declarative.wav | "the seam holds..." | 2.6s warm |
-| 02_intimate.wav | "you hear it now..." | 1.4s warm |
-| 03_aphoristic.wav | "contradiction is structure..." | 1.5s warm |
-| 04_audio_eng.wav | "the loop wants to break..." | 1.2s warm |
-| 05_question.wav | "what does the saltway feel like..." | 1.3s warm |
-| 10-14_with_prompt_*.wav | same prompts but with reference's transcript as prompt_text | 1-50s |
-| ref_check.wav | the 8-sec reference clip itself (your voice reading academic text) | n/a |
+## The exact next move (1 fix away from full pipeline)
+
+In `~/mmuo-modal/src/app.py`, the `train_gptsovits_real` function now
+has the symlink-pretrained-models block at the top. To verify:
+
+```bash
+modal app stop mmuo
+sleep 3
+cd ~/mmuo-modal && modal deploy src/app.py
+```
+
+Then run:
+
+```bash
+OPENAI_KEY=$(grep "^OPENAI_API_KEY=" ~/chromox/backend/.env | cut -d= -f2)
+~/chromox/backend/venv/bin/python -c "
+import modal
+train = modal.Function.from_name('mmuo', 'train_gptsovits_real')
+result = train.remote(
+    persona_id='d5ed82b8-98ae-4d8a-ad30-e4fea597d40a',
+    audio_path='/personas/d5ed82b8-98ae-4d8a-ad30-e4fea597d40a/training/bo_ubani_session_01_mono.wav',
+    openai_api_key='$OPENAI_KEY',
+    epochs_s1=5, epochs_s2=3,
+    sample_minutes=5,
+)
+print(result)
+"
+```
+
+If that succeeds, run again with `sample_minutes=0` to train on the
+full 90 min. ~2-3 hours wall-clock on A10G, ~$3 in compute.
+
+If prep-step-1 still fails: the symlink might be racing with the
+training script setup. Hard-set the env var `bert_pretrained_dir` in
+the function to point directly at `/models/gptsovits/pretrained_models/chinese-roberta-wwm-ext-large`
+instead of via the symlink. Same for `cnhubert_base_dir` and `pretrained_s2G`.
+
+If prep-step-2 fails next: similar pattern, point env vars at volume
+paths directly. There may be 2-3 more such fixes before the prep
+phase is green.
+
+## After fine-tune works
+
+Once the test 5-min run completes:
+1. Listen to a quick synth from the fine-tuned checkpoint
+2. If sounds vocodery: investigate before running full 90 min
+3. If sounds promising: kick full 90 min run (~3 hours, ~$3)
+4. After full run: update `synthesize` method to use the fine-tuned
+   `gptsovits.s1.ckpt` and `gptsovits.s2.pth` paths in volume (need
+   to plumb that into the api_v2 spawn via `set_gpt_weights` and
+   `set_sovits_weights` endpoints)
+5. Demo Bo Ubani in his actual voice
+
+## Why this took longer than expected
+
+GPT-SoVITS upstream's training pipeline is a Gradio-orchestrated set of
+scripts that assume specific cwd, sys.path, and env-var patterns that
+the upstream's `webui.py` sets up from a desktop context. Replicating
+that for headless Modal subprocesses surfaces one upstream-assumption
+issue per iteration. Each fix takes ~30s deploy + ~30s test.
+
+A potentially cleaner approach for next session: use the upstream's
+`config.py` global state machinery and import the training functions
+in-process rather than via subprocess. Slower iteration but fewer
+subprocess-environment issues.
 
 ## Costs so far
 
-Total Modal compute: <$2. Within $30/mo free tier easily.
+Modal compute total: <$3. Within $30/mo free tier.
 
-## Bugs fixed during the build
+## Bug log (chronological)
 
 1. Modal free-tier 8 web endpoint cap → trimmed to 1
-2. pydantic_core import crash inside containers → pinned versions
-3. Missing GPT-SoVITS deps (peft, funasr, etc.) → full requirements install
+2. Pydantic+fastapi import crash in containers → pinned versions
+3. Missing GPT-SoVITS deps (peft, funasr) → full requirements install
 4. NLTK data missing → baked into image
 5. Bad readiness probe (no /health on api_v2) → probe `/` instead
+6. slice_audio.py PYTHONPATH unresolvable in subprocess → inlined slicer2
+7. prep scripts can't import upstream modules → exec wrapper
+8. pretrained_models path missing in training container → symlink at
+   function start (current blocker, may be one more deploy away)
 
-## Useful commands
+## To listen to existing zero-shot now
 
-```bash
-# Listen to first real synth
-xdg-open http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/00_first_real_synth.wav
-
-# Try a different reference clip (ref_2 is from min 30, ref_3 from min 60)
-cd ~/mmuo-modal && python3 -c "
-import modal
-GPTSoVITSService = modal.Cls.from_name('mmuo', 'GPTSoVITSService')
-wav = GPTSoVITSService().synthesize.remote(
-    text='your text here',
-    persona_id='d5ed82b8-98ae-4d8a-ad30-e4fea597d40a',
-    ref_audio_path='/personas/d5ed82b8-98ae-4d8a-ad30-e4fea597d40a/refs/ref_2_minute30_neutral.wav',
-)
-open('/tmp/test.wav','wb').write(wav)
-print(f'wrote /tmp/test.wav ({len(wav)} bytes)')
-"
-
-# Check Modal logs
-modal app logs mmuo
-
-# Run pipeline check
-bash ~/mmuo-modal/scripts/full_pipeline_check.sh
+```
+http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/00_first_real_synth.wav
+http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/01_declarative.wav
+http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/02_intimate.wav
+http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/03_aphoristic.wav
+http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/05_question.wav
+http://localhost:5130/uploads/voice/cmokybgyx0001vbjqaauy88qo/morning/14_with_prompt_signature.wav
 ```
 
-## To continue from here
-
-Next session: wire fine-tune training. The skeleton plan above is the
-full work needed. The upstream's `webui.py` has a working orchestration
-to mirror (see lines 780-900 for `open1a`, `open1b`, `open1c`).
+These don't sound like you. Fine-tune is the fix.
