@@ -1,0 +1,53 @@
+{
+  "name": "ai_8o",
+  "trigger": "ai_8o",
+  "display_name": "Ai-8O",
+  "description": "Ubani's AI twin. Writes via Ibis (myvoice text LoRA). Speaks via Bo Ubani at degraded settings, the uncanny copy that knows it's a copy. mode=twin, twinOf=Ubani.",
+  "type": "character",
+  "lora": null,
+  "stack_with": [],
+  "voice": {
+    "mmuo_persona_id": "d5ed82b8-98ae-4d8a-ad30-e4fea597d40a",
+    "_note": "Mmuo path: same Bo Ubani persona as Ubani, but degraded style/morph for the twin. Boveda routes through Mmuo when MMUO_BASE_URL+MMUO_API_KEY are set in env AND the persona is loaded in the Modal volume.",
+    "style_controls": {
+      "roboticism": 0.4,
+      "glitch": 0.2,
+      "energy": 0.5,
+      "breathiness": 0.3
+    },
+    "style_transfer": {
+      "openvoice_reference_path": null,
+      "blend": 0.0
+    },
+    "morph": {
+      "rvc_target_path": null,
+      "blend_weight": 0.0
+    },
+    "post": {
+      "filter": "rubberband",
+      "pitch_semitones": -1,
+      "formant_preserve": true,
+      "tape_saturation": 0.15,
+      "room_ir_path": null
+    },
+    "fallback_elevenlabs_voice_id": "pNInz6obpgDQGcFmaJgB",
+    "elevenlabs_voice_id": "pNInz6obpgDQGcFmaJgB",
+    "model": "eleven_multilingual_v2",
+    "stability": 0.85,
+    "similarity_boost": 0.4,
+    "style": 0.0
+  },
+  "primary_reference_image": null,
+  "brand": {
+    "primary_color": "#0a0a0a",
+    "accent_color": "#3a3a3a",
+    "tagline": "the break is where you work",
+    "rights": "owner: bomac1193, twin of Ubani",
+    "license": "private"
+  },
+  "metahuman": null,
+  "default_prompt_prefix": "",
+  "default_negative": "",
+  "preferred_aspect": "9:16",
+  "preferred_quality": "high"
+}
