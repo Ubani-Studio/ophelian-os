@@ -9,52 +9,52 @@ datasource db {
 
 // Character source type - where the identity came from
 enum CharacterSourceEnum {
-  GENERATED  // Created by Oripheon generator (fictional)
-  PERSONA    // Real person's public identity (from Sembla/o8)
-  TWIN       // Imported from Starforge Twin OS
+  GENERATED // Created by Oripheon generator (fictional)
+  PERSONA // Real person's public identity (from Sembla/o8)
+  TWIN // Imported from Starforge Twin OS
 }
 
 // Consent record types for audit trail
 enum ConsentRecordTypeEnum {
-  CREATION        // Character/genome created with consent
-  SYNTHESIS       // Voice/visual synthesis consent
-  TRAINING        // AI training consent
-  COMMERCIAL_USE  // Commercial licensing consent
-  MODIFICATION    // Character modified
-  PERSONA_IMPORT  // Imported from real identity
-  REVOCATION      // Consent revoked
+  CREATION // Character/genome created with consent
+  SYNTHESIS // Voice/visual synthesis consent
+  TRAINING // AI training consent
+  COMMERCIAL_USE // Commercial licensing consent
+  MODIFICATION // Character modified
+  PERSONA_IMPORT // Imported from real identity
+  REVOCATION // Consent revoked
 }
 
 model Character {
-  id              String   @id @default(cuid())
-  name            String
-  aliases         String[]
+  id        String   @id @default(cuid())
+  name      String
+  aliases   String[]
   // Public-surface identity. Brief (one paragraph). Shown on
   // cards, character pages, and as the "voice anchor" in the tick
   // prompt. The character speaks in the cadence implied here but
   // does NOT regurgitate phrases from this field.
-  bio             String   @default("")
+  bio       String   @default("")
   // Deeper context. Used by the tick LLM as background to inform
   // decisions but never displayed in UI and never quoted back.
   // Holds psychology, history, contradictions, secrets, the
   // fragments of inner life that make the character feel like an
   // NPC rather than a templated stub. Optional. When empty, tick
   // prompts use bio alone.
-  backstory       String   @default("")
+  backstory String   @default("")
 
   // The artist or author whose register this character speaks in.
   // Free-text for now; future work links to a Sembla / 08 artist
   // identity once cohort onboarding ships. When set, tick prompt
   // tells the LLM "you are authored by X, speak in their register,
   // not the user's." Pre-LoRA bridge to per-character voice.
-  authoredBy      String?
+  authoredBy String?
 
   // Few-shot voice samples in the authoring artist's voice. Array
   // of 3-8 short paragraphs. Tick prompt leads with these so the
   // LLM matches cadence, slang, and refusals from real material
   // rather than its substrate register. The pre-LoRA bridge to
   // per-character voice authenticity.
-  voiceSamples    Json     @default("[]")
+  voiceSamples Json @default("[]")
 
   // Tongue: how this character actually *speaks*. Without it every
   // character converges on standard English. Shape:
@@ -66,22 +66,22 @@ model Character {
   //     registerNotes: free-text (e.g. 'fragmentary, aphoristic, never softens')
   //   }
   // Read by the tick prompt as an explicit ## Tongue block.
-  tongue          Json     @default("{}")
-  avatarUrl       String?
-  avatarPosition  String   @default("50% 50%")
-  personaTags     String[]
-  toneAllowed     String[]
-  toneForbidden   String[]
-  systemPrompt    String   @default("")
-  currentArc      String?
-  timelineState   Json     @default("{}")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  tongue         Json     @default("{}")
+  avatarUrl      String?
+  avatarPosition String   @default("50% 50%")
+  personaTags    String[]
+  toneAllowed    String[]
+  toneForbidden  String[]
+  systemPrompt   String   @default("")
+  currentArc     String?
+  timelineState  Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Identity & source tracking
-  source          CharacterSourceEnum @default(GENERATED)
-  realIdentityId  String?             // Link to o8/Starforge/Sembla identity
-  biometricHash   String?             // SHA256 of facial/voice biometric
+  source         CharacterSourceEnum @default(GENERATED)
+  realIdentityId String? // Link to o8/Starforge/Sembla identity
+  biometricHash  String? // SHA256 of facial/voice biometric
 
   // External persona link (Tizita's Persona table). Lets Tizita's
   // face-clustered persona row anchor to this Boveda character so
@@ -225,14 +225,250 @@ model Character {
   worldId String?
   world   World?  @relation(fields: [worldId], references: [id])
 
+  // SURPRISE / SHOCK MECHANICS — injected into tick prompts to break
+  // out of generic-LLM-default static voice.
+  //
+  // preoccupations: Json — array of strings, things on the character's
+  //   mind RIGHT NOW. One is randomly pulled per tick as "what you
+  //   keep returning to today". Rotate as state evolves. Example:
+  //     ["the way collaborator X disappeared after Glass Motel",
+  //      "whether to release the EP in stages or all at once",
+  //      "missing Lagos in summer"]
+  //
+  // tensions: Json — array of {beliefA, beliefB, note?} objects.
+  //   Contradictions the character holds simultaneously and refuses
+  //   to resolve. Tick prompt instructs the LLM to embody both, not
+  //   pick a side. Example:
+  //     [{beliefA:"AI is necessary for the next register",
+  //       beliefB:"AI flattens the work that mattered most",
+  //       note:"never resolve in public"}]
+  //
+  // fixations: Json — array of strings, the character's persistent
+  //   obsessions across all time. Differs from preoccupations (which
+  //   rotate). Inject ~once per N ticks. Example:
+  //     ["Lagos at 4am", "the silence between bars",
+  //      "what my grandmother said about names"]
+  preoccupations Json @default("[]")
+  tensions       Json @default("[]")
+  fixations      Json @default("[]")
+
+  // Modernity: lets archaic/mythic characters carry contemporary register.
+  // Even an Orisha or 18th-century occultist exists in 2026; the absence
+  // of contemporary slang/refs is what makes them sound fake-archaic.
+  // Shape:
+  //   {
+  //     anchorEra: "ancient" | "early_modern" | "mid_20c" | "contemporary",
+  //     contemporaryBleed: 0.0-1.0  (how much modern slang/refs bleed in),
+  //     contemporarySlang: string[]  (specific 2020s phrases this character would actually use),
+  //     contemporaryRefs:  string[]  (cultural touchstones — songs, films, places, brands they reference),
+  //     refusedSlang:      string[]  (modern phrases they refuse — TikTok-cringe, dated 2010s, etc.)
+  //   }
+  modernity Json @default("{}")
+
+  // Where the character is RIGHT NOW. Free-text. Can be a city, a scene,
+  // a venue, a state of mind. Tick prompts surface this so output is
+  // place-aware. e.g. "Lagos, May", "South London, between sets",
+  // "Berlin, third week of withdrawal".
+  currentLocation String?
+
+  // Where the character is FROM / based. Stable. e.g. "Lagos / South London".
+  homeBase String?
+
+  // Vaulted (RightsLayer) licensing bridge. When a character is
+  // registered as a licensable LoRA artifact in Vaulted, these
+  // fields hold the link. Without them, Sembla cannot license the
+  // character to brand pilots — Vaulted is the canonical rights
+  // engine; Boveda is the human-facing surface.
+  //
+  // vaultedStatus values:
+  //   not_registered       default; never attempted
+  //   pending_registration registration in flight or queued (Vaulted offline)
+  //   registered           live LoraArtifact in Vaulted
+  //   listed               registered + is_listed=true on the marketplace
+  //   licensed             at least one accepted LicenseRequest exists
+  //   error                last attempt failed; see vaultedLastError
+  vaultedArtifactId   String?
+  vaultedStatus       String    @default("not_registered")
+  vaultedRegisteredAt DateTime?
+  vaultedLastSyncedAt DateTime?
+  vaultedLastError    String?
+
   // Relations
-  position         CharacterPosition?
-  genome           CharacterGenome?
-  consentRecords   ConsentRecord[]
-  memberships      EnsembleMember[]
-  cohortPhrases    CohortPhrase[]
+  position        CharacterPosition?
+  genome          CharacterGenome?
+  consentRecords  ConsentRecord[]
+  memberships     EnsembleMember[]
+  cohortPhrases   CohortPhrase[]
+  memoryEpisodes  MemoryEpisode[]
+  canonicalLore   CanonicalLoreEntry[]
+  ciphersAsSource Cipher[]             @relation("CipherSourceCharacter")
 
   @@index([tizitaPersonaId])
+  @@index([vaultedArtifactId])
+}
+
+// =====================================================================
+// Layer 4: episodic memory (rolling, auto-pruned)
+// =====================================================================
+// Short-term memory of recent activity. Hard retention window enforced
+// by the prune job. Never persists beyond expiresAt. Used by the tick
+// prompt as recent context, but NOT as authoritative biography.
+//
+// kind values:
+//   post            character published a post
+//   reaction        character reacted to something
+//   collab          collaboration event with another character/user
+//   thought         introspective entry (used by reflective summaries)
+//   external_event  cultural moment the character noted
+//   user_input      user added a memory directly
+model MemoryEpisode {
+  id                String    @id @default(cuid())
+  characterId       String
+  character         Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  kind              String
+  content           String
+  metadata          Json      @default("{}")
+  /// Free-text location where the episode happened. Lets us answer
+  /// "what happened at Lagos last week?" across all characters.
+  location          String?
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+  promotedToCanonId String?
+
+  @@index([characterId, createdAt])
+  @@index([expiresAt])
+  @@index([location])
+}
+
+// =====================================================================
+// Things that happen at a place, independent of any one character.
+// Atmospheric events (weather, vibe, time-of-day), external events
+// (an album drop, a riot, a heatwave), shared situations. Every
+// character whose currentLocation matches sees these in their tick
+// prompt as "what's happening here right now". This is what makes
+// the world feel inhabited rather than each character living in a
+// bubble. Auto-pruned via expiresAt.
+// =====================================================================
+// =====================================================================
+// Location as first-class entity. Was free-text on Character + LocationEvent;
+// elevated to its own row so we can attach a representative image, vibe,
+// description, and (eventually) a Tizita photo reference. Boveda Studio
+// shows the image when the location is referenced anywhere.
+// =====================================================================
+model Location {
+  /// Name is the natural key; matches Character.currentLocation + LocationEvent.location free-text.
+  name          String   @id
+  description   String   @default("")
+  kind          String   @default("place")
+  vibe          String   @default("")
+  imageUrl      String?
+  tizitaPhotoId String?
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  ciphers       Cipher[]
+}
+
+// =====================================================================
+// StoryArc: the overall trajectory of a season / cycle / project.
+// Characters participate (many-to-many via ArcParticipant). The arc
+// has named beats; the current beat is injected into every tick prompt
+// so character behavior tracks the trajectory, not just their own
+// internal state.
+//
+// Status values: draft | active | concluded | shelved
+// =====================================================================
+model StoryArc {
+  id               String    @id @default(cuid())
+  title            String
+  description      String    @default("")
+  status           String    @default("draft")
+  /// Decolonial primary (origin / descent / return / liberation / communion / encounter / inheritance / sacrifice / trickster / exile).
+  /// See lib/decolonial-arcs.ts for canonical 10. When set, beats are auto-seeded from the primary's 5 phases.
+  primary          String?
+  /// Cultural variant (e.g. "Sankofa (Akan)", "Ogun's crossing (Yoruba, Soyinka)").
+  variant          String?
+  /// Vodun-derived temperature: cool / hot / crossroads. Auto-derived from primary.
+  temperature      String?
+  /// The shadow primary that haunts this arc. Auto-derived from primary.
+  shadowPrimary    String?
+  /// Single-glyph icon. Auto-derived from primary.
+  glyph            String?
+  /// Beats: array of { title, body?, occurredAt? }. Auto-seeded from primary phases; editable.
+  beats            Json      @default("[]")
+  currentBeatIndex Int       @default(0)
+  tags             String[]
+  startedAt        DateTime?
+  endedAt          DateTime?
+  metadata         Json      @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  participants ArcParticipant[]
+
+  @@index([status])
+  @@index([primary])
+}
+
+model ArcParticipant {
+  arcId       String
+  arc         StoryArc @relation(fields: [arcId], references: [id], onDelete: Cascade)
+  characterId String
+  /// lead | supporting | passing | antagonist
+  role        String   @default("lead")
+  joinedAt    DateTime @default(now())
+
+  @@id([arcId, characterId])
+  @@index([characterId])
+}
+
+model LocationEvent {
+  id           String   @id @default(cuid())
+  location     String
+  /// Categories: atmospheric | external | shared_interaction | scene_event
+  kind         String
+  content      String
+  /// Character ids who participated, if applicable. Empty for ambient
+  /// atmospheric events that apply to everyone at the location.
+  participants Json     @default("[]")
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([location, createdAt])
+  @@index([expiresAt])
+}
+
+// =====================================================================
+// Layer 2: canonical lore (long-term, human-curated, append-only)
+// =====================================================================
+// The character's official biography. Append-only with retract-with-reason
+// for audit. Each entry signed by an o8 attestation so it's tamper-evident.
+// Used by the tick prompt as authoritative context. Brand pilots can scope
+// inference to "constitution + canon only", excluding episodic.
+//
+// scope values:
+//   public           visible to all consumers
+//   licensed_only    only visible inside scoped license contexts
+//   private          internal author notes; never injected into prompts
+model CanonicalLoreEntry {
+  id               String    @id @default(cuid())
+  characterId      String
+  character        Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  title            String
+  body             String
+  occurredAt       DateTime?
+  tags             String[]
+  scope            String    @default("public")
+  sourceEpisodeId  String?
+  attestationId    String?
+  signedBy         String?
+  signedAt         DateTime  @default(now())
+  retractedAt      DateTime?
+  retractionReason String?
+  createdAt        DateTime  @default(now())
+
+  @@index([characterId, occurredAt])
 }
 
 // An Ensemble groups multiple Characters as a unit (a band, a duo,
@@ -247,18 +483,18 @@ model Character {
 // shots; matching against an individual Character's description
 // catches solo shots. Both signals stack.
 model Ensemble {
-  id               String   @id @default(cuid())
-  name             String
-  aliases          String[]
-  bio              String   @default("")
-  avatarUrl        String?
-  avatarPosition   String   @default("50% 50%")
+  id             String   @id @default(cuid())
+  name           String
+  aliases        String[]
+  bio            String   @default("")
+  avatarUrl      String?
+  avatarPosition String   @default("50% 50%")
   // Ensemble kind hints at what it represents: band, duo, troupe,
   // family, council, etc. Free-text so writers can coin their own.
-  kind             String?
-  personaTags      String[]
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  kind           String?
+  personaTags    String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Pre-computed SigLIP text embedding of the bio. Powers
   // ensemble-aware photo retrieval ("find more group shots like
@@ -266,7 +502,7 @@ model Ensemble {
   bioTextEmbedding Json?
 
   // Relations
-  members          EnsembleMember[]
+  members EnsembleMember[]
 
   @@index([name])
 }
@@ -283,8 +519,8 @@ model EnsembleMember {
   displayOrder Int      @default(0)
   createdAt    DateTime @default(now())
 
-  ensemble     Ensemble  @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
-  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  ensemble  Ensemble  @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   @@id([ensembleId, characterId])
   @@index([characterId])
@@ -343,10 +579,10 @@ enum VoiceProviderEnum {
 }
 
 enum VoiceSourceEnum {
-  UPLOADED       // User uploaded voice sample
-  PERSONA        // Imported from real identity (Sembla/o8)
-  CLONED         // Voice cloned via provider
-  SYNTHESIZED    // Pure AI synthesis
+  UPLOADED // User uploaded voice sample
+  PERSONA // Imported from real identity (Sembla/o8)
+  CLONED // Voice cloned via provider
+  SYNTHESIZED // Pure AI synthesis
 }
 
 model VoiceProfile {
@@ -359,12 +595,12 @@ model VoiceProfile {
   updatedAt       DateTime          @updatedAt
 
   // Identity & source tracking
-  source          VoiceSourceEnum   @default(SYNTHESIZED)
-  realIdentityId  String?           // Link to o8/Sembla identity
-  biometricHash   String?           // Voice fingerprint hash
+  source         VoiceSourceEnum @default(SYNTHESIZED)
+  realIdentityId String? // Link to o8/Sembla identity
+  biometricHash  String? // Voice fingerprint hash
 
   // Consent
-  consentRecords  ConsentRecord[]
+  consentRecords ConsentRecord[]
 
   @@index([realIdentityId])
   @@index([biometricHash])
@@ -396,10 +632,10 @@ model License {
   updatedAt        DateTime        @updatedAt
 
   // Public-facing token (short, memorable - e.g., "FX-91A")
-  publicToken      String?         @unique
+  publicToken String? @unique
 
   // Consent chain
-  consentRecords   ConsentRecord[]
+  consentRecords ConsentRecord[]
 
   @@index([subjectId])
   @@index([ownerId])
@@ -486,26 +722,26 @@ model ScenePosition {
 }
 
 model World {
-  id          String         @id @default(cuid())
-  name        String
-  description String?
-  type        String         @default("setting") // "setting" | "story"
-  imageUrl    String?
-  tags        String[]       @default([])
-  metadata    Json?
+  id                String         @id @default(cuid())
+  name              String
+  description       String?
+  type              String         @default("setting") // "setting" | "story"
+  imageUrl          String?
+  tags              String[]       @default([])
+  metadata          Json?
   // Pinned narrative trajectory for this Cube. References a story
   // template id from packages/oripheon/...storyarcs (decolonial 10
   // canonical). Optional variant pin for cultural texture
   // (e.g. "Sankofa" under Return). When null, Cube is untrajectoried.
   trajectoryId      String?
   trajectoryVariant String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  position    WorldPosition?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  position          WorldPosition?
   // Characters that live in this world. Carried over from Òrò's
   // worldId-on-character pattern so Òrò → Bóveda migrations preserve
   // bindings.
-  characters  Character[]
+  characters        Character[]
 }
 
 model WorldPosition {
@@ -523,15 +759,15 @@ enum EntityTypeEnum {
 }
 
 model WorldConnection {
-  id              String         @id @default(cuid())
-  sourceType      EntityTypeEnum
-  sourceId        String
-  targetType      EntityTypeEnum
-  targetId        String
-  connectionType  String         // e.g., "appears_in", "located_in", "rules"
-  lore            String         @default("")
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  sourceType     EntityTypeEnum
+  sourceId       String
+  targetType     EntityTypeEnum
+  targetId       String
+  connectionType String // e.g., "appears_in", "located_in", "rules"
+  lore           String         @default("")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@unique([sourceType, sourceId, targetType, targetId])
   @@index([sourceType, sourceId])
@@ -543,7 +779,7 @@ model NexusSnapshot {
   id          String   @id @default(cuid())
   name        String
   description String?
-  data        Json     // Stores positions, relationships, connections as JSON
+  data        Json // Stores positions, relationships, connections as JSON
   // Figma-style branching. 'sandbox' for in-progress exploration,
   // 'canonical' for the committed source of truth. UI shows a pill;
   // promote-to-canonical copies a sandbox snapshot's data forward.
@@ -560,13 +796,13 @@ model CharacterGenome {
   updatedAt DateTime @updatedAt
 
   // Store genome components as JSON for flexibility
-  orishaConfiguration   Json
-  kabbalisticPosition   Json
-  psychologicalState    Json
-  multiModalSignature   Json
-  narrativeIdentity     Json
-  invariantMarkers      Json
-  evolutionRules        Json
+  orishaConfiguration Json
+  kabbalisticPosition Json
+  psychologicalState  Json
+  multiModalSignature Json
+  narrativeIdentity   Json
+  invariantMarkers    Json
+  evolutionRules      Json
 
   // Schema version for future migrations
   schemaVersion String @default("1.0.0")
@@ -586,8 +822,8 @@ model CharacterGenome {
   sourceIdentityId String? // If derived from real identity
 
   // Consent
-  consentToken     String? // Proof of consent for this genome
-  consentRecords   ConsentRecord[]
+  consentToken   String? // Proof of consent for this genome
+  consentRecords ConsentRecord[]
 
   @@index([name])
   @@index([characterId])
@@ -596,36 +832,36 @@ model CharacterGenome {
 
 // Consent Record - immutable audit trail with hash chain
 model ConsentRecord {
-  id            String                @id @default(cuid())
-  type          ConsentRecordTypeEnum
-  timestamp     DateTime              @default(now())
+  id        String                @id @default(cuid())
+  type      ConsentRecordTypeEnum
+  timestamp DateTime              @default(now())
 
   // Hash chain for tamper-proof audit trail
-  previousHash  String?               // SHA256 of previous record
-  hash          String                // SHA256 of this record
+  previousHash String? // SHA256 of previous record
+  hash         String // SHA256 of this record
 
   // Source of consent
-  source        String                // "user" | "o8" | "starforge" | "sembla" | "api"
-  sourceId      String?               // ID from external system
-  grantedBy     String?               // Email or user ID who granted
+  source    String // "user" | "o8" | "starforge" | "sembla" | "api"
+  sourceId  String? // ID from external system
+  grantedBy String? // Email or user ID who granted
 
   // What was consented to
-  permissions   Json                  // { synthesis: bool, training: bool, commercial: bool, ... }
-  terms         String?               // Link to terms accepted
-  metadata      Json                  @default("{}")
+  permissions Json // { synthesis: bool, training: bool, commercial: bool, ... }
+  terms       String? // Link to terms accepted
+  metadata    Json    @default("{}")
 
   // Relations (a record belongs to one of these)
-  characterId       String?
-  character         Character?        @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId String?
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
-  voiceProfileId    String?
-  voiceProfile      VoiceProfile?     @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+  voiceProfileId String?
+  voiceProfile   VoiceProfile? @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
 
-  licenseId         String?
-  license           License?          @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  licenseId String?
+  license   License? @relation(fields: [licenseId], references: [id], onDelete: Cascade)
 
-  genomeId          String?
-  genome            CharacterGenome?  @relation(fields: [genomeId], references: [id], onDelete: Cascade)
+  genomeId String?
+  genome   CharacterGenome? @relation(fields: [genomeId], references: [id], onDelete: Cascade)
 
   @@index([characterId])
   @@index([voiceProfileId])
@@ -638,7 +874,7 @@ model ConsentRecord {
 // Invite Code System for Exclusivity Gate
 model InviteCode {
   id          String    @id @default(cuid())
-  code        String    @unique  // e.g., "SEMBLA-ELITE-2026"
+  code        String    @unique // e.g., "SEMBLA-ELITE-2026"
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
   maxUses     Int       @default(1)
@@ -646,14 +882,14 @@ model InviteCode {
   isActive    Boolean   @default(true)
 
   // Who created this code
-  createdBy   String?   // Admin email or "system"
+  createdBy String? // Admin email or "system"
 
   // Metadata
-  tier        String    @default("registry")  // "registry" | "pro" | "legacy"
-  notes       String?
+  tier  String  @default("registry") // "registry" | "pro" | "legacy"
+  notes String?
 
   // Track who used it
-  usedBy      InviteCodeUsage[]
+  usedBy InviteCodeUsage[]
 
   @@index([code])
   @@index([isActive])
@@ -665,7 +901,7 @@ model InviteCodeUsage {
   inviteCode   InviteCode @relation(fields: [inviteCodeId], references: [id], onDelete: Cascade)
   usedAt       DateTime   @default(now())
   usedByEmail  String
-  characterId  String?    // Link to created persona
+  characterId  String? // Link to created persona
 
   @@index([inviteCodeId])
   @@index([usedByEmail])
@@ -673,17 +909,17 @@ model InviteCodeUsage {
 
 // Waitlist for those without invite codes
 model WaitlistRequest {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String
-  instagram   String?  // For verification
-  agency      String?  // Agency representation
-  reason      String?  // Why they want access
-  createdAt   DateTime @default(now())
-  status      String   @default("pending")  // "pending" | "approved" | "rejected"
-  reviewedAt  DateTime?
-  reviewedBy  String?
-  notes       String?
+  id         String    @id @default(cuid())
+  email      String    @unique
+  name       String
+  instagram  String? // For verification
+  agency     String? // Agency representation
+  reason     String? // Why they want access
+  createdAt  DateTime  @default(now())
+  status     String    @default("pending") // "pending" | "approved" | "rejected"
+  reviewedAt DateTime?
+  reviewedBy String?
+  notes      String?
 
   // If approved, which invite code was sent
   inviteCodeSent String?
@@ -708,38 +944,107 @@ model WaitlistRequest {
 // targeting, lineage indexing, and lifecycle independent of any
 // single character.
 model CohortPhrase {
-  id              String   @id @default(cuid())
-  phrase          String
+  id                String     @id @default(cuid())
+  phrase            String
   // The character that originated the phrase (provenance head).
   // Multi-character LoRA-tied attribution is deferred; for now
   // first-extraction wins.
   sourceCharacterId String?
-  sourceCharacter Character? @relation(fields: [sourceCharacterId], references: [id], onDelete: SetNull)
+  sourceCharacter   Character? @relation(fields: [sourceCharacterId], references: [id], onDelete: SetNull)
   // The lineage(s) this phrase is rooted in. Single string for v1
   // (e.g. "yoruba_diaspora_uk"); future: array.
-  lineage         String?
+  lineage           String?
   // Subtaste designation code (S-0, L-3, etc.) when known. Used
   // for filtering embrace candidates by Subtaste affinity.
-  subtasteCode    String?
+  subtasteCode      String?
   // Source evidence: which voice sample / authored line surfaced
   // it. Stored as raw substring for auditability.
-  sourceQuote     String?
+  sourceQuote       String?
   // Optional human-friendly gloss explaining the phrase to
   // cultural advisors during review.
-  gloss           String?
+  gloss             String?
   // Lifecycle. proposed = freshly extracted, awaiting review.
   // active = visible to embrace lists. promoted = sent to Ibis
   // frontier (write-back, deferred). revoked = contributor
   // pulled it back per right-to-forget.
-  status          String   @default("proposed")
+  status            String     @default("proposed")
   // Times this phrase has been embraced in generations. Will tie
   // to Imperium royalty when the cohort LoRA pipeline ships.
-  useCount        Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  useCount          Int        @default(0)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   @@unique([phrase, sourceCharacterId])
   @@index([status])
   @@index([lineage])
   @@index([subtasteCode])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cipher: encoded handle to a moment of significance in the world.
+// Generated server-side when player presence, sparks, or atmospheric events
+// produce significant moments. Surfaces to UE as a collectible cryptic glyph
+// that decodes over time as the player meets unlock conditions.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Cipher {
+  id        String @id // hex like "0x3F7A"
+  signature String // glyph: Λ Δ Π ◬ ⬡ ⟁ Σ Ω
+  rarity    String @default("common") // common|rare|sigil
+  state     String @default("locked") // locked|partial|unlocked
+  kind      String // encounter|witness|threshold
+
+  // What anchored this cipher in the world
+  sourceCharacterId  String?
+  sourceCharacter    Character? @relation("CipherSourceCharacter", fields: [sourceCharacterId], references: [id], onDelete: SetNull)
+  sourceLocationName String?
+  sourceLocation     Location?  @relation(fields: [sourceLocationName], references: [name], onDelete: SetNull)
+  sourceEpisodeId    String?
+
+  // Unlock condition
+  unlockType  String // presence_count|dialogue_count|spark_count|combo
+  unlockValue Int    @default(1)
+
+  // Payloads
+  payloadLocked   String // cryptic placeholder visible while locked
+  payloadUnlocked String // the real reveal
+  payloadHint     String? // optional hint shown when locked
+
+  createdAt  DateTime  @default(now())
+  unlockedAt DateTime?
+
+  progress CipherProgress[]
+
+  @@index([sourceCharacterId])
+  @@index([sourceLocationName])
+  @@index([kind])
+  @@index([state])
+}
+
+model CipherProgress {
+  // Composite key: each player has at most one progress row per cipher.
+  playerId     String
+  cipherId     String
+  cipher       Cipher   @relation(fields: [cipherId], references: [id], onDelete: Cascade)
+  currentValue Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@id([playerId, cipherId])
+  @@index([playerId])
+}
+
+// Player presence at a place (UE volume trigger reports). Drives the
+// presence_count unlock condition, also surfaces in the trail.
+model PresenceEvent {
+  id           String   @id @default(cuid())
+  playerId     String
+  characterId  String? // when player approached a specific character
+  locationName String?
+  kind         String   @default("approached") // approached|departed|listened
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([playerId, characterId])
+  @@index([playerId, locationName])
+  @@index([createdAt])
 }

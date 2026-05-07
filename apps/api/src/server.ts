@@ -7,6 +7,13 @@ import path from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { authMiddleware } from './middleware/auth.js';
 import { characterRoutes } from './routes/characters.js';
+import { corpusRoutes } from './routes/corpus.js';
+import { vaultedBridgeRoutes } from './routes/vaulted-bridge.js';
+import { memoryRoutes } from './routes/memory.js';
+import { avatarBridgeRoutes } from './routes/avatar-bridge.js';
+import { nuanceRoutes } from './routes/nuance.js';
+import { interactionRoutes } from './routes/interactions.js';
+import { placesAndArcsRoutes } from './routes/places.js';
 import { voiceProfileRoutes } from './routes/voice-profiles.js';
 import { licenseRoutes } from './routes/licenses.js';
 import { contentRoutes } from './routes/content.js';
@@ -27,7 +34,10 @@ import { starforgeImportRoutes } from './routes/starforge-import.js';
 import { trailRoutes } from './routes/trail.js';
 import { realignRoutes } from './routes/realign.js';
 import { personaRoutes } from './routes/personas.js';
-import { startScheduler, runScheduledTickPass } from './lib/scheduler.js';
+import { liveRoutes } from './routes/live.js';
+import { npcBridgeRoutes } from './routes/npc-bridge.js';
+import { cipherRoutes } from './routes/ciphers.js';
+import { startScheduler, runScheduledTickPass, runScheduledMeetupPass } from './lib/scheduler.js';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || './storage/uploads';
 
@@ -79,13 +89,24 @@ async function start() {
 
     // Register auth middleware for all other routes
     fastify.addHook('onRequest', async (request, reply) => {
-      // Skip auth for health check and static files
+      // Skip auth for health check, static files, and the live WS bridge.
+      // (WebSocket clients can't easily attach custom headers from a browser
+      // or Unreal plugin; for v1 the live stream is read-only and assumed
+      // to be inside a trusted local network. Tighten with token on URL later.)
       if (request.url === '/health' || request.url.startsWith('/uploads/')) return;
+      if (request.url.match(/^\/characters\/[^/]+\/live(\?|$)/)) return;
       await authMiddleware(request, reply);
     });
 
     // Register routes
     await fastify.register(characterRoutes);
+    await fastify.register(corpusRoutes);
+    await fastify.register(vaultedBridgeRoutes);
+    await fastify.register(memoryRoutes);
+    await fastify.register(avatarBridgeRoutes);
+    await fastify.register(nuanceRoutes);
+    await fastify.register(interactionRoutes);
+    await fastify.register(placesAndArcsRoutes);
     await fastify.register(voiceProfileRoutes);
     await fastify.register(licenseRoutes);
     await fastify.register(contentRoutes);
@@ -106,12 +127,27 @@ async function start() {
     await fastify.register(trailRoutes);
     await fastify.register(realignRoutes);
     await fastify.register(personaRoutes);
+    await fastify.register(liveRoutes);
+    await fastify.register(npcBridgeRoutes);
+    await fastify.register(cipherRoutes);
 
     // Manual tick-pass trigger. Lets the user fire the scheduler
     // immediately rather than waiting for the cron. Useful in beta:
     // make the world move now, come back to the trail.
     fastify.post('/scheduler/tick-pass', async (_request, reply) => {
       const outcomes = await runScheduledTickPass();
+      const summary = outcomes.reduce<Record<string, number>>((acc, o) => {
+        acc[o.status] = (acc[o.status] ?? 0) + 1;
+        return acc;
+      }, {});
+      return reply.send({ outcomes, summary });
+    });
+
+    // Manual meetup pass. Walks every place with two or more co-located
+    // characters and randomly fires sparks (with backoff). Lets the
+    // writer trigger meetups now without waiting for the cron.
+    fastify.post('/scheduler/meetup-pass', async (_request, reply) => {
+      const outcomes = await runScheduledMeetupPass();
       const summary = outcomes.reduce<Record<string, number>>((acc, o) => {
         acc[o.status] = (acc[o.status] ?? 0) + 1;
         return acc;
