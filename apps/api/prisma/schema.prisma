@@ -711,6 +711,10 @@ model Scene {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   position    ScenePosition?
+  // Spheres (divergent media pieces) that inhabit this Scene/Zone.
+  // Each Sphere is one format-bound take (the YouTube cut, the game
+  // cut, the film). Cascade-deleted with the Scene.
+  spheres     Sphere[]
 }
 
 model ScenePosition {
@@ -735,6 +739,25 @@ model World {
   // (e.g. "Sankofa" under Return). When null, Cube is untrajectoried.
   trajectoryId      String?
   trajectoryVariant String?
+  // World-system folder paths. Bóveda holds these as references;
+  // Ikenga surfaces them on storyboards bound to this Cube. No
+  // dispatch logic at the data layer — just paths the writer's
+  // tools open natively.
+  // Spec: /home/sphinxy/ikenga/PROCEDURAL_TITLING_AND_WORLD_SYSTEMS.md
+  blenderProjectPaths  String[] @default([])
+  houdiniProjectPaths  String[] @default([])
+  fontPaths            String[] @default([])
+  touchDesignerPaths   String[] @default([])
+  unrealProjectPaths   String[] @default([])
+  // Free-text Era ids that exist inside this Cube. Ikenga storyboards
+  // declare their own era_id; Bóveda Cubes list which eras live here
+  // so a storyboard's surfacing UI knows what to offer.
+  eraIds               String[] @default([])
+  // Zone (Scene) and Location refs surface together — when an Ikenga
+  // storyboard binds to a Sphere in this Cube, the Cube's known Zones
+  // and Locations show up as available material in the storyboard.
+  knownZoneIds         String[] @default([])
+  knownLocationIds     String[] @default([])
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   position          WorldPosition?
@@ -756,6 +779,159 @@ enum EntityTypeEnum {
   CHARACTER
   SCENE
   WORLD
+  SPHERE
+  RELIC
+}
+
+// Relic — the unit of the Vivarium discovery layer (PLATS-Bioacoustic).
+//
+// A captured ecological / biodiversity / phenomenon signal with the
+// six-layer shape: field signal, scientific capture, intelligence,
+// sonification, visualisation, mythic posture. Surfaces appear in
+// Ikenga (visual side) and Resonate (audio side); this model is the
+// canonical store.
+//
+// Spec: /home/sphinxy/boveda/VIVARIUM_ARCHITECTURE.md
+// Article notes: /home/sphinxy/boveda/ARTICLE_NOTES_PLATS_BIOACOUSTIC.md
+model Relic {
+  id                  String   @id @default(cuid())
+  // location | species | phenomenon | tech | method | recording
+  kind                String   @default("recording")
+  title               String
+
+  // Layer 1 — Field signal
+  // infrasonic_elephant | seismic_substrate | whale_call | reef_chorus
+  // | volcanic_tremor | glacial_cracking | bat_echolocation
+  // | soil_microbiome | edna_trace | astro_sonification | custom
+  phenomenonKey       String?
+  fieldSite           String?
+  fieldLat            Float?
+  fieldLng            Float?
+
+  // Layer 2 — Scientific capture
+  // hydrophone | contact_mic | geophone | ultrasonic_mic
+  // | field_recorder | edna_sampler | lidar | satellite | thermal
+  // | drone_photogrammetry | archival
+  captureMethod       String?
+  captureGearNotes    String?
+  rawSampleUrl        String?
+
+  // Layer 3 — Intelligence
+  taxonPath           String?
+  ncbiTaxid           String?
+  gbifTaxonkey        String?
+  iucnStatus          String?   // VU | EN | CR | LC | DD | NT
+  habitat             String?
+  // [{ lat, lng, date, observer, source, count }]
+  occurrences         Json?
+  // GeoJSON Feature
+  rangeGeojson        Json?
+  // { temp_c, wind_ms, precipitation_mm, lunar_phase }
+  weatherAtCapture    Json?
+  // { ACI, NDSI, BI, ADI, AEI, H }
+  acousticIndices     Json?
+  // [{ name, confidence, model }]
+  detectedSpecies     Json?
+
+  // Layer 4 — Sonification
+  defaultScoreId      String?
+  // [{ score_id, format, url, duration_s }]
+  renderedOutputs     Json?
+
+  // Layer 5 — Visualisation
+  spectrogramUrl      String?
+  waterfallUrl        String?
+  pointCloudUrl       String?
+  gisLayerUrl         String?
+  tdPatchRef          String?
+  unrealActorRef      String?
+
+  // Layer 6 — Mythic / art
+  strangeness         Float    @default(0)
+  saroIndex           Float    @default(0)
+  mythicPosture       String?
+  bodyMd              String?
+
+  // [{ url, source, license, duration_s?, recordist? }]
+  audioSamples        Json?
+  // [{ url, source, license }]
+  visualSamples       Json?
+
+  // Refs into the world graph. These are arrays of cuid strings so
+  // a Relic can bind to many Cubes / Zones / Spheres / Stelas /
+  // Ciphers / Characters at once. We deliberately keep them as
+  // string arrays rather than FK tables so import is cheap; the
+  // typed-edge WorldConnection table can later upgrade any of these
+  // bindings into a first-class edge.
+  cubeIds             String[] @default([])
+  zoneIds             String[] @default([])
+  sphereIds           String[] @default([])
+  stelaIds            String[] @default([])
+  cipherIds           String[] @default([])
+  characterIds        String[] @default([])
+
+  // GBIF | iNaturalist | xeno-canto | Macaulay | OBIS | Earth Engine
+  // | arXiv | manual | field
+  sourceProvenance    String?
+  sourceUrl           String?
+
+  tags                String[] @default([])
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([kind])
+  @@index([phenomenonKey])
+  @@index([strangeness])
+  @@index([saroIndex])
+}
+
+// Sphere — one divergent media piece inhabiting a Scene (Zone).
+// Format-bound, aspect-bound, intent-bound. Where a Zone is a place,
+// a Sphere is a take on that place: the YouTube cut, the game cut,
+// the film, the content reel. Each Sphere points at one Ikenga
+// Series for its storyboard.
+// Spec: /home/sphinxy/boveda/CUBE_ZONE_SPHERE_ARCHITECTURE.md
+model Sphere {
+  id              String   @id @default(cuid())
+  // Zone this Sphere inhabits. Cube binding follows the Scene's
+  // WorldConnection (already supported via the WorldConnection
+  // edge table; no FK duplication here).
+  sceneId         String
+  scene           Scene    @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  name            String
+  // film | music_video | content | game | dialogue | interactive |
+  // trailer | reel | mood
+  format          String   @default("music_video")
+  // "16:9" | "9:16" | "1:1" | "2.39:1" | etc. Free text so anamorphic
+  // and custom ratios stay first-class.
+  primaryAspect   String   @default("16:9")
+  // Optional sibling aspect for the same cut, different crop case.
+  // For divergent intent (different cast / audio mode), make a new
+  // Sphere instead of using this.
+  siblingAspect   String?
+  intent          String?
+  // Storyboard binding. Ikenga Series id. Null until a storyboard is
+  // attached; one Sphere binds to at most one Series.
+  ikengaSeriesId  String?  @unique
+  // Subset of the parent Scene's cast that appears in this Sphere.
+  // Resolved at query time against the Scene's character set.
+  castIds         String[] @default([])
+  // lead | remix | underscore | silent | diegetic
+  audioMode       String   @default("lead")
+  // Stela this Sphere is the public face of, when applicable. Most
+  // Spheres have no Stela; the headline release does.
+  stelaId         String?
+  // draft | in_production | locked | shipped
+  status          String   @default("draft")
+  // Physics / quantum_state contract. See spec for the keys:
+  //   time_flow, gravity, weather, sensory, quantum_state
+  physics         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sceneId])
+  @@index([status])
 }
 
 model WorldConnection {

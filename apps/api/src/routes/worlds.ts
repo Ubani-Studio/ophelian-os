@@ -24,6 +24,19 @@ interface UpdateWorldBody {
   /** Optional variant pinned within the primary (e.g. 'Sankofa'
    *  under 'return'). */
   trajectoryVariant?: string | null;
+  /** World-system folder paths. Bóveda holds these as references;
+   *  Ikenga surfaces them on storyboards bound to a Sphere in this
+   *  Cube. No dispatch logic at this layer — paths only. */
+  blenderProjectPaths?: string[];
+  houdiniProjectPaths?: string[];
+  fontPaths?: string[];
+  touchDesignerPaths?: string[];
+  unrealProjectPaths?: string[];
+  /** Free-text Era ids that exist inside this Cube. */
+  eraIds?: string[];
+  /** Zone (Scene) and Location ids known to live in this Cube. */
+  knownZoneIds?: string[];
+  knownLocationIds?: string[];
 }
 
 export async function worldRoutes(fastify: FastifyInstance): Promise<void> {
@@ -99,6 +112,14 @@ export async function worldRoutes(fastify: FastifyInstance): Promise<void> {
         metadata: body.metadata === null ? Prisma.DbNull : body.metadata,
         ...(body.trajectoryId !== undefined ? { trajectoryId: body.trajectoryId } : {}),
         ...(body.trajectoryVariant !== undefined ? { trajectoryVariant: body.trajectoryVariant } : {}),
+        ...(body.blenderProjectPaths !== undefined ? { blenderProjectPaths: body.blenderProjectPaths } : {}),
+        ...(body.houdiniProjectPaths !== undefined ? { houdiniProjectPaths: body.houdiniProjectPaths } : {}),
+        ...(body.fontPaths !== undefined ? { fontPaths: body.fontPaths } : {}),
+        ...(body.touchDesignerPaths !== undefined ? { touchDesignerPaths: body.touchDesignerPaths } : {}),
+        ...(body.unrealProjectPaths !== undefined ? { unrealProjectPaths: body.unrealProjectPaths } : {}),
+        ...(body.eraIds !== undefined ? { eraIds: body.eraIds } : {}),
+        ...(body.knownZoneIds !== undefined ? { knownZoneIds: body.knownZoneIds } : {}),
+        ...(body.knownLocationIds !== undefined ? { knownLocationIds: body.knownLocationIds } : {}),
       },
       include: { position: true },
     });
