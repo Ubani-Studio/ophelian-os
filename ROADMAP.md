@@ -41,7 +41,7 @@ Each maps a piece of the system. Each is commercially + critically peak.
 
 | Reference | Maps to | Lift |
 |---|---|---|
-| **Solange — When I Get Home** (album + film, 2019) | Tizita places, voice-as-architecture, lineage as character | Visual album as connective tissue between music + world |
+| **Solange — When I Get Home** (album + film, 2019) | Ikenga places, voice-as-architecture, lineage as character | Visual album as connective tissue between music + world |
 | **Beyoncé — Lemonade** (visual album, 2016) | The release event scale | Album → film → tour → fashion = single mythological narrative |
 | **Frank Ocean catalog** (Endless / Blonde / Boys Don't Cry) | Mmuo voice discipline | Restraint as commercial moat. Slow drip. |
 | **Outer Wilds** (BAFTA, 2019) | Cipher progression mechanic | Knowledge as the gating mechanic. Cryptic environmental storytelling. |
@@ -80,7 +80,7 @@ Each maps a piece of the system. Each is commercially + critically peak.
 
 | Component | Estimate | Reference |
 |---|---|---|
-| Tizita-grounded 2.5D Saltway level | 3-5 days | Kentucky Route Zero rendering |
+| Ikenga-grounded 2.5D Saltway level | 3-5 days | Kentucky Route Zero rendering |
 | MetaHuman face for Bo Ubani via iPhone scan | 1 day setup + interactive | exports/metahuman/README.md Phase B |
 | Audio2Face wired to PlayAudioUrl (NPCs lipsync to Mmuo audio) | 1 day | NVIDIA's UE plugin |
 | Voice-driven player input (Whisper API → /dialogue) | half day | new endpoint |
@@ -101,7 +101,7 @@ What you'd have at end:
 **Goal**: ship Episode 1 of Boveda (akin to Kentucky Route Zero Act I). Distributed via Steam or direct (no platform tax). Sells once, world is permanent.
 
 - Friend collaborator voices (Claudine, Booe, others) recorded + Mmuo-trained
-- 3-5 scenes across The Saltway and one other place (Tizita-grounded)
+- 3-5 scenes across The Saltway and one other place (Ikenga-grounded)
 - 15-20 distinct character-encounter beats with branching dialogue
 - ~50-100 unique Ciphers
 - Companion experiences in your other apps (Slayt teases the world, Imprint tracks fan engagement)
@@ -116,7 +116,7 @@ Revenue target: $5-25K from sales + first commercial placement.
 - Multi-user UE level (Unreal networking, ~50 audience members)
 - Scheduled performance system (Boveda /scheduler/performance-pass)
 - Live Link Face streaming from your iPhone to MetaHuman Bo Ubani
-- Audience-as-character: Tizita Visual DNA at signup → personalized NPC body in Tufiakwa
+- Audience-as-character: Ikenga Visual DNA at signup → personalized NPC body in Tufiakwa
 - Voice-collab karaoke: audience submits lyrics, Mmuo synthesizes Bo Ubani singing them, you greenlight on stage
 - Ticketed entry to scheduled performances
 - Brand sponsorship of places in the world
@@ -131,7 +131,7 @@ Revenue target: $50-250K annual recurring (tour-substituting at indie scale).
 - [x] npc-bridge HTTP API
 - [x] Cipher schema + generator + routes
 - [ ] Cipher hooks into spark/atmospheric flows (auto-mint witness/threshold ciphers)
-- [ ] Audience-as-character: signup flow that creates a Boveda character per fan from their Tizita Visual DNA
+- [ ] Audience-as-character: signup flow that creates a Boveda character per fan from their Ikenga Visual DNA
 - [ ] Performance scheduler (`/scheduler/performance-pass`)
 - [ ] On-chain provenance via Imperium for character ownership
 
@@ -154,7 +154,7 @@ Revenue target: $50-250K annual recurring (tour-substituting at indie scale).
 - [ ] MetaHuman face per character (Phase 1, then per-friend)
 - [ ] Live Link Face for live performance (Phase 3)
 - [ ] Multi-user level via UE networking (Phase 3)
-- [ ] Tizita-grounded 2.5D scene template (Phase 1)
+- [ ] Ikenga-grounded 2.5D scene template (Phase 1)
 - [ ] Voice input via Whisper API (Phase 1)
 - [ ] Atmospheric event → ambient sync (Phase 1)
 
@@ -162,7 +162,7 @@ Revenue target: $50-250K annual recurring (tour-substituting at indie scale).
 - [ ] FLUX skydome generator: Boveda place vibe → equirectangular → UE Sky Sphere texture
 - [ ] Hyper3D / Hunyuan3D: place description → 3D environment props (via blender MCP, already wired)
 - [ ] TouchDesigner real-time visual generation tied to Boveda atmospheric events
-- [ ] ComfyUI batch character portrait pipeline (Tizita Visual DNA per audience member)
+- [ ] ComfyUI batch character portrait pipeline (Ikenga Visual DNA per audience member)
 
 ### Ibis (writing)
 - [ ] Text LoRA training pipeline activated
@@ -206,7 +206,7 @@ Per `MMUO_VOICE_CLONE_PIPELINE.md` funding section:
 
 1. **This week (now)**: Bo Ubani fine-tune lands; Cipher mechanic playable via curl; F5-TTS comparison
 2. **Next 2 weeks**: Tufiakwa MetaHuman face for Ubani + Audio2Face + Cipher HUD = playable demo
-3. **Next month**: First friend collaborator session; first 2.5D Tizita scene
+3. **Next month**: First friend collaborator session; first 2.5D Ikenga scene
 4. **Next 3 months**: Episode 1 of Boveda shipped (30-45 min experience)
 5. **Next 6 months**: First scheduled live performance via Living Concert Hall MVP
 6. **Next 12 months**: Permanent venue revenue model proven
@@ -216,7 +216,7 @@ Per `MMUO_VOICE_CLONE_PIPELINE.md` funding section:
 
 After Bo Ubani fine-tune confirms voice works:
 
-**Build the 30-min Saltway MVP** (Tizita-grounded 2.5D, three voiced characters, Cipher HUD, Whisper voice input). That's the artifact you can show, apply for grants with, demo to a brand, share with friends as a recruitment tool for collaborators.
+**Build the 30-min Saltway MVP** (Ikenga-grounded 2.5D, three voiced characters, Cipher HUD, Whisper voice input). That's the artifact you can show, apply for grants with, demo to a brand, share with friends as a recruitment tool for collaborators.
 
 Sleep No More built one McKittrick Hotel and ran it for 13 years. Build one Saltway. Get good at one venue before trying to be everywhere.
 

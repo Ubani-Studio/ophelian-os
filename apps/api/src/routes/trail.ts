@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../db.js';
-import { fetchTizitaRepUrls } from '../lib/tizita.js';
+import { fetchTizitaRepUrls } from '../lib/ikenga.js';
+import { loadPresenceForCharacters } from '../lib/presence.js';
 
 /**
  * The morning trail. Phase 4 of agentic-build.md.
@@ -42,6 +43,12 @@ interface TrailCharacter {
   tizitaRepresentativeUrl: string | null;
   identity: unknown;
   events: TrailEvent[];
+  presence?: {
+    status: 'online' | 'idle' | 'away' | 'dormant';
+    lastActivityAt: string | null;
+    lastActivityKind: string | null;
+    currentLocation: string | null;
+  };
 }
 
 export async function trailRoutes(fastify: FastifyInstance): Promise<void> {
@@ -81,6 +88,7 @@ export async function trailRoutes(fastify: FastifyInstance): Promise<void> {
         avatarUrl: true,
         tizitaPersonaId: true,
         identity: true,
+        currentLocation: true,
       },
     });
 
@@ -186,8 +194,8 @@ export async function trailRoutes(fastify: FastifyInstance): Promise<void> {
       return aTs < bTs ? 1 : -1;
     });
 
-    // Enrich Tizita-bound characters with their representative photo
-    // URL (one batch call to Tizita; non-fatal if Tizita is offline).
+    // Enrich Ikenga-bound characters with their representative photo
+    // URL (one batch call to Ikenga; non-fatal if Ikenga is offline).
     const personaIds = characters
       .map((c) => c.tizitaPersonaId)
       .filter((id): id is string => !!id);
@@ -196,6 +204,20 @@ export async function trailRoutes(fastify: FastifyInstance): Promise<void> {
       c.tizitaRepresentativeUrl = c.tizitaPersonaId
         ? byPersonaId.get(c.tizitaPersonaId) ?? null
         : null;
+    }
+
+    // Presence cues. Computes online / idle / away / dormant from
+    // the latest MemoryEpisode per character so the Trail can show a
+    // live dot + last-active + currentLocation alongside each row.
+    const presenceMap = await loadPresenceForCharacters(
+      characters.map((c) => {
+        const auto = autonomous.find((a) => a.id === c.id);
+        return { id: c.id, currentLocation: auto?.currentLocation ?? null };
+      }),
+    );
+    for (const c of characters) {
+      const p = presenceMap.get(c.id);
+      if (p) c.presence = p;
     }
 
     const totalEvents = characters.reduce((acc, c) => acc + c.events.length, 0);

@@ -36,8 +36,16 @@ import { SubtasteBadge } from '@/components/SubtasteBadge';
 import { SovereigntyBadge } from '@/components/SovereigntyBadge';
 import { BackstoryPanel } from '@/components/BackstoryPanel';
 import { VoicePanel } from '@/components/VoicePanel';
+import { CorpusPanel } from '@/components/CorpusPanel';
+import { VaultedBridgePanel } from '@/components/VaultedBridgePanel';
+import { MemoryPanel } from '@/components/MemoryPanel';
+import { TizitaAvatarButton } from '@/components/TizitaAvatarButton';
 import { CohortPhrasePanel } from '@/components/CohortPhrasePanel';
+import { CharacterArcsTile } from '@/components/CharacterArcsTile';
+import { NuancePanel } from '@/components/NuancePanel';
+import { SparkInteractionButton } from '@/components/SparkInteractionButton';
 import { CreateTwinButton } from '@/components/CreateTwinButton';
+import { PresencePill } from '@/components/PresencePill';
 import { ForgePanel } from '@/components/ForgePanel';
 import { SUBTASTE_DESIGNATIONS, getSymbolicImprint, type OrishaName } from '@lcos/oripheon';
 
@@ -561,6 +569,7 @@ export default function CharacterDetailPage() {
                 {character.name}
               </h1>
               <ModePill mode={character.mode} twinOfName={character.twinOf ? 'Ubani' : null} />
+              <PresencePill presence={character.presence} />
               <SubtasteBadge timelineState={character.timelineState} />
               <SovereigntyBadge identity={character.identity} />
               <TickButton
@@ -803,7 +812,7 @@ export default function CharacterDetailPage() {
                 </h3>
               )}
 
-              {/* Avatar Circle. Falls back to Tizita's representative
+              {/* Avatar Circle. Falls back to Ikenga's representative
                   photo when no explicit avatar is set, then to the
                   initial-letter placeholder. */}
               {character.avatarUrl ? (
@@ -913,10 +922,10 @@ export default function CharacterDetailPage() {
               )}
             </div>
 
-            {/* Avatar Management. Hidden for Tizita-bound characters
-                because Tizita is the face authority — change the
+            {/* Avatar Management. Hidden for Ikenga-bound characters
+                because Ikenga is the face authority — change the
                 representative photo there. Custom uploads remain for
-                non-Tizita operators. */}
+                non-Ikenga operators. */}
             {!character.tizitaPersonaId && (
               <div className="mt-4" style={{ borderRadius: 0 }}>
                 <strong style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', display: 'block', marginBottom: '0.5rem' }}>
@@ -941,7 +950,7 @@ export default function CharacterDetailPage() {
               </div>
             )}
 
-            {/* Tizita-bound photos + Ikenga emblem (collapsed by default) */}
+            {/* Ikenga-bound photos + Ikenga emblem (collapsed by default) */}
             <TizitaPanel characterId={character.id} tizitaPersonaId={character.tizitaPersonaId} />
 
             {/* Group / collective members. Hidden for solo
@@ -993,6 +1002,11 @@ export default function CharacterDetailPage() {
                 pre-LoRA bridge to per-character voice authenticity.
                 Paste artist samples; tick prompt leads with them. */}
             <VoicePanel character={character} onUpdated={setCharacter} />
+            <NuancePanel character={character} onUpdated={setCharacter} />
+            <CorpusPanel character={character} onUpdated={setCharacter} />
+            <MemoryPanel character={character} />
+            <TizitaAvatarButton character={character} onUpdated={setCharacter} />
+            <VaultedBridgePanel character={character} />
 
             {/* Cohort phrases · the slang MOAT review surface.
                 Extract → review → promote → Ibis frontier writeback.
@@ -1242,6 +1256,10 @@ export default function CharacterDetailPage() {
                   <p style={{ fontSize: '0.875rem' }}>{character.currentArc}</p>
                 </div>
               )}
+
+              <CharacterArcsTile characterId={character.id} />
+
+              <SparkInteractionButton character={character} />
 
               {/* Pro Mode Toggle */}
               {(() => {

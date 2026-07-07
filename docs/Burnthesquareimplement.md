@@ -1,6 +1,6 @@
 # Burn the Square implementation plan
 
-Architectural decision deferred to here so the Bóveda + Òrò + Tizita + LoRA + manifest work can land first. Not building yet. This doc is the spec for when we do.
+Architectural decision deferred to here so the Bóveda + Òrò + Ikenga + LoRA + manifest work can land first. Not building yet. This doc is the spec for when we do.
 
 ## What Burn the Square is
 
@@ -119,4 +119,4 @@ Two layers, one consumer. The character carries its own audio identity; the scen
 
 ## When to start
 
-After the current Bóveda + Tizita + LoRA + Òrò federation work stabilises. The manifest export endpoint (item 1) is the cheapest first step and unblocks Unreal / Unity bundling experiments. The SDK (item 4) is the heaviest piece and waits until there is a real game project consuming it.
+After the current Bóveda + Ikenga + LoRA + Òrò federation work stabilises. The manifest export endpoint (item 1) is the cheapest first step and unblocks Unreal / Unity bundling experiments. The SDK (item 4) is the heaviest piece and waits until there is a real game project consuming it.

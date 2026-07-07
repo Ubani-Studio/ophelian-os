@@ -51,9 +51,18 @@ export interface Character {
    *  Tick prompt injects an explicit ## Tongue block. */
   tongue?: {
     primaryLanguage?: string;
+    /** Languages this character drops into mid-sentence. Lineage-anchored. */
+    codeSwitchesTo?: string[];
     dialect?: string;
     accent?: string;
     idioms?: string[];
+    /** Native poetic shape the character moves through (oríkì, ghazal,
+     *  jueju, doha, freestyle, koan, etc.). Drives lineage-specific
+     *  cadence beyond just word-choice. */
+    poeticForm?: string;
+    /** One-line note on how the setting modulates the form (modern
+     *  lens, past-life lens, mythic lens). */
+    formNote?: string;
     registerNotes?: string;
   };
   avatarUrl: string | null;
@@ -67,11 +76,11 @@ export interface Character {
   createdAt: string;
   updatedAt: string;
   position?: CharacterPosition | null;
-  /** Tizita persona link (Ikenga). When set, the character is bound
-   *  to a real-life face cluster in Tizita and federates photos +
+  /** Ikenga persona link (Ikenga). When set, the character is bound
+   *  to a real-life face cluster in Ikenga and federates photos +
    *  brief from there. */
   tizitaPersonaId?: string | null;
-  /** Representative photo URL fetched from Tizita on list responses
+  /** Representative photo URL fetched from Ikenga on list responses
    *  for tizitaPersonaId-bound characters. Used by card avatars
    *  when the character has no explicit avatarUrl set. */
   tizitaRepresentativeUrl?: string | null;
@@ -156,6 +165,28 @@ export interface Character {
   };
   /** Last time the user (isUser=true) opened the morning trail. */
   lastSeenAt?: string | null;
+  /** Lightweight presence cue computed server-side from the most
+   *  recent MemoryEpisode timestamp. Used by Trail + character page
+   *  to render an online dot, "active 4m ago", and current location. */
+  presence?: {
+    status: 'online' | 'idle' | 'away' | 'dormant';
+    lastActivityAt: string | null;
+    lastActivityKind: string | null;
+    currentLocation: string | null;
+  };
+  /** Surprise mechanics, see NuancePanel + tick.ts. */
+  preoccupations?: string[];
+  tensions?: { beliefA: string; beliefB: string; note?: string }[];
+  fixations?: string[];
+  modernity?: {
+    anchorEra?: string;
+    contemporaryBleed?: number;
+    contemporarySlang?: string[];
+    contemporaryRefs?: string[];
+    refusedSlang?: string[];
+  };
+  currentLocation?: string | null;
+  homeBase?: string | null;
 }
 
 export async function getCharacters(): Promise<Character[]> {
@@ -969,5 +1000,618 @@ export async function deleteSnapshot(id: string): Promise<void> {
     if (!res.ok) {
       throw new Error('Failed to delete snapshot');
     }
+  });
+}
+
+
+// =====================================================================
+// Training corpus (Layer 1: Ibis author corpus)
+// =====================================================================
+
+export interface CorpusStatus {
+  characterId: string;
+  name: string;
+  authoredBy: string | null;
+  layer1: { source: string; sampleCount: number; lastUpdated: string };
+  layer2_collaborators: { sampleCount: number; status: string };
+  layer3_character_corpus: { sampleCount: number; status: string };
+}
+
+export interface CorpusSample {
+  ibisDocumentId: string;
+  title: string;
+  text: string;
+  wordCount: number;
+  updatedAt?: string;
+  kind?: string | null;
+}
+
+export interface CorpusRefreshResult {
+  characterId: string;
+  written?: number;
+  wouldWrite?: number;
+  dryRun?: boolean;
+  ibisResult: {
+    source: string;
+    storePath: string;
+    totalDocsScanned: number;
+    matchedDocs: number;
+    samplesReturned: CorpusSample[];
+    warnings: string[];
+  };
+}
+
+export interface CorpusRefreshInput {
+  authorIbisUserId?: string;
+  tagIds?: string[];
+  titleContains?: string;
+  maxSamples?: number;
+  minWordCount?: number;
+  replace?: boolean;
+  dryRun?: boolean;
+}
+
+export async function getCorpusStatus(characterId: string): Promise<CorpusStatus> {
+  return apiFetch<CorpusStatus>(`/characters/${characterId}/corpus`);
+}
+
+export async function refreshCorpus(
+  characterId: string,
+  input: CorpusRefreshInput = {},
+): Promise<CorpusRefreshResult> {
+  return apiFetch<CorpusRefreshResult>(`/characters/${characterId}/corpus/refresh`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+
+// =====================================================================
+// Vaulted (RightsLayer) bridge
+// =====================================================================
+
+export interface VaultedStatusRow {
+  id: string;
+  name: string;
+  vaultedArtifactId: string | null;
+  vaultedStatus: 'not_registered' | 'pending_registration' | 'registered' | 'listed' | 'licensed' | 'error' | string;
+  vaultedRegisteredAt: string | null;
+  vaultedLastSyncedAt: string | null;
+  vaultedLastError: string | null;
+}
+
+export interface VaultedRegisterInput {
+  weightsStorageUri: string;
+  weightsSha256: string;
+  artifactKind?: 'style' | 'character' | 'persona';
+  baseModel?: string;
+  rank?: number;
+  trainingSteps?: number;
+  triggerWord?: string;
+  rightsAssertion?: string;
+}
+
+export async function getVaultedStatus(characterId: string): Promise<VaultedStatusRow> {
+  return apiFetch<VaultedStatusRow>(`/characters/${characterId}/vaulted`);
+}
+
+export async function registerVaultedArtifact(
+  characterId: string,
+  input: VaultedRegisterInput,
+): Promise<unknown> {
+  return apiFetch(`/characters/${characterId}/vaulted/register`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function syncVaultedStatus(characterId: string): Promise<unknown> {
+  return apiFetch(`/characters/${characterId}/vaulted/sync`, { method: 'POST' });
+}
+
+
+// =====================================================================
+// Memory: Layer 4 episodic + Layer 2 canonical lore
+// =====================================================================
+
+export interface MemoryEpisode {
+  id: string;
+  characterId: string;
+  kind: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  expiresAt: string;
+  promotedToCanonId: string | null;
+}
+
+export interface CanonEntry {
+  id: string;
+  characterId: string;
+  title: string;
+  body: string;
+  occurredAt: string | null;
+  tags: string[];
+  scope: string;
+  sourceEpisodeId: string | null;
+  attestationId: string | null;
+  signedBy: string | null;
+  signedAt: string;
+  retractedAt: string | null;
+  retractionReason: string | null;
+  createdAt: string;
+}
+
+export async function listEpisodes(characterId: string, kind?: string): Promise<{ episodes: MemoryEpisode[]; count: number }> {
+  const q = kind ? `?kind=${encodeURIComponent(kind)}` : '';
+  return apiFetch(`/characters/${characterId}/memory/episodes${q}`);
+}
+
+export async function writeEpisode(
+  characterId: string,
+  input: { kind: string; content: string; metadata?: Record<string, unknown>; retentionDays?: number },
+): Promise<{ episode: MemoryEpisode }> {
+  return apiFetch(`/characters/${characterId}/memory/episodes`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listCanon(
+  characterId: string,
+  opts: { scope?: string; includeRetracted?: boolean } = {},
+): Promise<{ entries: CanonEntry[]; count: number }> {
+  const q = new URLSearchParams();
+  if (opts.scope) q.set('scope', opts.scope);
+  if (opts.includeRetracted) q.set('includeRetracted', 'true');
+  const qs = q.toString() ? `?${q}` : '';
+  return apiFetch(`/characters/${characterId}/canon${qs}`);
+}
+
+export async function createCanon(
+  characterId: string,
+  input: { title: string; body: string; occurredAt?: string; tags?: string[]; scope?: string },
+): Promise<{ entry: CanonEntry }> {
+  return apiFetch(`/characters/${characterId}/canon`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function promoteEpisodeToCanon(
+  characterId: string,
+  input: { episodeId: string; title: string; body?: string; occurredAt?: string; tags?: string[]; scope?: string },
+): Promise<{ entry: CanonEntry }> {
+  return apiFetch(`/characters/${characterId}/canon/promote`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function retractCanonEntry(
+  characterId: string,
+  entryId: string,
+  reason: string,
+): Promise<{ entry: CanonEntry }> {
+  return apiFetch(`/characters/${characterId}/canon/${entryId}/retract`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+// Avatar bridge
+export async function pullAvatarFromTizita(
+  characterId: string,
+  force = false,
+): Promise<{ status: string; avatarUrl?: string; reason?: string }> {
+  return apiFetch(`/characters/${characterId}/avatar/pull-from-ikenga`, {
+    method: 'POST',
+    body: JSON.stringify({ force }),
+  });
+}
+
+
+// =====================================================================
+// Nuance + interactions
+// =====================================================================
+
+export interface NuanceFields {
+  tongue?: {
+    primaryLanguage?: string;
+    dialect?: string;
+    accent?: string;
+    idioms?: string[];
+    registerNotes?: string;
+  };
+  voiceSamples?: string[];
+  preoccupations?: string[];
+  tensions?: { beliefA: string; beliefB: string; note?: string }[];
+  fixations?: string[];
+  authoredBy?: string | null;
+  modernity?: {
+    anchorEra?: string;
+    contemporaryBleed?: number;
+    contemporarySlang?: string[];
+    contemporaryRefs?: string[];
+    refusedSlang?: string[];
+  };
+  currentLocation?: string | null;
+  homeBase?: string | null;
+}
+
+export async function patchNuance(characterId: string, fields: NuanceFields): Promise<NuanceFields> {
+  return apiFetch(`/characters/${characterId}/nuance`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  });
+}
+
+export async function autoGenerateNuance(
+  characterId: string,
+  opts: { fields?: ('tongue' | 'voiceSamples' | 'preoccupations' | 'tensions' | 'fixations')[]; creativeBrief?: string } = {},
+): Promise<{ characterId: string; suggestion: NuanceFields }> {
+  return apiFetch(`/characters/${characterId}/nuance/auto-generate`, {
+    method: 'POST',
+    body: JSON.stringify(opts),
+  });
+}
+
+export async function sparkRandomInteraction(opts: {
+  initiatorId?: string;
+  recipientId?: string;
+  context?: string;
+} = {}): Promise<{
+  initiator: { id: string; name: string };
+  recipient: { id: string; name: string };
+  message: string;
+  episodeIds: { initiator: string; recipient: string };
+  previousExchangeCount: number;
+}> {
+  return apiFetch('/interactions/spark', {
+    method: 'POST',
+    body: JSON.stringify(opts),
+  });
+}
+
+
+// =====================================================================
+// Places + Story arcs
+// =====================================================================
+
+export interface Place {
+  name: string;
+  description: string;
+  kind: string;
+  vibe: string;
+  imageUrl: string | null;
+  tizitaPhotoId: string | null;
+  metadata: Record<string, unknown>;
+  charactersHere?: number;
+  eventsActive?: number;
+}
+
+export interface PlaceDetail {
+  place: Place;
+  charactersHere: { id: string; name: string; avatarUrl: string | null; currentLocation: string | null }[];
+  recentEvents: { id: string; kind: string; content: string; createdAt: string }[];
+}
+
+export async function listPlaces(): Promise<{ places: Place[] }> {
+  return apiFetch('/places');
+}
+export async function getPlace(name: string): Promise<PlaceDetail> {
+  return apiFetch(`/places/${encodeURIComponent(name)}`);
+}
+export async function upsertPlace(name: string, body: Partial<Place>): Promise<{ place: Place }> {
+  return apiFetch(`/places/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify(body) });
+}
+export async function syncPlaceImageFromTizita(name: string, force = false): Promise<unknown> {
+  return apiFetch(`/places/${encodeURIComponent(name)}/sync-image-from-ikenga`, {
+    method: 'POST',
+    body: JSON.stringify({ force }),
+  });
+}
+export async function generateAtmosphericEvent(location: string): Promise<{ event: { id: string; content: string } }> {
+  return apiFetch(`/locations/${encodeURIComponent(location)}/atmospheric-event`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+// Story arcs
+
+export interface ArcPrimaryDef {
+  key: string;
+  label: string;
+  glyph: string;
+  definition: string;
+  phases: string[];
+  temperature: 'cool' | 'hot' | 'crossroads';
+  motion: string;
+  energy: string;
+  compatibleSecondaries: string[];
+  shadow: string;
+  shadowNote: string;
+  variants: string[];
+}
+
+export interface StoryArc {
+  id: string;
+  title: string;
+  description: string;
+  status: 'draft' | 'active' | 'concluded' | 'shelved';
+  primary: string | null;
+  variant: string | null;
+  temperature: string | null;
+  shadowPrimary: string | null;
+  glyph: string | null;
+  beats: { title: string; body?: string; occurredAt?: string }[];
+  currentBeatIndex: number;
+  tags: string[];
+  startedAt: string | null;
+  endedAt: string | null;
+  participants?: { arcId: string; characterId: string; role: string }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listArcPrimaries(): Promise<{ primaries: ArcPrimaryDef[] }> {
+  return apiFetch('/arcs/primaries');
+}
+export async function listArcs(): Promise<{ arcs: StoryArc[] }> {
+  return apiFetch('/arcs');
+}
+export async function createArc(body: Partial<StoryArc> & { primary?: string; variant?: string }): Promise<{ arc: StoryArc }> {
+  return apiFetch('/arcs', { method: 'POST', body: JSON.stringify(body) });
+}
+export async function getArc(id: string): Promise<{ arc: StoryArc }> {
+  return apiFetch(`/arcs/${id}`);
+}
+export async function patchArc(id: string, body: Partial<StoryArc>): Promise<{ arc: StoryArc }> {
+  return apiFetch(`/arcs/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+export async function advanceArc(id: string): Promise<{ arc: StoryArc; status: string }> {
+  return apiFetch(`/arcs/${id}/advance`, { method: 'POST' });
+}
+export async function addArcParticipant(id: string, characterId: string, role = 'lead'): Promise<unknown> {
+  return apiFetch(`/arcs/${id}/participants`, { method: 'POST', body: JSON.stringify({ characterId, role }) });
+}
+export async function removeArcParticipant(id: string, characterId: string): Promise<unknown> {
+  return apiFetch(`/arcs/${id}/participants/${characterId}`, { method: 'DELETE' });
+}
+
+// ── Sphere APIs ────────────────────────────────────────────────────────
+//
+// A Sphere is a divergent media piece inhabiting a Scene (Zone).
+// Spec: /home/sphinxy/boveda/CUBE_ZONE_SPHERE_ARCHITECTURE.md
+
+export type SphereFormat =
+  | 'film'
+  | 'music_video'
+  | 'content'
+  | 'game'
+  | 'dialogue'
+  | 'interactive'
+  | 'trailer'
+  | 'reel'
+  | 'mood';
+
+export type SphereAudioMode =
+  | 'lead'
+  | 'remix'
+  | 'underscore'
+  | 'silent'
+  | 'diegetic';
+
+export type SphereStatus = 'draft' | 'in_production' | 'locked' | 'shipped';
+
+export interface Sphere {
+  id: string;
+  sceneId: string;
+  name: string;
+  format: SphereFormat;
+  primaryAspect: string;
+  siblingAspect: string | null;
+  intent: string | null;
+  ikengaSeriesId: string | null;
+  castIds: string[];
+  audioMode: SphereAudioMode;
+  stelaId: string | null;
+  status: SphereStatus;
+  physics: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSphereInput {
+  sceneId: string;
+  name: string;
+  format?: SphereFormat;
+  primaryAspect?: string;
+  siblingAspect?: string | null;
+  intent?: string | null;
+  ikengaSeriesId?: string | null;
+  castIds?: string[];
+  audioMode?: SphereAudioMode;
+  stelaId?: string | null;
+  status?: SphereStatus;
+  physics?: Record<string, unknown>;
+}
+
+export interface UpdateSphereInput {
+  name?: string;
+  format?: SphereFormat;
+  primaryAspect?: string;
+  siblingAspect?: string | null;
+  intent?: string | null;
+  ikengaSeriesId?: string | null;
+  castIds?: string[];
+  audioMode?: SphereAudioMode;
+  stelaId?: string | null;
+  status?: SphereStatus;
+  physics?: Record<string, unknown> | null;
+}
+
+export async function listSpheres(sceneId?: string, status?: SphereStatus): Promise<Sphere[]> {
+  const params = new URLSearchParams();
+  if (sceneId) params.set('sceneId', sceneId);
+  if (status) params.set('status', status);
+  const qs = params.toString();
+  return apiFetch<Sphere[]>(`/spheres${qs ? `?${qs}` : ''}`);
+}
+
+export async function getSphere(id: string): Promise<Sphere & { scene: Scene }> {
+  return apiFetch<Sphere & { scene: Scene }>(`/spheres/${id}`);
+}
+
+export async function createSphere(data: CreateSphereInput): Promise<Sphere> {
+  return apiFetch<Sphere>('/spheres', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateSphere(id: string, data: UpdateSphereInput): Promise<Sphere> {
+  return apiFetch<Sphere>(`/spheres/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteSphere(id: string): Promise<void> {
+  await apiFetch<void>(`/spheres/${id}`, { method: 'DELETE' });
+}
+
+// ── Relic APIs (Vivarium) ──────────────────────────────────────────────
+//
+// The Relic is the unit of the Vivarium discovery layer (PLATS-
+// Bioacoustic). Six-layer shape: field signal, scientific capture,
+// intelligence, sonification, visualisation, mythic posture.
+// Surfaces live in Ikenga (visual) and Resonate (audio).
+// Spec: /home/sphinxy/boveda/VIVARIUM_ARCHITECTURE.md
+
+export type RelicKind = 'location' | 'species' | 'phenomenon' | 'tech' | 'method' | 'recording';
+
+export interface Relic {
+  id: string;
+  kind: RelicKind;
+  title: string;
+  phenomenonKey: string | null;
+  fieldSite: string | null;
+  fieldLat: number | null;
+  fieldLng: number | null;
+  captureMethod: string | null;
+  captureGearNotes: string | null;
+  rawSampleUrl: string | null;
+  taxonPath: string | null;
+  ncbiTaxid: string | null;
+  gbifTaxonkey: string | null;
+  iucnStatus: string | null;
+  habitat: string | null;
+  occurrences: unknown;
+  rangeGeojson: unknown;
+  weatherAtCapture: unknown;
+  acousticIndices: unknown;
+  detectedSpecies: unknown;
+  defaultScoreId: string | null;
+  renderedOutputs: unknown;
+  spectrogramUrl: string | null;
+  waterfallUrl: string | null;
+  pointCloudUrl: string | null;
+  gisLayerUrl: string | null;
+  tdPatchRef: string | null;
+  unrealActorRef: string | null;
+  strangeness: number;
+  saroIndex: number;
+  mythicPosture: string | null;
+  bodyMd: string | null;
+  audioSamples: unknown;
+  visualSamples: unknown;
+  cubeIds: string[];
+  zoneIds: string[];
+  sphereIds: string[];
+  stelaIds: string[];
+  cipherIds: string[];
+  characterIds: string[];
+  sourceProvenance: string | null;
+  sourceUrl: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRelicInput {
+  kind?: RelicKind;
+  title: string;
+  phenomenonKey?: string | null;
+  fieldSite?: string | null;
+  fieldLat?: number | null;
+  fieldLng?: number | null;
+  captureMethod?: string | null;
+  captureGearNotes?: string | null;
+  rawSampleUrl?: string | null;
+  taxonPath?: string | null;
+  strangeness?: number;
+  saroIndex?: number;
+  mythicPosture?: string | null;
+  bodyMd?: string | null;
+  cubeIds?: string[];
+  zoneIds?: string[];
+  sphereIds?: string[];
+  sourceProvenance?: string | null;
+  sourceUrl?: string | null;
+  tags?: string[];
+}
+
+export interface RelicListFilter {
+  kind?: RelicKind;
+  phenomenonKey?: string;
+  minStrangeness?: number;
+  minSaro?: number;
+  zoneId?: string;
+  sphereId?: string;
+  cubeId?: string;
+  q?: string;
+}
+
+export async function listRelics(filter: RelicListFilter = {}): Promise<Relic[]> {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filter)) {
+    if (v == null) continue;
+    params.set(k, String(v));
+  }
+  const qs = params.toString();
+  return apiFetch<Relic[]>(`/relics${qs ? `?${qs}` : ''}`);
+}
+
+export async function getRelic(id: string): Promise<Relic> {
+  return apiFetch<Relic>(`/relics/${id}`);
+}
+
+export async function createRelic(data: CreateRelicInput): Promise<Relic> {
+  return apiFetch<Relic>('/relics', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateRelic(id: string, data: Partial<CreateRelicInput>): Promise<Relic> {
+  return apiFetch<Relic>(`/relics/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteRelic(id: string): Promise<void> {
+  await apiFetch<void>(`/relics/${id}`, { method: 'DELETE' });
+}
+
+export async function importRelicFromUrl(
+  url: string,
+  bind?: { cubeId?: string; zoneId?: string; sphereId?: string },
+): Promise<Relic> {
+  return apiFetch<Relic>('/relics/import_from_url', {
+    method: 'POST',
+    body: JSON.stringify({ url, ...bind }),
   });
 }

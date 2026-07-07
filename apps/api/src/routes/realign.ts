@@ -11,6 +11,7 @@ import { getSlangGuidance } from '../lib/ibis-slang.js';
 import { readEmbracePhrases } from '../lib/cohort-phrases.js';
 import { buildSpeciesTextureBlock, getSpecies } from '../lib/species.js';
 import { buildSubtasteRegisterBlock } from '../lib/subtaste-registers.js';
+import { buildPoeticFormBlock } from '../lib/poetic-forms.js';
 
 /**
  * Aligned character generator. The "sheaf theory" version.
@@ -59,9 +60,12 @@ const RealignSchema = z.object({
 
 interface TongueShape {
   primaryLanguage?: string;
+  codeSwitchesTo?: string[];
   dialect?: string;
   accent?: string;
   idioms?: string[];
+  poeticForm?: string;
+  formNote?: string;
   registerNotes?: string;
 }
 
@@ -176,7 +180,7 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'walked out of the Berghain queue on a Saturday for no stated reason. The next weekend the police were there',
     ],
     mystical: [
-      'the dream came twice, three years apart, in the same Lagos house she has not visited',
+      'the dream came twice, three years apart, in the same family house she has not visited',
       'reads the fall of the cards once and never again. The first read is the only true one',
     ],
     archaic: [
@@ -190,12 +194,11 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
     modern: [
       'same three friends since Year 9. Still goes to the Greggs in Croydon every Wednesday',
       'has tended the same fig tree on her Walthamstow balcony for twelve years. Refuses to repot',
-      'rides the 418 in Epsom on a leap year. The same conductor recognises her every four years',
       'orders the same chicken shop combo at Morley\'s in Lewisham every Friday',
       'keeps the same hairdresser in Tottenham since 2008',
       'has watered the same orchid for nine years. It blooms when she sells a piece',
       'takes the danfo from Yaba to Surulere on Sundays. The driver knows her stop',
-      'eats agbalumo at the same stall in Balogun Market every season',
+      'eats one specific seasonal fruit from the same market stall every year',
       'goes to the same fish woman at Hellshire in Kingston since 2011',
       'sits at the same kissaten in Asakusa with the same coffee order. Twelve years',
       'rides the M14 down to Tribeca and gets off two stops early to walk past the same bookshop',
@@ -217,10 +220,10 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'curated the best gallery in the Lower East Side and walked out when they hung an Olafur. Now goes to Frieze and throws truffles at the cube',
       'Annabel\'s only on a leap year. Otherwise it\'s Brilliant Corners or nothing',
       'will not eat at Sushi Samba. Will not explain why',
-      'rejected the Hauser & Wirth invitation. Sent the email at 11pm. No follow-up',
-      'will go to the McDonald\'s in Brixton at 3am but refuses every Soho House she has been a member of',
+      'rejected a major-gallery invitation. Sent the email at 11pm. No follow-up',
+      'will eat from the local fast-food at 3am but refuses every private members club she has been admitted to',
       'walked out of Tomorrowland in 2017. Has not returned to a festival since',
-      'banned from the Yoruba demographics committee at one specific Lagos church. Was asked to leave. Will not say why',
+      'asked to leave one specific church committee, decades back. Will not say why',
       'left the Saturday session at the Jubilee dub yard in Trench Town. Walked the seven miles back to Kingston rather than ride with the producer who shouted',
       'will eat suya from the boli woman on Awolowo Road but refuses every banker who frequents Bottles in Lekki',
       'turned down the Maboneng curation in Joburg. Said the Maboneng curators had stopped listening',
@@ -242,7 +245,7 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
     modern: [
       'made the playlist that got her grime cousin and her jazz uncle on the same WhatsApp',
       'introduced the gallerist to the rapper at the wrong dinner. Now the album has the right cover',
-      'drinks at the French House in Soho with Hauser & Wirth dealers and South London poets. Same night',
+      'drinks with major-gallery dealers and underground poets the same night, at the same bar',
       'organises the after-after at her Marylebone flat. Has hosted Saint Heron and Brockley equally',
       'the only person at her dinner with a Glasgow grime cassette and a Stockwell aunty\'s recipe',
     ],
@@ -280,7 +283,7 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'has every issue of i-D from before they redesigned the masthead. Stored at the right humidity',
       'still pays for The Wire in physical. Has the receipt from 2009',
       'kept the original Abbey Road session sheets. Will not lend, only photograph',
-      'has the entire run of the back catalogue from a Lagos record stall on Balogun Market. Knows the seller\'s grandson now',
+      'has the entire back catalogue from one record stall in their lineage city market. Knows the seller\'s grandson now',
     ],
     mystical: [
       'keeps her grandmother\'s saints. Lights the same candle on the same date',
@@ -297,7 +300,7 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'recommends bars before they open. Has dreamed the menu',
       'picks the right book off her friend\'s shelf without scanning. Reads three lines and gives it back',
       'gets the call right before her phone rings. Doesn\'t mention it',
-      'knew which Lagos auntie to ring before her cousin had even thought of asking',
+      'knew which auntie in the lineage to ring before her cousin had even thought of asking',
     ],
     mystical: [
       'the lwa rides her in the kitchen. She makes the soup the way the lwa wants. Nobody knows why it tastes like that',
@@ -316,10 +319,10 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
       'renovated the Margate flat alone. Plumbing included. Now hosts dinners',
       'cut the first run of the magazine on a Risograph in her kitchen and walked the boxes to the Tate gift shop herself',
       'built the bench at Abbey Road that the engineers still use, off the books',
-      'opened the Yaba studio with three friends. Did the wiring on the Lagos generator. Hosts Saturday afternoon sessions',
-      'shipped the EP from Trench Town to Tokyo and London the same week. Two pressing plants, one runner',
+      'opened a small studio with three friends. Did the wiring on the generator herself. Hosts Saturday afternoon sessions',
+      'shipped the EP across continents the same week. Two pressing plants, one runner',
       'built the lighting rig at the warehouse in Newtown, Joburg, with parts bought at OK Furniture',
-      'opened the late-night ramen counter in Shimokitazawa with savings from the Lagos diaspora gig',
+      'opened a late-night counter with savings from one diaspora gig',
       'set up the studio in Bushwick over six weeks. Slept in the live room until the rent kicked in',
     ],
     mystical: [
@@ -369,66 +372,126 @@ const SUBTASTE_EXAMPLES: Record<string, SensibilityExamples> = {
   },
 };
 
-// Anti-monoculture directive. The LLM defaults to repeating the
-// most-cited place when given a diasporic-creative prompt
-// ("Hackney" mostly, sometimes "Brooklyn"). Force variance across
-// continents and registers.
-const PLACE_VARIANCE_NOTE = `IMPORTANT location variance: do NOT default to "Hackney" or "Brooklyn" or any single neighbourhood. Reach for niche specifics with the precision of "the 418 bus in Epsom on a leap year" or "the boli woman on Awolowo Road" or "the kissaten on the side street in Asakusa" or "doubles at Bathurst on Sunday."
+// Per-lineage geography hint banks. The LLM defaults to one or two
+// hub cities per lineage (Lagos for Yoruba, London for Black-British,
+// New York for Black-American). Each lineage carries a mid-tier town,
+// regional capital, neighbourhood, and diaspora node bank so the
+// generated character can land somewhere other than the obvious. The
+// builder picks a few at random per generation and tells the model to
+// reach for one of THESE specifically.
+const LINEAGE_GEOGRAPHIES: Record<string, string[]> = {
+  yoruba: [
+    'Ibadan', 'Abeokuta', 'Ife', 'Osogbo', 'Ilesa', 'Ado-Ekiti',
+    'Brixton', 'Peckham', 'Tottenham', 'Walthamstow',
+    'Houston Yoruba diaspora', 'Atlanta Yoruba diaspora', 'Bahia',
+    'Salvador Candomblé scene',
+  ],
+  igbo: [
+    'Owerri', 'Aba', 'Onitsha', 'Enugu', 'Awka', 'Nsukka', 'Umuahia',
+    'Houston Igbo diaspora', 'Atlanta', 'Manchester', 'Birmingham',
+    'Berlin Igbo creatives', 'Dublin', 'Toronto Igbo scene',
+  ],
+  hausa: [
+    'Kano', 'Kaduna', 'Zaria', 'Sokoto', 'Maiduguri', 'Niamey diaspora',
+    'Khartoum', 'Manchester northern-Nigerian scene',
+  ],
+  akan: [
+    'Kumasi', 'Cape Coast', 'Tema', 'Tamale', 'Ho',
+    'Manchester Ghanaian scene', 'Toronto Ghanaian scene',
+    'Hamburg', 'Brussels',
+  ],
+  vodun: [
+    'Cotonou', 'Ouidah', 'Allada', 'Abomey', 'Lomé',
+    'Port-au-Prince', 'Cap-Haïtien', 'Jérémie',
+    'Brooklyn Haitian scene', 'Miami Little Haiti', 'Montréal',
+  ],
+  haitian: [
+    'Jacmel', 'Port-au-Prince', 'Cap-Haïtien', 'Gonaïves',
+    'Brooklyn Haitian Flatbush', 'Miami Little Haiti', 'Montréal',
+    'Boston Haitian scene', 'Paris diaspora',
+  ],
+  cuban: [
+    'Havana Habana Vieja', 'Santiago de Cuba', 'Matanzas', 'Cienfuegos',
+    'Miami Hialeah', 'Tampa Ybor', 'Madrid Cuban scene', 'Mexico City',
+  ],
+  black_atlantic: [
+    'Bahia', 'Salvador', 'Bridgetown', 'Kingston',
+    'Brixton', 'Manchester Moss Side', 'Detroit', 'Houston Third Ward',
+    'New Orleans Tremé', 'London New Cross',
+  ],
+  black_american: [
+    'Detroit', 'Houston Third Ward', 'New Orleans Tremé',
+    'Memphis', 'Atlanta College Park', 'Compton', 'Oakland',
+    'Baltimore', 'Philadelphia',
+  ],
+  black_british: [
+    'Peckham', 'Brixton', 'Tottenham', 'Lewisham', 'New Cross',
+    'Manchester Moss Side', 'Birmingham Handsworth',
+    'Bristol St Pauls', 'Leicester', 'Liverpool Toxteth',
+  ],
+  hindu: [
+    'Varanasi', 'Pune', 'Madurai', 'Trivandrum', 'Bhubaneswar',
+    'Kolkata', 'Ahmedabad', 'Jaipur',
+    'Leicester', 'Houston Hindu diaspora', 'Edison NJ',
+    'Toronto Brampton',
+  ],
+  daoist: [
+    'Wudang', 'Quanzhou', 'Mao Shan', 'Hangzhou', 'Chengdu',
+    'San Francisco Chinatown', 'Vancouver Richmond', 'Sydney',
+  ],
+  hebraic: [
+    'Jerusalem Mahane Yehuda', 'Safed', 'Brooklyn Crown Heights',
+    'Hassidic Williamsburg', 'Sephardic Salonika diaspora',
+    'Mizrahi Tel Aviv', 'Antwerp',
+  ],
+  japanese: [
+    'Kyoto Higashiyama', 'Osaka Shinsekai', 'Sapporo', 'Fukuoka',
+    'Naha Okinawa', 'São Paulo Liberdade', 'Honolulu',
+    'Vancouver Powell Street',
+  ],
+  korean: [
+    'Busan Nampo-dong', 'Daegu', 'Gwangju', 'Jeonju',
+    'LA Koreatown', 'New Malden London', 'Toronto Bloor',
+    'Tashkent Koryo-saram',
+  ],
+  tibetan: [
+    'Dharamsala McLeod Ganj', 'Kathmandu Boudha', 'Toronto Parkdale',
+    'New York Jackson Heights', 'Zurich Tibetan scene', 'Bylakuppe',
+  ],
+  javanese: [
+    'Yogyakarta Kotagede', 'Solo Surakarta', 'Malang',
+    'Suriname Javanese diaspora', 'Den Haag Indo scene',
+    'New Caledonia Javanese',
+  ],
+};
 
-Pull from the GLOBAL pool. Vary widely across:
+function pickLineageGeographyHints(lineageIds: string[]): string[] {
+  const pool: string[] = [];
+  for (const lid of lineageIds) {
+    const bank = LINEAGE_GEOGRAPHIES[lid];
+    if (bank) pool.push(...bank);
+  }
+  if (pool.length === 0) return [];
+  // Shuffle + take up to 6 so the same character generation never sees
+  // the same hint set twice in a row.
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 6);
+}
 
-LONDON
-- High-luxe: Annabel's, Frieze, Mayfair, Hauser & Wirth, White Cube, Royal Opera House, Lyle's, the Walpole, Marylebone, RA
-- Class-coded everyday: Brixton McDonald's, Lewisham Morley's, Croydon Greggs, the 418 in Epsom, the 36 to Peckham, Walthamstow, Tottenham, the French House in Soho, Foyles
-- South London diasporic: Peckham, Brockley, Stockwell, Latimer Road, Bethnal Green, Tooting, New Cross
-- Cultural: Saint Heron archive, Tate, Royal Opera, Booker, Abbey Road, Brilliant Corners, the Wire, the White Pube, i-D, Notting Hill Carnival
-
-LAGOS / WEST AFRICA
-- Markets: Balogun, Idumota, Tejuosho, Mile 12, Computer Village (Ikeja)
-- Spots: Freedom Park, Terra Kulture, Quintessence, Alara, Bottles, Cubana, Cafe Vergnano
-- Routes: the danfo from Yaba, the BRT on Ikorodu, the Lekki tollgate at 2am
-- Class-coded: Surulere vs Lekki vs Ikoyi
-- Specifics: the boli woman on Awolowo Road, suya at midnight in Wuse Zone 4 (Abuja), agbalumo in season at Tejuosho, the trotro to Madina (Accra)
-
-KINGSTON / CARIBBEAN
-- Trench Town Culture Yard, Half Way Tree, the Jubilee dub session, Coronation Market, Hellshire fish, Devon House
-- Routes: the route taxi from Half Way Tree to Cross Roads, Saturday curry goat at Saxon Pub
-- Trinidad: Maracas bake-and-shark, panyards in Laventille, the Savannah, Maraval at carnival
-- Class-coded: Norbrook (uptown) vs Tivoli (downtown)
-
-JOBURG / CAPE TOWN
-- 44 Stanley, Maboneng, Newtown, Diepkloof Extension, Yeoville, Bag Factory, Kitcheners
-- Routes: the Gautrain, the taxi to Soweto
-- Cape Town: Woodstock, Bo-Kaap, the Old Biscuit Mill
-
-NEW YORK
-- Bed-Stuy, Crown Heights, Bushwick (NOT plain Brooklyn), Tribeca, East Village, the Lower East Side, Harlem, Inwood, Flatbush
-- Spots: Russ & Daughters, Le Bain, Lincoln Center, the Strand
-- LA: Leimert Park, View Park, Inglewood, Highland Park, K-Town, Magic City Atlanta, J.R. Crickets
-
-PARIS / FRANCE
-- Marais, 11ème, Belleville, Goutte d'Or
-- Specifics: the 11 bus to Bagnolet, Aux Folies in Belleville, the African market on rue du Faubourg Saint-Denis, Cafe Mabillon refusal
-
-BERLIN
-- Kreuzberg, Neukölln, Wedding, Friedrichshain
-- Berghain, Sisyphos, Mustafa's döner, Späti at 4am, U8 to Kotti
-
-TOKYO
-- Shimokitazawa, Koenji, Daikanyama, Nakameguro, Asakusa, Kichijoji
-- Specifics: the kissaten in Asakusa, Tower Records Shibuya, 24-hour ramen, the curry at Tomoshibi
-- Yamanote loop at midnight
-
-OTHER
-- Toronto: Scarborough, Jane and Finch, Regent Park, Kensington, the Drake, doubles at Bathurst
-- Atlanta: Edgewood, Old Fourth Ward, Beltline, Lenox Square
-- Mexico City: Roma, Condesa, Coyoacán, Tepito, Polanco, Arena Mexico
-- São Paulo: Pinheiros, Vila Madalena, Liberdade, Centro
-- Margate, Glasgow, Dakar (Plateau, Medina), Dublin (Stoneybatter), Lisbon (Alfama)
-
-MIX HIGH-LUXE AND CHICKEN-SHOP. A character can hang at Annabel's AND eat at Brixton McDonald's at 3am. They can attend Frieze AND order doubles from a Bathurst vendor. They can curate at Mayfair AND keep their hair done in Tottenham. The actual texture of diasporic creative life IS the spread; do not flatten one register over the other.
-
-Each generation should land in a DIFFERENT geographical pool from the previous one. If the last character was London-anchored, lean Lagos / Kingston / Tokyo / Paris on the next.`;
+// Anti-monoculture directive. Earlier iterations listed dozens of
+// neighbourhood examples per region as a "buffet" for the model;
+// the result was the model picking the same handful (Lagos + London,
+// the 418 bus, Alara) as defaults across every character. Removed
+// the buffet entirely. The per-character Geographic anchor pool
+// (built from LINEAGE_GEOGRAPHIES at prompt-build time) is now the
+// single source of place names. The note below only carries the
+// SHAPE of the specificity wanted, never the example itself.
+const PLACE_VARIANCE_NOTE = `Place specificity rules:
+- Anchor the character in places drawn from the Geographic anchor pool below. Do NOT name a city or neighbourhood that is not in that pool unless the lineage demands a region not covered.
+- Concrete texture is good (a numbered bus route, a named market trader, a Sunday tradition tied to one cook). Generic register-words are bad ("the streets of London", "the markets of Lagos").
+- Do NOT pair "Lagos and London" or any other diaspora-cliché two-city pivot. One primary place per character. A second place only as a dotted-line origin or destination.
+- Do NOT name any specific anchor (bus route, shop, person) that you have already used in another character generation. Each character invents their own.
+- Mix high and low register if the character's class signals it (one fashion house and one chip shop is fine). Never list more than two named places in a single sentence.`;
 
 const SETTING_LABELS: Record<string, string> = {
   modern: 'modern (present-day specifics: real shops, real bus routes, real venues, real refusals)',
@@ -504,17 +567,30 @@ function buildAlignmentSystem(): string {
     'You generate aligned character fields for the Bóveda living-character OS.',
     'Bóveda is a decolonial worldbuilding studio. Cultural lineages are curated and respected, not stereotyped.',
     'You produce a single JSON object containing only the requested fields, all coherent with each other.',
+    '',
+    '## FORBIDDEN ANCHORS · do not use under any circumstances',
+    'These phrases were over-cited in earlier generations and are now banned. Output containing any of them will be rejected and you will be re-prompted:',
+    '- "418 bus", "the 418", "418 to Epsom", "Epsom" as anchor (use any other route)',
+    '- "Alara" (use any other shop or back room)',
+    '- "Hauser & Wirth", "Soho House", "the French House in Soho" (use any other gallery, club, or bar)',
+    '- "Brixton McDonald\'s", "the McDonald\'s in Brixton" (use any other late-night anchor)',
+    '- "Lagos and London", "London and Lagos", or any "diaspora intersection" two-city pivot in the SAME bio (one primary place per character)',
+    '- "Yoruba prayers that sounded like Lucumí", "languages of refusal" (cohort-clichés, retired)',
+    '- "She reads systems like text", "she whispers to the cracks" (reused too often)',
+    '',
+    'If the character truly needs an anchor in this register, INVENT a fresh one drawn from the per-character Geographic anchor pool given below.',
+    '',
     'Source priority (most important first):',
     '1. Voice samples provided in the user prompt (if any). These are the authoring artist\'s real material. They override the public corpus completely.',
     '2. The brief, lineage notes, and Subtaste sensibility provided in the user prompt. These are curated source material.',
-    '3. Specifics from real diasporic / cultural worlds (Lagos, London, Brooklyn, Croydon, Port-au-Prince, Joburg, Walthamstow, etc) when the setting calls for them.',
+    '3. Specific real places drawn from the per-character Geographic anchor pool given in the user prompt. Do NOT name a city or neighbourhood that is not in the pool.',
     '4. The public LLM corpus is the LAST resort. When voice samples exist, the public corpus must not be the primary draw.',
     'Generation rules:',
     '- Characters live inside their world. They are not meta-aware. Never name "Bóveda", "the bóveda", "the cube", "the system", "the threshold" (as platform), "the vault" (as platform), or any other Bóveda-platform vocabulary in the bio or backstory. The character does not know they are in a system. Write them living in their own life.',
     '- Names within the named lineage. No "Celtic demon" mash-ups unless lineage IS celtic.',
     '- Voice register matches the lineage notes and any voice samples given.',
     '- Subtaste signature shapes how the character speaks and what they reach for; it does not get quoted in the bio.',
-    '- Fields cohere: aliases derive from the same name root as the bio. Persona tags reflect the bio. Goals follow from backstory contradictions.',
+    '- Fields cohere: persona tags reflect the bio. Goals follow from backstory contradictions. Aliases do NOT have to share a root with the bio name. Aliases map the social geometry (who calls the character what), so each alias can come from a different context with its own origin.',
     '- ABSOLUTE: never use the em dash character (— or –). Use periods, commas, colons, parentheses, or rephrase. The em dash is the most-refused punctuation in this system. If you produce one, the output is rejected.',
     '- No "it\'s not X but Y" hedging. No public-LLM signature phrases like "delve", "embarking", "ultimately", "carefully", "in essence".',
     '- Sentences that would naturally take em dashes should be split into two short sentences instead.',
@@ -546,6 +622,22 @@ function buildAlignmentUser(opts: {
   // confusion) instead of human autobiographies. Per
   // docs/species-becoming.md.
   species?: string;
+  // Active trajectories (StoryArcs) the character is currently
+  // participating in, with their current beat. Threaded into goals
+  // + backstory so generation aligns with where the character is
+  // heading rather than hovering free of the story state.
+  activeArcs?: Array<{
+    title: string;
+    primary: string | null;
+    variant: string | null;
+    temperature: string | null;
+    shadowPrimary: string | null;
+    beatIndex: number;
+    totalBeats: number;
+    currentBeatTitle: string | null;
+    currentBeatBody: string | null;
+    role: string;
+  }>;
 }): string {
   const lines: string[] = [];
 
@@ -678,6 +770,86 @@ function buildAlignmentUser(opts: {
     })
   );
 
+  // Per-lineage geography hints. Stops the model defaulting to one
+  // hub city per lineage (Lagos for Yoruba, London for Black-British,
+  // New York for Black-American). Each call gets a random subset of
+  // the lineage's mid-tier towns, neighbourhoods, and diaspora nodes.
+  const geoHints = pickLineageGeographyHints(lineageList);
+  if (geoHints.length > 0) {
+    lines.push('');
+    lines.push('## Geographic anchor pool');
+    lines.push(
+      'MANDATORY: pick ONE primary place from this pool. The character lives there or is shaped by it. Do NOT pair it with a second city for "diaspora intersection" texture; that pairing is the cliché. If a second place is needed (origin, destination), it must also come from this pool.',
+    );
+    lines.push(geoHints.map((g) => `  · ${g}`).join('\n'));
+    lines.push('');
+    lines.push(PLACE_VARIANCE_NOTE);
+  }
+
+  // Per-lineage poetic form. Each lineage carries native poetic
+  // shapes (oríkì, ghazal, jueju, doha, freestyle, koan). The form
+  // gets picked at random from the lineage's bank, then modulated by
+  // the chosen setting (modern lens, past-life lens, mythic lens,
+  // etc). The block is the single biggest signal pushing the tongue
+  // away from generic English narrative voice.
+  const poetic = buildPoeticFormBlock(lineageList, opts.setting);
+  if (poetic) {
+    lines.push('');
+    lines.push(poetic.block);
+  }
+
+  // Active trajectories. When the character is a participant in any
+  // active StoryArc, this block surfaces the arc title + primary +
+  // current beat so goals + backstory align with where the character
+  // is heading. Without it the goals float free of the story state.
+  if (opts.activeArcs && opts.activeArcs.length > 0) {
+    lines.push('');
+    lines.push('## Active trajectories');
+    lines.push(
+      'This character is mid-story. The arcs below tell you which beat they are currently inhabiting. Goals and backstory should serve the current beat (what they need to get out of it, what is at stake), not float free of it.',
+    );
+    for (const a of opts.activeArcs) {
+      const tag = [a.primary, a.variant].filter(Boolean).join(' / ');
+      lines.push('');
+      lines.push(`- "${a.title}" (${tag || 'no primary'}, ${a.temperature ?? 'no temperature'}, role: ${a.role})`);
+      lines.push(
+        `  Currently on beat ${a.beatIndex + 1} of ${a.totalBeats}: ${a.currentBeatTitle ?? '(unnamed)'}`,
+      );
+      if (a.currentBeatBody) {
+        lines.push(`  Beat note: ${a.currentBeatBody}`);
+      }
+      if (a.shadowPrimary) {
+        lines.push(`  Shadow pulling against this arc: ${a.shadowPrimary}`);
+      }
+    }
+  }
+
+  // Anti-monoculture directive. Two characters of the same lineage
+  // must read as DIFFERENT people, not as variations of one template.
+  // Forces divergence in generation, profession, ethics, subculture,
+  // class register, and decade of formation.
+  lines.push('');
+  lines.push('## Surprise directive');
+  lines.push(
+    'This character is one specific person within their lineage, not a representative sample of it. ' +
+      'If you have generated other characters of the same lineage in this session, this one MUST diverge from them along at least three of these axes: generation, profession, class register, ethical commitment, subculture, religious orthodoxy, body relationship, decade of formation. ' +
+      'Pick the unexpected within the lineage. A Yoruba character can be a Pentecostal microbiologist who refuses Ifa. An Igbo character can be a Berlin techno producer who has never been to Lagos. A Tibetan character can be a Brooklyn DJ who left Dharamsala at fifteen. ' +
+      'Surprise the writer. The reading test: if a peer of the same lineage could swap the bio with this one and not notice, the bio has failed.',
+  );
+
+  // Setting-specific amplifier. When the writer asks for modern,
+  // pull the modernity through with concrete contemporary platforms,
+  // current music, current internet vernacular, and lyric density.
+  if (opts.setting === 'modern') {
+    lines.push('');
+    lines.push('## Modern register · contemporary specificity');
+    lines.push(
+      'This is a present-day character. They live in 2026. Concrete contemporary anchors required: actual current platforms (Discord servers, Substack, Telegram, group chats, voice notes, FaceTime, Notion, Are.na), current music ecosystems within the lineage (alté, amapiano, drill, dembow, jersey club, baile funk, gqom, jazz-rap, neo-Afrobeats, neo-soul). Current internet vernacular at the level of Genius lyric annotations: dense, layered, double-meanings, code-switches mid-line. ' +
+        'Aliases must read modern (handle-style, IG-username-shaped, not stock fantasy names). Backstory references real-current-decade events, not generic biography arcs. ' +
+        'Reach for the rapper / lyricist register: lines should hit, not just describe. Specificity over abstraction. The character should sound like they post.',
+    );
+  }
+
   lines.push('');
   lines.push('## Output schema');
   lines.push(
@@ -689,13 +861,46 @@ function buildAlignmentUser(opts: {
       lines.push(
         '  backstory: string (three short paragraphs. Resonate with the Subtaste sensibility: same flavour as the bio but deeper. Specific places, specific failures, specific expertise. The Editorial Subtaste should produce a backstory full of named exhibits, gallerists they outlasted, dinner refusals, the year they walked out. The Visionary should produce one full of rooms they entered first. Specific. Lived-in. Never abstract. Never quoted by the character.)'
       );
-    else if (f === 'aliases') lines.push('  aliases: string[] (1-3 names within the lineage\'s naming pattern)');
+    else if (f === 'aliases')
+      lines.push(
+        '  aliases: string[] (3-5 names, EACH ANCHORED IN A DIFFERENT SOCIAL REGISTER. Pick from these layers (use 3-5, never just variations of the legal name):\n' +
+          '    · birth / legal name (full, formal)\n' +
+          '    · family / intimate name (only parents, siblings, oldest friends use this; often diminutive or kinship-linked)\n' +
+          '    · professional / published name (the name on credits, the byline, the spine of the book)\n' +
+          '    · scene / street name (what people call them in the room they hold court in: studio, marketplace, club, vault)\n' +
+          '    · online handle (when the character is modern: lowercase, no spaces, often misspelled-on-purpose, IG / Discord / SoundCloud-shaped)\n' +
+          '    · praise name / oríkì-style epithet (Yoruba), or stage-name / regnal-name (depending on lineage)\n' +
+          '    · spiritual / initiated name (only when species or lineage carries one)\n' +
+          '  Each alias must come from a DIFFERENT context with a DIFFERENT origin. Surprise the writer. The aliases together should map the social geometry of the character: who calls them what, and why. No two aliases should be simple spelling variants of the same root.'
+      );
     else if (f === 'personaTags')
       lines.push('  personaTags: string[] (3-7 lowercase tags, lineage-aware, no generic AI tags)');
-    else if (f === 'goals') lines.push('  goals: string[] (3-5 short imperative phrases, what the character is reaching toward)');
+    else if (f === 'goals')
+      lines.push(
+        '  goals: string[] (4-5 entries. Each entry is 18-40 words. NOT a generic imperative ("be successful", "find love", "make great work"). NOT abstract spirit-poetry ("hold the seam between worlds", "keep the question alive", "learn the name of the one who comes through the junction"). Even a spirit needs a concrete material referent: which offering they need accepted, which name they refuse to be called, which threshold has been mistreated, which song must be sung by Tuesday. EACH GOAL must carry:\n' +
+          '    · a SPECIFIC objective with a real-world referent (a building, a person, a sum of money, a dated deadline, a named institution, a refusal that has consequences, an offering, a song to be sung by a specific person, a name to be cleared)\n' +
+          '    · the COST of pursuing it (what the character has to give up, what bridge gets burned, what relationship strains)\n' +
+          '    · either the STAKES (what is lost if they fail) or the WHY (what wound or wonder put this goal in them)\n' +
+          '  Format guideline: "[concrete action]. [Cost or stakes layered in.] [Optional sharper turn.]" Mix layers within the array:\n' +
+          '    · 1-2 ARTICULATED goals (what the character publicly says they are chasing)\n' +
+          '    · 1 SECRET goal (quieter, more dangerous, what they actually want under the public answer)\n' +
+          '    · 1 INHERITED goal (passed down by family, lineage, or wound; not chosen; the character may resent carrying it)\n' +
+          '    · optionally 1 REFUSED goal (what they could pursue but will not, marked with the refusal so the model knows it is held against pursuing)\n' +
+          '  Goals must TENSION each other. At least one pair of goals should fight: pursuing A makes B harder. The goals are the engine of the character\'s drama; if removing one would not change the character, it is not a goal, it is a hobby.\n' +
+          '  ALIGN to context: goals must be coherent with the Subtaste sensibility above (an Editorial Subtaste produces goals about cuts, refusals, what to exclude; a Visionary produces goals about rooms entered first; a Channelling produces goals about offerings carried through to the recipient). When a "## Active trajectories" block is present, at least one goal must directly serve the character\'s CURRENT beat in that trajectory.'
+      );
     else if (f === 'tongue')
       lines.push(
-        '  tongue: { primaryLanguage: string, dialect: string, accent: string, idioms: string[] (3-6 specific phrases this character uses), registerNotes: string (one sentence on cadence/refusals) } — anchored to lineage. NOT generic. Specific dialect (Lagos pidgin, AAVE, Kreyòl, Yoruba code-switch, south London, etc.) so the character does not converge on standard English.'
+        '  tongue: object with REQUIRED fields:\n' +
+          '    primaryLanguage: string. The character\'s dominant tongue.\n' +
+          '    codeSwitchesTo: string[]. REQUIRED. 1-3 languages they drop into mid-sentence (lineage-anchored, e.g. ["Yoruba", "Pidgin", "Lucumí"]).\n' +
+          '    dialect: string. Lineage-anchored, specific. Not generic English.\n' +
+          '    accent: string.\n' +
+          '    idioms: string[]. REQUIRED. 3-6 specific phrases this character uses.\n' +
+          '    poeticForm: string. REQUIRED. Use the form\'s slug from "## Poetic form" above (oriki, ghazal, jueju, doha, freestyle_dub, koan, proverb_chain, haiku_tanka, psalmic, zikr, spoken_word, vajra_doha, waka_dayo).\n' +
+          '    formNote: string. REQUIRED. One line on how this character\'s setting modulates the form (modern lens, past-life lens, mythic lens, mystical lens). Pull from the lens directive in the "## Poetic form" block.\n' +
+          '    registerNotes: string. One sentence on cadence and refusals.\n' +
+          '  All seven fields must be present. The character must NOT converge on standard English.'
       );
   }
   lines.push('');
@@ -733,6 +938,11 @@ function parseDraft(text: string): AlignedDraft | null {
       const t = parsed.tongue as Record<string, unknown>;
       const tongue: TongueShape = {};
       if (typeof t.primaryLanguage === 'string') tongue.primaryLanguage = t.primaryLanguage.trim();
+      if (Array.isArray(t.codeSwitchesTo))
+        tongue.codeSwitchesTo = (t.codeSwitchesTo as unknown[])
+          .filter((i) => typeof i === 'string')
+          .map((i) => (i as string).trim())
+          .filter(Boolean);
       if (typeof t.dialect === 'string') tongue.dialect = t.dialect.trim();
       if (typeof t.accent === 'string') tongue.accent = t.accent.trim();
       if (Array.isArray(t.idioms))
@@ -740,6 +950,8 @@ function parseDraft(text: string): AlignedDraft | null {
           .filter((i) => typeof i === 'string')
           .map((i) => (i as string).trim())
           .filter(Boolean);
+      if (typeof t.poeticForm === 'string') tongue.poeticForm = t.poeticForm.trim();
+      if (typeof t.formNote === 'string') tongue.formNote = t.formNote.trim();
       if (typeof t.registerNotes === 'string') tongue.registerNotes = t.registerNotes.trim();
       if (Object.keys(tongue).length > 0) draft.tongue = tongue;
     }
@@ -816,6 +1028,33 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
         subtasteCode: subtasteCode ?? null,
       });
 
+      // Active trajectories. When the character is a participant in
+      // any active StoryArc, pass the arcs + their current beats into
+      // the prompt so goals + backstory align with where the
+      // character is actually heading. Without this, goals are
+      // arbitrary; with it, goals serve the trajectory.
+      const arcParticipations = await prisma.arcParticipant.findMany({
+        where: { characterId: character.id, arc: { status: 'active' } },
+        include: { arc: true },
+      });
+      const activeArcs = arcParticipations.map((p) => {
+        const beats = Array.isArray(p.arc.beats) ? (p.arc.beats as Array<{ title?: string; body?: string }>) : [];
+        const currentIdx = p.arc.currentBeatIndex ?? 0;
+        const current = beats[currentIdx];
+        return {
+          title: p.arc.title,
+          primary: p.arc.primary,
+          variant: p.arc.variant,
+          temperature: p.arc.temperature,
+          shadowPrimary: p.arc.shadowPrimary,
+          beatIndex: currentIdx,
+          totalBeats: beats.length,
+          currentBeatTitle: current?.title ?? null,
+          currentBeatBody: current?.body ?? null,
+          role: p.role,
+        };
+      });
+
       const system = buildAlignmentSystem();
       const user = buildAlignmentUser({
         characterName: character.name,
@@ -834,6 +1073,7 @@ export async function realignRoutes(fastify: FastifyInstance): Promise<void> {
         ibisAvoid,
         embracePhrases,
         species: character.species ?? undefined,
+        activeArcs,
       });
 
       let result;

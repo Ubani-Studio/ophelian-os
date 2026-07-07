@@ -11,7 +11,7 @@ import { cleanGeneratedText } from '../lib/strip-em-dashes.js';
  * Starforge-aware bio onto the Bóveda Character, sets the canonical
  * Subtaste twelve glyph from Starforge's classification, and locks
  * the identity fields so subsequent auto-rolls (sync-oripheon-all,
- * bulk-import-tizita) leave them alone.
+ * bulk-import-ikenga) leave them alone.
  *
  * The smallest cut of the parked identity-lock-in work in
  * docs/identity-lock-and-starforge.md, scoped to one character.
@@ -344,7 +344,7 @@ export async function starforgeImportRoutes(fastify: FastifyInstance): Promise<v
           : character.personaTags;
 
       // Build identity envelope. Lock the fields we just wrote so
-      // sync-oripheon-all and bulk-import-tizita leave them alone.
+      // sync-oripheon-all and bulk-import-ikenga leave them alone.
       const previousLocked = readLockedArray(character.identity);
       const lockedSet = new Set([
         ...previousLocked,

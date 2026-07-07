@@ -22,6 +22,8 @@ const navItems: NavItem[] = [
   { href: '/nexus', label: 'Nexus', icon: 'N' },
   { href: '/trail', label: 'Trail', icon: 'T' },
   { href: '/', label: 'Characters', icon: 'C' },
+  { href: '/places', label: 'Places', icon: 'P' },
+  { href: '/arcs', label: 'Trajectories', icon: 'T' },
   { href: '/names', label: 'Names', icon: 'N' },
   { href: '/scenes', label: 'Scenes', icon: 'S' },
   { href: '/genome-legend', label: 'Symbols', icon: '◊' },

@@ -26,8 +26,8 @@
     "alabo_eye"
   ],
   "voice": {
-    "elevenlabs_voice_id": null,
-    "_status": "NOT_YET_CLONED \u2014 record at https://elevenlabs.io/voice-cloning, paste ID here",
+    "elevenlabs_voice_id": "nPczCjzI2devNBz1zQrb",
+    "_status": "TEMP placeholder, Brian premade. Free-tier accessible only. Real Ubani voice = Bo Ubani RVC model already trained at chromox/backend/rvc_models/persona_d5ed82b8-...pth, blocked from current path. Wire Boveda -> Chromox to use it. See RVC_IMPLEMENT.md.",
     "model": "eleven_multilingual_v2",
     "stability": 0.5,
     "similarity_boost": 0.75,

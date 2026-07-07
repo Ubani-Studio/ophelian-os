@@ -3,14 +3,14 @@
 /**
  * TizitaPanel
  *
- * Surfaces a character's Tizita-bound photos and brief inline on the
+ * Surfaces a character's Ikenga-bound photos and brief inline on the
  * character detail page. The Ikenga emblem marks characters that come
- * from real-life lineage (Tizita People) — a personal-shrine signal,
+ * from real-life lineage (Ikenga People) — a personal-shrine signal,
  * borrowed from Igbo tradition where the ikenga is the carved figure
  * of personal achievement and right-hand strength.
  *
  * If the character has no tizitaPersonaId, the panel renders nothing.
- * If Tizita is unreachable, it shows the reason quietly.
+ * If Ikenga is unreachable, it shows the reason quietly.
  */
 
 import { useEffect, useState } from 'react';
@@ -66,7 +66,7 @@ export function TizitaPanel({
   useEffect(() => {
     if (!tizitaPersonaId || !open || data) return;
     setLoading(true);
-    fetch(`${API_URL}/characters/${characterId}/tizita-photos`, {
+    fetch(`${API_URL}/characters/${characterId}/ikenga-photos`, {
       headers: { 'x-api-key': API_KEY },
     })
       .then((r) => r.json())
@@ -111,7 +111,7 @@ export function TizitaPanel({
               fontFamily: 'monospace',
             }}
           >
-            Tizita {photoCount !== null ? `· ${photoCount}` : ''}
+            Ikenga {photoCount !== null ? `· ${photoCount}` : ''}
           </span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
@@ -165,10 +165,10 @@ export function TizitaPanel({
           {!loading && data?.photos?.length === 0 && (
             <p style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
               {data.reason === 'tizita_unreachable'
-                ? 'Tizita unreachable. Start it on :8001 to see photos here.'
+                ? 'Ikenga unreachable. Start it on :8123 to see photos here.'
                 : data.reason === 'no_tizita_persona'
-                  ? 'No Tizita persona bound.'
-                  : 'No photos found in Tizita for this persona.'}
+                  ? 'No Ikenga persona bound.'
+                  : 'No photos found in Ikenga for this persona.'}
             </p>
           )}
         </div>

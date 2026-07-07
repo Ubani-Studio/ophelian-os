@@ -24,9 +24,11 @@
 import * as cron from 'node-cron';
 import { prisma } from '../db.js';
 import { decideTick, TickThrottledError, type Decision } from './tick.js';
-import { LlmBudgetError } from './llm.js';
+import { LlmBudgetError, hasLlmProvider } from './llm.js';
 import { randomUUID } from 'crypto';
 import { scanAndRecordUses } from './cohort-phrases.js';
+import { runSpark, pairHadRecentExchange } from './spark.js';
+import { publishLive } from './live-bus.js';
 
 interface TickOutcome {
   characterId: string;
@@ -337,6 +339,26 @@ export async function tickCharacterById(id: string): Promise<TickOutcome> {
   const generatedText = [decision.summary, decision.body].filter(Boolean).join('\n');
   void scanAndRecordUses(generatedText);
 
+  // Live bus: surface this tick on the character's WS stream so any
+  // listener (Studio overlay, Unreal plugin, ComfyUI hook) reacts in
+  // real time. Payload mirrors the Decision shape plus a few derived
+  // fields the client wants without needing a second fetch.
+  publishLive({
+    type: 'tick',
+    characterId: id,
+    payload: {
+      kind: decision.kind,
+      form: decision.form,
+      targetName: decision.targetName,
+      summary: decision.summary,
+      body: decision.body,
+      questId: decision.questId,
+      source: decision.source,
+      characterName: character.name,
+      currentLocation: character.currentLocation,
+    },
+  });
+
   return {
     characterId: id,
     characterName: character.name,
@@ -361,6 +383,124 @@ export async function runScheduledTickPass(): Promise<TickOutcome[]> {
     const outcome = await tickCharacterById(c.id);
     outcomes.push(outcome);
   }
+  return outcomes;
+}
+
+export interface MeetupOutcome {
+  location: string;
+  initiator: string;
+  recipient: string;
+  status: 'sparked' | 'skipped_recent' | 'skipped_dice' | 'error';
+  message?: string;
+  reason?: string;
+}
+
+/**
+ * Auto co-located meetups. Walks every Place with two or more
+ * autonomous characters present and, with a small probability per
+ * pair, fires a spark interaction. Backoff: skip a pair that already
+ * sparked within the last `cooldownHours`.
+ *
+ * Knobs:
+ *   MEETUP_PROBABILITY      default 0.3   (chance per pair per pass)
+ *   MEETUP_COOLDOWN_HOURS   default 8     (don't refire on the same pair within N hours)
+ *   MEETUP_MAX_PER_PASS     default 3     (cap LLM calls per pass)
+ */
+export async function runScheduledMeetupPass(): Promise<MeetupOutcome[]> {
+  if (!hasLlmProvider()) return [];
+
+  const probability = Math.max(0, Math.min(1, parseFloat(process.env.MEETUP_PROBABILITY ?? '0.3')));
+  const cooldownHours = Math.max(1, parseInt(process.env.MEETUP_COOLDOWN_HOURS ?? '8', 10));
+  const maxPerPass = Math.max(0, parseInt(process.env.MEETUP_MAX_PER_PASS ?? '3', 10));
+
+  // Pull autonomous characters with a currentLocation set. Co-location
+  // grouping happens by case-insensitive normalised location string.
+  const populated = await prisma.character.findMany({
+    where: {
+      mode: { in: ['espíritu', 'twin'] },
+      currentLocation: { not: null },
+    },
+    select: { id: true, name: true, currentLocation: true },
+  });
+
+  const byPlace = new Map<string, Array<{ id: string; name: string }>>();
+  for (const c of populated) {
+    if (!c.currentLocation) continue;
+    const key = c.currentLocation.trim().toLowerCase();
+    if (!key) continue;
+    const list = byPlace.get(key) ?? [];
+    list.push({ id: c.id, name: c.name });
+    byPlace.set(key, list);
+  }
+
+  const outcomes: MeetupOutcome[] = [];
+  let firedThisPass = 0;
+
+  for (const [, list] of byPlace) {
+    if (list.length < 2) continue;
+    if (firedThisPass >= maxPerPass) break;
+
+    // Dice roll for this place.
+    if (Math.random() > probability) {
+      // Track the skip for the most recently active pair so callers can
+      // see the pass actually evaluated this place.
+      const a = list[0];
+      const b = list[1];
+      outcomes.push({
+        location: a.id,
+        initiator: a.name,
+        recipient: b.name,
+        status: 'skipped_dice',
+      });
+      continue;
+    }
+
+    // Random pair from the place. Initiator and recipient are distinct.
+    const shuffled = [...list].sort(() => Math.random() - 0.5);
+    const a = shuffled[0];
+    const b = shuffled[1];
+
+    // Backoff: bail if this pair already exchanged within cooldown window.
+    const recent = await pairHadRecentExchange(a.id, b.id, cooldownHours);
+    if (recent) {
+      outcomes.push({
+        location: a.id,
+        initiator: a.name,
+        recipient: b.name,
+        status: 'skipped_recent',
+      });
+      continue;
+    }
+
+    try {
+      // Find the actual location string we want to log (preserves case
+      // of whichever character carries it; both should match modulo case).
+      const placeLabel = populated.find((c) => c.id === a.id)?.currentLocation ?? null;
+      const result = await runSpark({
+        initiatorId: a.id,
+        recipientId: b.id,
+        forceLocation: placeLabel ?? undefined,
+        source: 'auto_meetup',
+      });
+      outcomes.push({
+        location: result.location ?? '',
+        initiator: result.initiator.name,
+        recipient: result.recipient.name,
+        status: 'sparked',
+        message: result.message,
+      });
+      firedThisPass += 1;
+    } catch (e) {
+      outcomes.push({
+        location: '',
+        initiator: a.name,
+        recipient: b.name,
+        status: 'error',
+        reason: (e as Error).message,
+      });
+    }
+  }
+
   return outcomes;
 }
 
@@ -401,14 +541,40 @@ export function startScheduler(logger?: { info: (...a: unknown[]) => void; warn:
         return acc;
       }, {});
       logger?.info?.(`[scheduler] tick pass complete in ${Date.now() - start}ms: ${JSON.stringify(summary)}`);
+      // Auto co-located meetups. Runs after ticks so it sees the
+      // freshest currentLocation values (a tick can move a character).
+      const meetups = await runScheduledMeetupPass();
+      if (meetups.length > 0) {
+        const meetSummary = meetups.reduce<Record<string, number>>((acc, m) => {
+          acc[m.status] = (acc[m.status] ?? 0) + 1;
+          return acc;
+        }, {});
+        logger?.info?.(`[scheduler] meetup pass: ${JSON.stringify(meetSummary)}`);
+      }
     } catch (err) {
       logger?.error?.(
         `[scheduler] tick pass failed: ${err instanceof Error ? err.message : err}`
       );
     }
+
+    // Layer 4 episodic memory hygiene: prune expired non-promoted episodes.
+    // Cheap; runs alongside the tick pass so we don't add a second cron.
+    try {
+      const { prisma: _prisma } = await import('../db.js');
+      const result = await _prisma.memoryEpisode.deleteMany({
+        where: { expiresAt: { lt: new Date() }, promotedToCanonId: null },
+      });
+      if (result.count > 0) {
+        logger?.info?.(`[scheduler] pruned ${result.count} expired memory episodes`);
+      }
+    } catch (err) {
+      logger?.warn?.(
+        `[scheduler] memory prune failed (non-fatal): ${err instanceof Error ? err.message : err}`,
+      );
+    }
   });
 
-  logger?.info?.(`[scheduler] started · cron="${cronExpr}" · interval=${intervalHours}h`);
+  logger?.info?.(`[scheduler] started · cron="${cronExpr}" · interval=${intervalHours}h · memory_prune=enabled`);
 }
 
 export function stopScheduler(): void {

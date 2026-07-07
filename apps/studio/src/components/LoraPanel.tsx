@@ -46,7 +46,7 @@ const CATEGORIES = [
   { id: 'style', label: 'Style', surface: 'Overlay' },
 ] as const;
 
-const SOURCES = ['replicate', 'comfyui', 'civitai', 'local', 'starforge', 'tizita'] as const;
+const SOURCES = ['replicate', 'comfyui', 'civitai', 'local', 'starforge', 'ikenga'] as const;
 const BASE_MODELS = ['sdxl', 'sd15', 'flux', 'sd3', 'pony', 'illustrious', 'other'] as const;
 
 export function LoraPanel({

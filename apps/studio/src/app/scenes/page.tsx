@@ -124,6 +124,13 @@ export default function ScenesPage() {
                 <p className="entity-card-description">{scene.description}</p>
               )}
               <div className="entity-card-actions">
+                <a
+                  href={`/scenes/${scene.id}`}
+                  className="btn btn-sm btn-secondary"
+                  style={{ textDecoration: 'none', display: 'inline-block' }}
+                >
+                  Open
+                </a>
                 <button className="btn btn-sm btn-secondary" onClick={() => openModal(scene)}>
                   Edit
                 </button>

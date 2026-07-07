@@ -14,7 +14,7 @@ over them on sync. We need an opt-in lock surface.
 ## Problem statement
 
 Today every character is treated as re-rollable. `sync-oripheon-all`
-overwrites bio + classification when run. Bulk-import from Tizita
+overwrites bio + classification when run. Bulk-import from Ikenga
 swaps in `appearance_notes` when it looks like a stub. Random bio
 generation produces "Nnamdi Anyanwu is a Igbo fae thorn prince"
 and pastes it onto a character whose actual name is Triarch.
@@ -42,7 +42,7 @@ Shape:
 interface CharacterIdentity {
   /**
    * List of field names that must not be overwritten by automated
-   * processes (sync-oripheon-all, bulk-import-tizita, generator
+   * processes (sync-oripheon-all, bulk-import-ikenga, generator
    * re-rolls). Manual edits via PATCH /characters/:id always
    * win because the user is the one acting.
    */
@@ -112,7 +112,7 @@ before overwriting:
 
 - `POST /characters/sync-oripheon-all` — skips locked fields per
   character.
-- `POST /characters/bulk-import-tizita` — only updates
+- `POST /characters/bulk-import-ikenga` — only updates
   `appearance_notes` → bio if `bio` not in locked. Always updates
   `tizitaPersonaId` (binding is metadata, not identity).
 - `POST /characters/reconcile-bio-names` — already idempotent and

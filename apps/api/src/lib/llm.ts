@@ -123,11 +123,33 @@ export async function callLlm(options: LlmCallOptions): Promise<LlmResult> {
     content?: Array<{ type: string; text?: string }>;
     usage?: LlmResult['usage'];
   };
-  const text = (json.content || [])
+  const rawText = (json.content || [])
     .filter((c) => c.type === 'text' && typeof c.text === 'string')
     .map((c) => c.text)
     .join('\n')
     .trim();
 
+  // Master rule: no em dashes in any Boveda generation, ever. Applied
+  // here at the single LLM exit so every downstream caller (forge,
+  // tick, spark, atmospheric event, nuance, cohort phrase extraction)
+  // receives clean text without each having to remember to call the
+  // stripper. Includes the en-dash and any LLM-output two-character
+  // em-dash impersonators.
+  const text = scrubEmDashes(rawText);
+
   return { text, source: 'anthropic', usage: json.usage };
+}
+
+/** Master em-dash scrub. Removes em dash (U+2014), en dash (U+2013),
+ *  and the ASCII " -- " variant the LLM sometimes produces when told
+ *  not to use em dashes. Single source of truth lives in
+ *  strip-em-dashes.ts; this is a small inline copy to keep llm.ts
+ *  self-contained at the API exit. */
+function scrubEmDashes(input: string): string {
+  if (!input) return input;
+  return input
+    .replace(/[\u2014\u2013]/g, ', ')
+    .replace(/ -- /g, ', ')
+    .replace(/ {2,}/g, ' ')
+    .replace(/ ,/g, ',');
 }

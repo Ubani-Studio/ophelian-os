@@ -3,7 +3,7 @@
  * exposes whether a given field is locked from automated overwrites.
  *
  * Manual user-driven PATCH always wins (bypasses lock). Locks only
- * apply to automated paths: sync-oripheon-all, bulk-import-tizita
+ * apply to automated paths: sync-oripheon-all, bulk-import-ikenga
  * stub-rewrite, reconcile-bio-names, single-character oripheon
  * sync. Each of those calls isFieldLocked() before overwriting.
  *

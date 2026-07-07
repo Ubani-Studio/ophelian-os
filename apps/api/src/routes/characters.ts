@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
+import { loadPresenceForCharacters, loadPresenceForCharacter } from '../lib/presence.js';
 import {
   filterLockedUpdates,
   isFieldLocked,
@@ -9,7 +10,7 @@ import {
 
 /**
  * Bóveda's legacy Oripheon bio template starts with `<name> is a `.
- * When a character is later renamed (e.g. bound to a Tizita persona
+ * When a character is later renamed (e.g. bound to a Ikenga persona
  * called Triarch but originally rolled as "Nnamdi Anyanwu"), the
  * baked name in the bio drifts from the canonical Character.name.
  * This helper reconciles by extracting the leading subject and
@@ -61,10 +62,10 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
   });
 
-  // GET /characters - List all characters. Enriches Tizita-bound
+  // GET /characters - List all characters. Enriches Ikenga-bound
   // characters with their representative photo URL so list views
   // (e.g. operators cards) can render real faces without each card
-  // fanning out to Tizita on its own.
+  // fanning out to Ikenga on its own.
   fastify.get('/characters', async (_request, reply) => {
     const characters = await prisma.character.findMany({
       orderBy: { createdAt: 'desc' },
@@ -75,7 +76,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     let repByPersonaId: Map<string, string> | null = null;
     let tizitaBase = '';
     if (tizitaBound.length > 0) {
-      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
       tizitaBase = TIZITA_API_URL.replace(/\/api\/v1$/, '');
       try {
         const res = await fetch(`${TIZITA_API_URL}/personas/`, {
@@ -94,18 +95,24 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
           }
         }
       } catch {
-        // Tizita unreachable; characters render without representative photos
+        // Ikenga unreachable; characters render without representative photos
       }
     }
 
+    const presenceByCharacter = await loadPresenceForCharacters(
+      characters.map((c) => ({ id: c.id, currentLocation: c.currentLocation })),
+    );
+
     const enriched = characters.map((c) => {
+      const presence = presenceByCharacter.get(c.id);
+      const base = presence ? { ...c, presence } : c;
       if (c.tizitaPersonaId && repByPersonaId) {
         const repUrl = repByPersonaId.get(c.tizitaPersonaId);
         if (repUrl) {
-          return { ...c, tizitaRepresentativeUrl: repUrl };
+          return { ...base, tizitaRepresentativeUrl: repUrl };
         }
       }
-      return c;
+      return base;
     });
 
     return reply.send(enriched);
@@ -124,11 +131,13 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(404).send({ error: 'Character not found' });
     }
 
-    // Enrich with Tizita representative URL when bound, mirroring the
+    const presence = await loadPresenceForCharacter(character.id, character.currentLocation);
+
+    // Enrich with Ikenga representative URL when bound, mirroring the
     // list endpoint so the detail page's avatar fallback works without
     // a second round-trip.
     if (character.tizitaPersonaId) {
-      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
       try {
         const res = await fetch(`${TIZITA_API_URL}/personas/${character.tizitaPersonaId}`, {
           signal: AbortSignal.timeout(4000),
@@ -139,15 +148,15 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
           if (repUrl) {
             const tizitaBase = TIZITA_API_URL.replace(/\/api\/v1$/, '');
             const fullUrl = repUrl.startsWith('http') ? repUrl : `${tizitaBase}${repUrl}`;
-            return reply.send({ ...character, tizitaRepresentativeUrl: fullUrl });
+            return reply.send({ ...character, presence, tizitaRepresentativeUrl: fullUrl });
           }
         }
       } catch {
-        // Tizita unreachable; fall through with the unenriched character
+        // Ikenga unreachable; fall through with the unenriched character
       }
     }
 
-    return reply.send(character);
+    return reply.send({ ...character, presence });
   });
 
   // PATCH /characters/:id - Update a character
@@ -232,11 +241,11 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       },
     });
 
-    // Bidirectional sync to Tizita: bio → appearance_notes, name →
+    // Bidirectional sync to Ikenga: bio → appearance_notes, name →
     // display_name. Fire-and-forget; failure here doesn't fail the
     // Bóveda update, and the next bulk-import will reconcile.
     if (updated.tizitaPersonaId && (typeof body.bio === 'string' || typeof body.name === 'string')) {
-      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
       const tizitaPatch: Record<string, string> = {};
       if (typeof body.bio === 'string') tizitaPatch.appearance_notes = body.bio;
       if (typeof body.name === 'string') tizitaPatch.display_name = body.name;
@@ -252,7 +261,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     // lose the rep photo on every PATCH (causing the avatar to
     // revert to the initial-letter placeholder while editing bio).
     if (updated.tizitaPersonaId) {
-      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
       try {
         const res = await fetch(`${TIZITA_API_URL}/personas/${updated.tizitaPersonaId}`, {
           signal: AbortSignal.timeout(3000),
@@ -425,12 +434,12 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send({ lineages: LINEAGES });
   });
 
-  // POST /characters/bulk-import-tizita - Bulk import all named
-  // (sorted) Tizita personas as Bóveda characters. Skips unsorted
+  // POST /characters/bulk-import-ikenga - Bulk import all named
+  // (sorted) Ikenga personas as Bóveda characters. Skips unsorted
   // (display_name = null/empty). Idempotent: existing
   // tizitaPersonaId-bound characters are reused, not duplicated.
-  fastify.post('/characters/bulk-import-tizita', async (_request, reply) => {
-    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+  fastify.post('/characters/bulk-import-ikenga', async (_request, reply) => {
+    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
 
     let tizitaPayload: { personas: Array<{ id: string; display_name: string | null; photo_count: number; kind?: string; appearance_notes?: string | null; representative_photo_url?: string | null }>; total: number };
     try {
@@ -442,12 +451,12 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         signal: AbortSignal.timeout(10000),
       });
       if (!res.ok) {
-        return reply.code(502).send({ error: `Tizita returned ${res.status}` });
+        return reply.code(502).send({ error: `Ikenga returned ${res.status}` });
       }
       tizitaPayload = await res.json() as typeof tizitaPayload;
     } catch (e) {
       return reply.code(503).send({
-        error: 'Tizita is unreachable. Start Tizita on :8001.',
+        error: 'Ikenga is unreachable. Start Ikenga on :8123.',
         detail: e instanceof Error ? e.message : String(e),
       });
     }
@@ -469,7 +478,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         const existing = await prisma.character.findFirst({
           where: { tizitaPersonaId: persona.id },
         });
-        // Tizita's appearance_notes is the writer's free-text brief.
+        // Ikenga's appearance_notes is the writer's free-text brief.
         // Use it directly as the bio when present. When absent, leave
         // the bio empty so the user can enter their own brief in
         // Bóveda — better than a verbose dated stub that everyone has
@@ -479,13 +488,13 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
 
         if (existing) {
           const canonicalName = persona.display_name!.trim();
-          const looksLikeStub = !existing.bio || existing.bio.startsWith('Stubbed from Tizita') || existing.bio.startsWith('Imported from Tizita');
+          const looksLikeStub = !existing.bio || existing.bio.startsWith('Stubbed from Ikenga') || existing.bio.startsWith('Imported from Ikenga');
 
           const candidateUpdates: Partial<Record<LockableField, string>> = {};
 
           // Reconcile the canonical name. If the character was rolled
           // under an Oripheon ancestral name and is now bound to a
-          // named Tizita persona, the persona name wins. The bio /
+          // named Ikenga persona, the persona name wins. The bio /
           // systemPrompt get the baked ancestral name swapped to match.
           if (existing.name !== canonicalName) {
             candidateUpdates.name = canonicalName;
@@ -544,13 +553,13 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.send(results);
   });
 
-  // GET /characters/:id/tizita-photos - Federation endpoint: fetches
-  // the best photos for the linked Tizita persona via Tizita's
-  // /personas/:id/best. Returned URLs point at Tizita; the studio
+  // GET /characters/:id/ikenga-photos - Federation endpoint: fetches
+  // the best photos for the linked Ikenga persona via Ikenga's
+  // /personas/:id/best. Returned URLs point at Ikenga; the studio
   // renders them with crossOrigin or a proxy. Empty array if the
-  // character has no tizitaPersonaId or Tizita is unreachable.
-  fastify.get<{ Params: { id: string } }>('/characters/:id/tizita-photos', async (request, reply) => {
-    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+  // character has no tizitaPersonaId or Ikenga is unreachable.
+  fastify.get<{ Params: { id: string } }>('/characters/:id/ikenga-photos', async (request, reply) => {
+    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
     const char = await prisma.character.findUnique({ where: { id: request.params.id } });
     if (!char) return reply.code(404).send({ error: 'character not found' });
     if (!char.tizitaPersonaId) return reply.send({ photos: [], reason: 'no_tizita_persona' });
@@ -578,8 +587,8 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
 
   // PATCH /characters/:id/bio - Update the bio (brief) inline. Used
   // by the character detail page editable brief field. When the
-  // character is bound to a Tizita persona, the brief is mirrored
-  // into Tizita's appearance_notes so both sides stay in sync.
+  // character is bound to a Ikenga persona, the brief is mirrored
+  // into Ikenga's appearance_notes so both sides stay in sync.
   fastify.patch<{ Params: { id: string } }>('/characters/:id/bio', async (request, reply) => {
     const body = request.body as { bio?: string };
     if (typeof body?.bio !== 'string') {
@@ -590,7 +599,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       data: { bio: body.bio },
     });
     if (updated.tizitaPersonaId) {
-      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+      const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
       void fetch(`${TIZITA_API_URL}/personas/${updated.tizitaPersonaId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -602,7 +611,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // POST /characters/from-persona - Create a Bóveda character from a
-  // Tizita persona. Idempotent: if a character already exists in
+  // Ikenga persona. Idempotent: if a character already exists in
   // Bóveda bound to the same persona, return that instead. The
   // tizitaPersonaId field on Character is the persistent link, so
   // photo-library lookups and avatar fetches keep working.
@@ -629,8 +638,8 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       });
     }
 
-    // Optionally fetch persona details from Tizita
-    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1').replace(/\/$/, '');
+    // Optionally fetch persona details from Ikenga
+    const TIZITA_API_URL = (process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1').replace(/\/$/, '');
     let displayName: string | null = null;
     let appearanceNotes: string | null = null;
     let photoCount = 0;
@@ -646,10 +655,10 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
         photoCount = persona.photo_count ?? 0;
         tizitaReachable = true;
       } else if (res.status === 404) {
-        return reply.code(404).send({ error: `persona ${body.personaId} not found in Tizita` });
+        return reply.code(404).send({ error: `persona ${body.personaId} not found in Ikenga` });
       }
     } catch {
-      // Tizita unreachable; we can still proceed with nameOverride
+      // Ikenga unreachable; we can still proceed with nameOverride
     }
 
     const inferredName =
@@ -658,11 +667,11 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
       (tizitaReachable ? `Unnamed · ${body.personaId.slice(0, 8)}` : null);
     if (!inferredName) {
       return reply.code(503).send({
-        error: 'Tizita is unreachable and no nameOverride was provided. Start Tizita on :8001 or pass nameOverride in the body.',
+        error: 'Ikenga is unreachable and no nameOverride was provided. Start Ikenga on :8123 or pass nameOverride in the body.',
       });
     }
 
-    // Prefer Tizita's appearance_notes (the writer's free-text brief).
+    // Prefer Ikenga's appearance_notes (the writer's free-text brief).
     // When absent, leave bio empty so the user can write their own
     // in Bóveda rather than starting from a stub they have to clear.
     const bio = appearanceNotes ?? '';
@@ -689,19 +698,19 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // POST /characters/:id/loras - Attach a LoRA to a character. The
-  // LoRA file lives elsewhere (Tizita / S3 / shared storage); this
+  // LoRA file lives elsewhere (Ikenga / S3 / shared storage); this
   // attaches its identifier + metadata to the character so image-gen
   // surfaces (Genoma, ComfyUI, thumbnail compositor) can pick the
   // right adapter when rendering.
   fastify.post<{ Params: { id: string } }>('/characters/:id/loras', async (request, reply) => {
     const lora = request.body as {
-      id: string;            // LoRA identifier (Tizita ref, civitai id, etc.)
+      id: string;            // LoRA identifier (Ikenga ref, civitai id, etc.)
       name?: string;         // Display name (e.g. "Ubani v3")
-      source?: string;       // "tizita" | "civitai" | "local" | "starforge"
+      source?: string;       // "ikenga" | "civitai" | "local" | "starforge"
       trigger?: string;      // The trigger word(s) that activate it
       weight?: number;       // Default weight, 0.0-1.0
       baseModel?: string;    // "sdxl" | "sd15" | "flux" | etc.
-      trainedFromPersonaId?: string; // Tizita persona this was trained from
+      trainedFromPersonaId?: string; // Ikenga persona this was trained from
       thumbnailUrl?: string;
       metadata?: Record<string, unknown>;
     };
@@ -821,7 +830,7 @@ export async function characterRoutes(fastify: FastifyInstance): Promise<void> {
     }
 
     // Characters: try to match by name first (so Òrò's 'Ubani' lands
-    // on the existing Tizita-bound Bóveda Ubani, etc.). If no match,
+    // on the existing Ikenga-bound Bóveda Ubani, etc.). If no match,
     // create a stub.
     for (const c of oroChars) {
       try {

@@ -1,14 +1,14 @@
 /**
- * Tizita federation helper. Fetches representative photo URLs for
- * a set of Tizita-bound personas in one call, returning a map
+ * Ikenga federation helper. Fetches representative photo URLs for
+ * a set of Ikenga-bound personas in one call, returning a map
  * keyed by persona id. Used by routes that render character lists
- * (characters list, trail, altar) so they don't fan out to Tizita
+ * (characters list, trail, altar) so they don't fan out to Ikenga
  * per row.
  *
- * Tizita unreachable is non-fatal: returns an empty map and logs.
+ * Ikenga unreachable is non-fatal: returns an empty map and logs.
  */
 
-const DEFAULT_TIZITA_BASE = process.env.TIZITA_API_URL || 'http://localhost:8001/api/v1';
+const DEFAULT_TIZITA_BASE = process.env.TIZITA_API_URL || 'http://localhost:8123/api/v1';
 const TIZITA_FETCH_TIMEOUT = 5000;
 
 export interface TizitaRepResult {
@@ -45,7 +45,7 @@ export async function fetchTizitaRepUrls(personaIds: string[]): Promise<TizitaRe
     }
     return { byPersonaId };
   } catch {
-    // Tizita offline or timed out; render without rep URLs.
+    // Ikenga offline or timed out; render without rep URLs.
     return { byPersonaId: new Map() };
   }
 }

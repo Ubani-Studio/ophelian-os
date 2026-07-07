@@ -15,6 +15,7 @@
  */
 
 import type { Character, CharacterRelationship } from '@prisma/client';
+import { prisma } from '../db.js';
 import { callLlm, hasLlmProvider } from './llm.js';
 import { readIdentity } from './identity-lock.js';
 import { getSlangGuidance } from './ibis-slang.js';
@@ -58,7 +59,11 @@ interface RelationshipNeighbour {
 }
 
 export interface TickInput {
-  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species' | 'identityHistory' | 'lineageIds'>;
+  self: Pick<Character, 'id' | 'name' | 'bio' | 'backstory' | 'mode' | 'goals' | 'agencyScope' | 'identity' | 'toneForbidden' | 'authoredBy' | 'voiceSamples' | 'tongue' | 'gender' | 'pronouns' | 'timelineState' | 'species' | 'identityHistory' | 'lineageIds'> & {
+    modernity?: unknown;
+    currentLocation?: string | null;
+    homeBase?: string | null;
+  };
   recentEvents: Array<{
     ts: string;
     kind: string;
@@ -85,6 +90,23 @@ export interface TickInput {
    *  Used by the studio "Force form" debug button to verify quest
    *  emergence end-to-end without waiting for organic affinity. */
   forceForm?: PostForm;
+
+  /** Memory scope filter for licensed contexts.
+   *
+   *  When set (e.g. via Vaulted LicenseRequest), canon entries are filtered:
+   *    - 'public' canon always flows
+   *    - 'licensed_only' canon flows only when this matches the entry scope
+   *    - 'private' canon never flows in licensed contexts
+   *
+   *  Pass undefined for the artist's own creative use (private flows).
+   *  Pass a license id like 'loreal_pilot_2026q3' for a brand pilot:
+   *  the tick will only see public canon, keeping brand outputs auditable. */
+  licenseScope?: string;
+
+  /** Optional license request id for audit. When set, every canon entry
+   *  read by the tick is logged against this license id so brand legal
+   *  can answer "what biography did this asset reference?". */
+  licenseRequestId?: string;
 }
 
 function readVoiceSamples(raw: unknown): string[] {
@@ -175,7 +197,7 @@ function buildTongueBlock(tongue: TongueShape): string {
 
   if (tongue.idioms && tongue.idioms.length > 0) {
     lines.push(
-      `Idioms you reach for naturally: ${tongue.idioms.map((i) => `"${i}"`).join(', ')}. Use them when they fit; do not force them.`
+      `Idioms YOU MUST USE in this output (drop one or two of these in naturally — not all, never all):  ${tongue.idioms.map((i) => `"${i}"`).join(', ')}.`
     );
   }
   if (tongue.registerNotes) {
@@ -183,7 +205,7 @@ function buildTongueBlock(tongue: TongueShape): string {
   }
 
   lines.push(
-    'Speak in this tongue specifically, not in generic standard English. If your tongue is patois, write patois. If your tongue is AAVE, write AAVE. If your tongue is fragmentary or aphoristic, do not pad. The substrate model wants to soften you toward standard register; refuse it.'
+    'CODE-SWITCH RULE: when expressing intimacy, frustration, humor, or addressing close peers, you DROP into your dialect / vernacular mid-sentence. Mix registers. The output should NOT be uniformly standard English. Public-tongue + private-tongue alternation is the texture you are aiming for. The substrate LLM wants to soften you to neutral — REFUSE it. If you wrote a paragraph entirely in standard register, you failed the character.'
   );
 
   return lines.join('\n');
@@ -239,9 +261,319 @@ function readGoals(raw: unknown): string[] {
   return raw.filter((g) => typeof g === 'string' && g.trim().length > 0) as string[];
 }
 
+interface CanonEntryForPrompt {
+  title: string;
+  body: string;
+  occurredAt: Date | null;
+  scope: string;
+  retractedAt: Date | null;
+}
+
+interface SurpriseInjection {
+  preoccupations: string[];
+  tensions: Array<{ beliefA: string; beliefB: string; note?: string }>;
+  fixations: string[];
+  livePreoccupation: string | null;
+  livePreoccupationSource: 'preoccupations' | 'recent_episode' | 'fixation' | null;
+}
+
+function pickRandom<T>(arr: T[]): T | null {
+  if (!arr || arr.length === 0) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+async function loadSurpriseInjection(
+  characterId: string,
+): Promise<SurpriseInjection> {
+  const empty: SurpriseInjection = {
+    preoccupations: [],
+    tensions: [],
+    fixations: [],
+    livePreoccupation: null,
+    livePreoccupationSource: null,
+  };
+  try {
+    const c = await prisma.character.findUnique({
+      where: { id: characterId },
+      select: { preoccupations: true, tensions: true, fixations: true },
+    });
+    if (!c) return empty;
+
+    const preoccupations = (Array.isArray(c.preoccupations) ? c.preoccupations : [])
+      .filter((s): s is string => typeof s === 'string');
+    const tensions = (Array.isArray(c.tensions) ? c.tensions : [])
+      .filter((t): t is { beliefA: string; beliefB: string; note?: string } =>
+        typeof t === 'object' && t !== null && 'beliefA' in t && 'beliefB' in t,
+      );
+    const fixations = (Array.isArray(c.fixations) ? c.fixations : [])
+      .filter((s): s is string => typeof s === 'string');
+
+    // Live preoccupation source rotation: 50% from preoccupations[],
+    // 30% from recent episode, 20% from fixations[]. Forces unexpected
+    // injections.
+    const r = Math.random();
+    let livePreoccupation: string | null = null;
+    let livePreoccupationSource: SurpriseInjection['livePreoccupationSource'] = null;
+
+    if (r < 0.5 && preoccupations.length > 0) {
+      livePreoccupation = pickRandom(preoccupations);
+      livePreoccupationSource = 'preoccupations';
+    } else if (r < 0.8) {
+      // pull a random recent episode
+      const recent = await prisma.memoryEpisode.findMany({
+        where: { characterId, expiresAt: { gt: new Date() } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { content: true },
+      });
+      if (recent.length > 0) {
+        const ep = pickRandom(recent);
+        if (ep) {
+          livePreoccupation = ep.content;
+          livePreoccupationSource = 'recent_episode';
+        }
+      }
+      if (!livePreoccupation && preoccupations.length > 0) {
+        livePreoccupation = pickRandom(preoccupations);
+        livePreoccupationSource = 'preoccupations';
+      }
+    } else if (fixations.length > 0) {
+      livePreoccupation = pickRandom(fixations);
+      livePreoccupationSource = 'fixation';
+    }
+
+    return { preoccupations, tensions, fixations, livePreoccupation, livePreoccupationSource };
+  } catch (e) {
+    console.warn('[tick] loadSurpriseInjection failed:', (e as Error).message);
+    return empty;
+  }
+}
+
+function buildModernityBlock(modernity: unknown): string {
+  const m = (modernity ?? {}) as Record<string, unknown>;
+  const anchorEra = typeof m.anchorEra === 'string' ? m.anchorEra : null;
+  const bleed = typeof m.contemporaryBleed === 'number' ? m.contemporaryBleed : 0;
+  const slang = Array.isArray(m.contemporarySlang)
+    ? (m.contemporarySlang as unknown[]).filter((s): s is string => typeof s === 'string')
+    : [];
+  const refs = Array.isArray(m.contemporaryRefs)
+    ? (m.contemporaryRefs as unknown[]).filter((s): s is string => typeof s === 'string')
+    : [];
+  const refused = Array.isArray(m.refusedSlang)
+    ? (m.refusedSlang as unknown[]).filter((s): s is string => typeof s === 'string')
+    : [];
+  if (!anchorEra && bleed === 0 && slang.length === 0 && refs.length === 0) return '';
+
+  const lines: string[] = ['## Modernity (you exist in 2026, not in your archetype era)'];
+  if (anchorEra) lines.push(`Anchor era: ${anchorEra}. Contemporary bleed: ${bleed.toFixed(2)} (0=archaic, 1=fully contemporary).`);
+  if (slang.length > 0) {
+    lines.push(`Contemporary slang you actually use (drop ~one in if natural; never force): ${slang.map((s) => `"${s}"`).join(', ')}.`);
+  }
+  if (refs.length > 0) {
+    lines.push(`Cultural touchstones you reference: ${refs.join(', ')}.`);
+  }
+  if (refused.length > 0) {
+    lines.push(`REFUSED slang (do not use, sounds dated/cringe): ${refused.map((s) => `"${s}"`).join(', ')}.`);
+  }
+  lines.push(
+    'You are an archetype expressed THROUGH 2026, not a museum artifact. The mix of archaic register + 2026 slang IS the texture. Pure-archaic = stilted. Pure-modern = flat.',
+  );
+  return lines.join('\n');
+}
+
+function buildLocationBlock(currentLocation?: string | null, homeBase?: string | null): string {
+  if (!currentLocation && !homeBase) return '';
+  const lines: string[] = ['## Where you are'];
+  if (currentLocation) lines.push(`Right now: ${currentLocation}.`);
+  if (homeBase) lines.push(`From / based: ${homeBase}.`);
+  lines.push("Let location color what you say. Specific place over generic 'the city'.");
+  return lines.join('\n');
+}
+
+async function loadStoryArcBlock(characterId: string): Promise<string> {
+  try {
+    const arcs = await prisma.storyArc.findMany({
+      where: {
+        status: 'active',
+        participants: { some: { characterId } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 2,
+    });
+    if (arcs.length === 0) return '';
+    const lines: string[] = ['## Active story arcs you are inside (your behavior tracks these)'];
+    for (const arc of arcs) {
+      const beats = (Array.isArray(arc.beats) ? arc.beats : []) as Array<{ title: string; body?: string }>;
+      const current = beats[arc.currentBeatIndex];
+      lines.push(`- "${arc.title}" — ${arc.description || '(no description)'}`);
+      if (current) {
+        lines.push(
+          `  Current beat (${arc.currentBeatIndex + 1}/${beats.length}): ${current.title}` +
+            (current.body ? ` — ${current.body}` : ''),
+        );
+      }
+    }
+    lines.push(
+      'You are mid-arc. The trajectory matters. Behavior should reflect where you ARE in the arc, not where you started or where it ends.',
+    );
+    return lines.join('\n');
+  } catch (e) {
+    console.warn('[tick] loadStoryArcBlock failed:', (e as Error).message);
+    return '';
+  }
+}
+
+async function loadLocationImageVibe(currentLocation?: string | null): Promise<string> {
+  if (!currentLocation) return '';
+  try {
+    const place = await prisma.location.findFirst({
+      where: { name: { contains: currentLocation, mode: 'insensitive' } },
+    });
+    if (!place || (!place.description && !place.vibe)) return '';
+    const lines: string[] = ['## The place you are in (its vibe)'];
+    if (place.description) lines.push(place.description);
+    if (place.vibe) lines.push(`Vibe: ${place.vibe}`);
+    return lines.join('\n');
+  } catch (e) {
+    console.warn('[tick] loadLocationImageVibe failed:', (e as Error).message);
+    return '';
+  }
+}
+
+async function loadLocationEventsBlock(currentLocation?: string | null): Promise<string> {
+  if (!currentLocation) return '';
+  try {
+    const events = await prisma.locationEvent.findMany({
+      where: {
+        location: { contains: currentLocation, mode: 'insensitive' },
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+    });
+    if (events.length === 0) return '';
+    const lines = ['## What is happening at your location right now'];
+    for (const e of events) {
+      lines.push(`- [${e.kind}] ${e.content}`);
+    }
+    lines.push(
+      'These are happening AROUND you. Reference them obliquely if natural; do not list them. The world has texture; you are not in a vacuum.',
+    );
+    return lines.join('\n');
+  } catch (e) {
+    console.warn('[tick] loadLocationEventsBlock failed:', (e as Error).message);
+    return '';
+  }
+}
+
+function buildSurpriseBlock(s: SurpriseInjection): string {
+  const lines: string[] = [];
+
+  if (s.livePreoccupation) {
+    lines.push(
+      '## What is on your mind right now (let it bleed through)',
+      `${s.livePreoccupation}`,
+      '',
+      'Reference this obliquely. Don\'t restate it. Let it color the angle of what you say next.',
+    );
+  }
+
+  if (s.tensions.length > 0) {
+    lines.push('', '## Held contradictions (do NOT resolve these)');
+    lines.push(
+      'You hold the following tensions simultaneously. Embody both. Refuse to pick a side. The contradiction IS the texture.',
+    );
+    for (const t of s.tensions.slice(0, 3)) {
+      lines.push(`- "${t.beliefA}" AND "${t.beliefB}"${t.note ? ` (${t.note})` : ''}`);
+    }
+  }
+
+  if (s.fixations.length > 0 && Math.random() < 0.4) {
+    // 40% of ticks surface a recurring fixation explicitly
+    const f = pickRandom(s.fixations);
+    if (f) {
+      lines.push('', '## A recurring fixation', `You keep coming back to: ${f}`);
+    }
+  }
+
+  return lines.length > 0 ? lines.join('\n') : '';
+}
+
+async function loadActiveCanonForCharacter(
+  characterId: string,
+  licenseScope?: string,
+): Promise<CanonEntryForPrompt[]> {
+  try {
+    // Defence-in-depth: filter at SQL so canon outside scope is never
+    // loaded into memory in a licensed context. Brand legal can answer
+    // "what canon did this prompt see?" with confidence.
+    //
+    //   Scoped (licenseScope='loreal_pilot_2026q3'):
+    //     load only entries with scope='public' OR scope='loreal_pilot_2026q3'.
+    //     Private + other-license entries never loaded.
+    //
+    //   Unscoped (artist's own creative use):
+    //     load all entries the artist owns (public + private + any license scope).
+    //     The artist sees their full memory.
+    const scopeWhere = licenseScope
+      ? { scope: { in: ['public', licenseScope] } }
+      : {}; // unscoped artist view: full access to own canon
+
+    const rows = await prisma.canonicalLoreEntry.findMany({
+      where: { characterId, retractedAt: null, ...scopeWhere },
+      select: { title: true, body: true, occurredAt: true, scope: true, retractedAt: true },
+      orderBy: [{ occurredAt: 'desc' }, { createdAt: 'desc' }],
+      take: 30,
+    });
+    return rows;
+  } catch (e) {
+    // Schema may not have CanonicalLoreEntry yet on older deployments.
+    // Tick should never fail because canon is missing — return empty.
+    console.warn('[tick] loadActiveCanonForCharacter failed:', (e as Error).message);
+    return [];
+  }
+}
+
+function buildCanonBlock(entries: CanonEntryForPrompt[], scopeFilter?: string): string {
+  // Filter to active (not retracted) entries; if a scopeFilter is set
+  // (e.g. brand-pilot license restriction), exclude entries outside it.
+  const active = entries.filter((e) => {
+    if (e.retractedAt) return false;
+    if (scopeFilter && e.scope !== scopeFilter && e.scope !== 'public') return false;
+    if (!scopeFilter && e.scope === 'private') return false;
+    return true;
+  });
+  if (active.length === 0) return '';
+  // Sort newest-first by occurredAt; entries without dates go last.
+  const sorted = [...active].sort((a, b) => {
+    const at = a.occurredAt?.getTime() ?? 0;
+    const bt = b.occurredAt?.getTime() ?? 0;
+    return bt - at;
+  });
+  // Cap at 12 entries to keep token budget bounded.
+  const capped = sorted.slice(0, 12);
+  const lines = capped.map((e) => {
+    const dateStr = e.occurredAt
+      ? e.occurredAt.toISOString().slice(0, 10)
+      : 'undated';
+    return `- [${dateStr}] ${e.title}: ${e.body}`;
+  });
+  return [
+    '## Canonical lore (authoritative biography — treat as fact)',
+    'These are signed canon entries about you. They are TRUE about your character. Reference them naturally when relevant; never contradict them. Do not enumerate them.',
+    ...lines,
+  ].join('\n');
+}
+
 function buildSystemPrompt(
   self: TickInput['self'],
-  embracePhrases: string[] = []
+  embracePhrases: string[] = [],
+  canonEntries: CanonEntryForPrompt[] = [],
+  canonScope?: string,
+  surprise?: SurpriseInjection,
+  locationEventsBlock?: string,
+  locationVibeBlock?: string,
+  storyArcBlock?: string
 ): string {
   const identity = readIdentity(self.identity);
   const sovereignty = identity.sovereignty;
@@ -437,6 +769,13 @@ function buildSystemPrompt(
     tongueBlock,
     backstoryBlock,
     voiceSamplesBlock,
+    buildModernityBlock(self.modernity),
+    buildLocationBlock(self.currentLocation, self.homeBase),
+    locationVibeBlock ?? '',
+    locationEventsBlock ?? '',
+    storyArcBlock ?? '',
+    buildCanonBlock(canonEntries, canonScope),
+    surprise ? buildSurpriseBlock(surprise) : '',
     speciesBlock,
     recognitionBlock,
     registerBlock,
@@ -685,7 +1024,52 @@ export async function decideTick(input: TickInput): Promise<Decision> {
     subtasteCode: readSubtasteCode(input.self.timelineState) ?? null,
   });
 
-  const system = buildSystemPrompt(input.self, embracePhrases);
+  // Layer 2 canonical lore: authoritative biography injected as fact.
+  // Loaded fresh per tick so newly-promoted canon shows up immediately.
+  // Scope filter: when input.licenseScope is set (brand pilot context),
+  // private + non-matching licensed_only canon is excluded at SQL level.
+  const canonRows = await loadActiveCanonForCharacter(input.self.id, input.licenseScope);
+
+  // Surprise / shock injection: pulls a live preoccupation, held tensions,
+  // and a possible recurring fixation into the prompt. Without this every
+  // tick reads like the same character on the same day. With it the
+  // character has a moving inner state, contradictions they refuse to
+  // resolve, and obsessions that bleed through obliquely.
+  const surprise = await loadSurpriseInjection(input.self.id);
+
+  // Location events: what's happening at this character's place RIGHT NOW.
+  // Atmospheric events, news, other characters' shared interactions —
+  // anything that gives the world texture beyond this one character's
+  // bubble. Co-located characters share these.
+  const locationEventsBlock = await loadLocationEventsBlock(input.self.currentLocation);
+
+  // Place description + vibe (from Location entity if curated).
+  const locationVibeBlock = await loadLocationImageVibe(input.self.currentLocation);
+
+  // Active story arcs: the trajectory. Without this, characters live
+  // in eternal present. With it, behavior tracks where they are in the
+  // overall narrative — the arc's current beat colors every tick.
+  const storyArcBlock = await loadStoryArcBlock(input.self.id);
+
+  // Audit: log canon scope + surprise source for brand-legal traceability.
+  if (input.licenseRequestId) {
+    console.info(
+      `[tick.audit] character=${input.self.id} licenseRequestId=${input.licenseRequestId} ` +
+        `licenseScope=${input.licenseScope ?? 'unscoped'} canonEntries=${canonRows.length} ` +
+        `surpriseSource=${surprise.livePreoccupationSource ?? 'none'}`,
+    );
+  }
+
+  const system = buildSystemPrompt(
+    input.self,
+    embracePhrases,
+    canonRows,
+    input.licenseScope,
+    surprise,
+    locationEventsBlock,
+    locationVibeBlock,
+    storyArcBlock,
+  );
   const user = buildUserPrompt(input);
   const result = await callLlm({
     system,

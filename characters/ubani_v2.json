@@ -24,7 +24,24 @@
     "description": "User's favorite. Use as canonical face for PuLID workflows and future MetaHuman face scan."
   },
   "stack_with": ["alabo_eye"],
-  "voice": null,
+  "voice": {
+    "mmuo_persona_id": "d5ed82b8-98ae-4d8a-ad30-e4fea597d40a",
+    "_note": "Mmuo path: Bo Ubani RVC model (already on disk at chromox/backend/rvc_models/persona_d5ed82b8...pth). Upload to Modal Volume via ~/mmuo-modal/scripts/upload_persona.py.",
+    "style_controls": {
+      "roboticism": 0,
+      "glitch": 0,
+      "energy": 0.6,
+      "breathiness": 0.5
+    },
+    "style_transfer": { "openvoice_reference_path": null, "blend": 0 },
+    "morph": { "rvc_target_path": null, "blend_weight": 0 },
+    "post": { "filter": "none", "pitch_semitones": 0, "formant_preserve": true },
+    "fallback_elevenlabs_voice_id": "nPczCjzI2devNBz1zQrb",
+    "elevenlabs_voice_id": "nPczCjzI2devNBz1zQrb",
+    "model": "eleven_multilingual_v2",
+    "stability": 0.5,
+    "similarity_boost": 0.75
+  },
   "brand": {
     "primary_color": "#1a1a1a",
     "accent_color": "#8b3a3a",

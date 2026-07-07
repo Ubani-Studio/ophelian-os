@@ -7,7 +7,7 @@
 // "three-piece band, gritty rock energy" against the photo library
 // catches group shots that no single member's centroid would surface.
 // Per-character matching still works for solo shots. Both signals
-// stack on the consuming app (Tizita, etc).
+// stack on the consuming app (Ikenga, etc).
 
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../db.js';

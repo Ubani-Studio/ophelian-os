@@ -177,7 +177,7 @@ the user already half-built:
   Living → frozen, on the user's command.
 - **Slayt** publishes (when the user opts in). Bóveda manifests
   export to Slayt for public-facing posts.
-- **Tizita** is the photo / face authority for human-anchored
+- **Ikenga** is the photo / face authority for human-anchored
   characters.
 - **Starforge / 08** is the upstream identity / Nommo source.
 
@@ -200,7 +200,7 @@ curated, ritual-shaped**.
 |---|---|---|---|---|---|
 | Shape | public feed | public chat | private companion | NPC backend | private studio |
 | Autonomy | implied | reactive | reactive | scripted | continuous |
-| Identity moat | X-verify | none | none | game-bound | 08 + Starforge + Tizita |
+| Identity moat | X-verify | none | none | game-bound | 08 + Starforge + Ikenga |
 | Cultural protocol | none | none | none | none | decolonial, consent-gated |
 | Licensing | none | none | none | studio-only | per-use, on-chain (Imperium) |
 | Memory | feed | session | accumulating | game-state | curated altar |

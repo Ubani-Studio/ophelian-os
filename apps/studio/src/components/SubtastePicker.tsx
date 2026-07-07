@@ -70,6 +70,10 @@ export function SubtastePicker({
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  // Hovered tile drives the inline essence preview below each grid
+  // so the writer can read what each Subtaste does without leaving
+  // the picker. Falls back to the selected tile when nothing hovered.
+  const [hovered, setHovered] = useState<string | null>(null);
   // Subdominant + shadow are advanced. Default-collapsed so the
   // picker reads as one decision (dominant) for sandbox use.
   const [showMore, setShowMore] = useState(initial.secondary !== null || initial.shadow !== null);
@@ -259,7 +263,7 @@ export function SubtastePicker({
           {!isUser && (
             <div>
               <div style={pickerLabelStyle}>Dominant</div>
-              <div style={gridStyle}>
+              <div style={gridStyle} onMouseLeave={() => setHovered(null)}>
                 {SUBTASTE_TWELVE.map((s) => (
                   <SubtasteButton
                     key={'p-' + s.code}
@@ -269,9 +273,11 @@ export function SubtastePicker({
                     essence={s.essence}
                     selected={primary === s.code}
                     onClick={() => onPrimaryClick(s.code)}
+                    onHover={() => setHovered(s.code)}
                   />
                 ))}
               </div>
+              <EssencePreview code={hovered ?? primary} />
             </div>
           )}
 
@@ -301,7 +307,7 @@ export function SubtastePicker({
           {!isUser && primary && showMore && (
             <div>
               <div style={pickerLabelStyle}>Subdominant (optional counterpoint)</div>
-              <div style={gridStyle}>
+              <div style={gridStyle} onMouseLeave={() => setHovered(null)}>
                 {SUBTASTE_TWELVE.map((s) => (
                   <SubtasteButton
                     key={'s-' + s.code}
@@ -312,9 +318,11 @@ export function SubtastePicker({
                     selected={secondary === s.code}
                     disabled={s.code === primary}
                     onClick={() => onSecondaryClick(s.code)}
+                    onHover={() => setHovered(s.code)}
                   />
                 ))}
               </div>
+              <EssencePreview code={hovered ?? secondary} />
             </div>
           )}
 
@@ -387,7 +395,7 @@ export function SubtastePicker({
 
               {/* Override grid */}
               {shadowOverride && (
-                <div style={gridStyle}>
+                <div style={gridStyle} onMouseLeave={() => setHovered(null)}>
                   {SUBTASTE_TWELVE.map((s) => {
                     const isAuto = !shadow && autoShadow === s.code;
                     return (
@@ -400,12 +408,14 @@ export function SubtastePicker({
                         selected={shadow === s.code || isAuto}
                         disabled={s.code === primary || s.code === secondary}
                         ghost={isAuto}
+                        onHover={() => setHovered(s.code)}
                         onClick={() => onShadowClick(s.code)}
                       />
                     );
                   })}
                 </div>
               )}
+              {shadowOverride && <EssencePreview code={hovered ?? shadow ?? autoShadow ?? null} />}
             </div>
           )}
         </div>
@@ -483,6 +493,7 @@ function SubtasteButton({
   disabled,
   ghost,
   onClick,
+  onHover,
 }: {
   code: string;
   glyph: string;
@@ -492,11 +503,13 @@ function SubtasteButton({
   disabled?: boolean;
   ghost?: boolean;
   onClick: () => void;
+  onHover?: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      onMouseEnter={onHover}
       disabled={disabled}
       title={`${code} ${glyph} · ${label}\n${essence}`}
       style={{
@@ -549,5 +562,38 @@ function SubtasteButton({
         {label.toLowerCase()}
       </span>
     </button>
+  );
+}
+
+function EssencePreview({ code }: { code: string | null }) {
+  const tile = code ? SUBTASTE_TWELVE.find((s) => s.code === code) : null;
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        padding: '8px 10px',
+        background: '#0a0a0a',
+        border: '1px solid rgba(255,255,255,0.04)',
+        borderLeft: tile ? `2px solid ${TYRIAN}` : '2px solid rgba(255,255,255,0.04)',
+        fontSize: 11,
+        color: 'var(--foreground)',
+        opacity: tile ? 0.85 : 0.4,
+        lineHeight: 1.55,
+        minHeight: 32,
+        transition: 'opacity 0.15s, border-color 0.15s',
+      }}
+    >
+      {tile ? (
+        <>
+          <span style={{ fontFamily: 'monospace', fontSize: 10, opacity: 0.55, marginRight: 8 }}>
+            {tile.code}
+          </span>
+          <span style={{ color: TYRIAN, marginRight: 8 }}>{tile.label}.</span>
+          {tile.essence}
+        </>
+      ) : (
+        'Hover a tile to read what it does.'
+      )}
+    </div>
   );
 }

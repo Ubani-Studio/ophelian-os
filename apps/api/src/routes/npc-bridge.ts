@@ -366,6 +366,84 @@ export async function npcBridgeRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
+  // Shared core: take a resolved character + raw user text, run the LLM
+  // dialogue prompt, optionally synth TTS, return the structured reply.
+  // Used by both text /dialogue and voice /dialogue/voice.
+  async function runDialogueTurn(opts: {
+    character: { id: string; name: string; voiceSamples: unknown; tongue: unknown; toneForbidden: string[] | null; bio: string | null; systemPrompt: string | null };
+    userText: string;
+    speakerName?: string;
+    sceneContext?: string;
+    maxTokens?: number;
+    tts?: boolean;
+  }) {
+    const { character, userText } = opts;
+    const voiceSamples = Array.isArray(character.voiceSamples)
+      ? (character.voiceSamples as unknown[]).filter((s): s is string => typeof s === 'string')
+      : [];
+    const tongue = (character.tongue ?? {}) as Record<string, unknown>;
+    const tongueLines: string[] = [];
+    if (typeof tongue.cadence === 'string') tongueLines.push(`cadence: ${tongue.cadence}`);
+    if (typeof tongue.register === 'string') tongueLines.push(`register: ${tongue.register}`);
+    if (Array.isArray(tongue.signatures)) {
+      const sigs = tongue.signatures.filter((s): s is string => typeof s === 'string').slice(0, 6);
+      if (sigs.length) tongueLines.push(`signatures: ${sigs.join(' | ')}`);
+    }
+    const tonForbidden = character.toneForbidden?.join(', ') ?? '';
+
+    const fewShot = voiceSamples
+      .slice(-6)
+      .map((s, i) => `Example ${i + 1}: ${s}`)
+      .join('\n');
+
+    const sceneBlock = opts.sceneContext ? `\n## Scene\n${opts.sceneContext}\n` : '';
+    const speakerBlock = opts.speakerName ? `${opts.speakerName}: ` : '';
+
+    const system = [
+      `You are ${character.name}, speaking in your own voice as an NPC inside an Unreal Engine scene.`,
+      `Reply with ONE short line of dialogue. No stage directions. No narrator. No quotes. No em dashes.`,
+      character.bio ? `\n## Bio\n${character.bio}` : '',
+      character.systemPrompt ? `\n## Base persona\n${character.systemPrompt}` : '',
+      tongueLines.length ? `\n## Tongue\n${tongueLines.join('\n')}` : '',
+      tonForbidden ? `\n## Forbidden tones\n${tonForbidden}` : '',
+      fewShot ? `\n## Voice samples (your past writing, mimic the cadence)\n${fewShot}` : '',
+      sceneBlock,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const user = `${speakerBlock}${userText}\n\n${character.name}:`;
+
+    const result = await callLlm({
+      system,
+      user,
+      maxTokens: Math.min(opts.maxTokens ?? 220, 512),
+    });
+    const line = result.text.replace(/^["']|["']$/g, '').trim();
+
+    let audioUrl: string | null = null;
+    let audioError: string | null = null;
+    let audioProvider: 'mmuo' | 'elevenlabs' | null = null;
+    if (opts.tts && line) {
+      const registries = await readAllRegistryRecords();
+      const reg = findRegistryFor(registries, character.name);
+      const tts = await renderTts(character.id, character.name, line, reg);
+      audioUrl = tts.audioUrl;
+      audioError = tts.audioError;
+      audioProvider = tts.provider;
+    }
+
+    return {
+      line,
+      source: result.source,
+      usage: result.usage,
+      character: { id: character.id, name: character.name },
+      audio_url: audioUrl,
+      audio_error: audioError,
+      audio_provider: audioProvider,
+    };
+  }
+
   fastify.post<{
     Params: { idOrName: string };
     Body: {
@@ -395,74 +473,127 @@ export async function npcBridgeRoutes(fastify: FastifyInstance): Promise<void> {
       return reply.code(503).send({ error: 'no_llm_provider', hint: 'Set ANTHROPIC_API_KEY' });
     }
 
-    const voiceSamples = Array.isArray(character.voiceSamples)
-      ? (character.voiceSamples as unknown[]).filter((s): s is string => typeof s === 'string')
-      : [];
-    const tongue = (character.tongue ?? {}) as Record<string, unknown>;
-    const tongueLines: string[] = [];
-    if (typeof tongue.cadence === 'string') tongueLines.push(`cadence: ${tongue.cadence}`);
-    if (typeof tongue.register === 'string') tongueLines.push(`register: ${tongue.register}`);
-    if (Array.isArray(tongue.signatures)) {
-      const sigs = tongue.signatures.filter((s): s is string => typeof s === 'string').slice(0, 6);
-      if (sigs.length) tongueLines.push(`signatures: ${sigs.join(' | ')}`);
-    }
-    const tonForbidden = character.toneForbidden?.join(', ') ?? '';
-
-    const fewShot = voiceSamples
-      .slice(-6)
-      .map((s, i) => `Example ${i + 1}: ${s}`)
-      .join('\n');
-
-    const sceneBlock = body.sceneContext ? `\n## Scene\n${body.sceneContext}\n` : '';
-    const speakerBlock = body.speakerName ? `${body.speakerName}: ` : '';
-
-    const system = [
-      `You are ${character.name}, speaking in your own voice as an NPC inside an Unreal Engine scene.`,
-      `Reply with ONE short line of dialogue. No stage directions. No narrator. No quotes. No em dashes.`,
-      character.bio ? `\n## Bio\n${character.bio}` : '',
-      character.systemPrompt ? `\n## Base persona\n${character.systemPrompt}` : '',
-      tongueLines.length ? `\n## Tongue\n${tongueLines.join('\n')}` : '',
-      tonForbidden ? `\n## Forbidden tones\n${tonForbidden}` : '',
-      fewShot ? `\n## Voice samples (your past writing, mimic the cadence)\n${fewShot}` : '',
-      sceneBlock,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    const user = `${speakerBlock}${userText}\n\n${character.name}:`;
-
     try {
-      const result = await callLlm({
-        system,
-        user,
-        maxTokens: Math.min(body.maxTokens ?? 220, 512),
+      const out = await runDialogueTurn({
+        character,
+        userText,
+        speakerName: body.speakerName,
+        sceneContext: body.sceneContext,
+        maxTokens: body.maxTokens,
+        tts: body.tts,
       });
-      const line = result.text.replace(/^["']|["']$/g, '').trim();
-
-      let audioUrl: string | null = null;
-      let audioError: string | null = null;
-      let audioProvider: 'mmuo' | 'elevenlabs' | null = null;
-      if (body.tts && line) {
-        const registries = await readAllRegistryRecords();
-        const reg = findRegistryFor(registries, character.name);
-        const tts = await renderTts(character.id, character.name, line, reg);
-        audioUrl = tts.audioUrl;
-        audioError = tts.audioError;
-        audioProvider = tts.provider;
-      }
-
-      return reply.send({
-        line,
-        source: result.source,
-        usage: result.usage,
-        character: { id: character.id, name: character.name },
-        audio_url: audioUrl,
-        audio_error: audioError,
-        audio_provider: audioProvider,
-      });
+      return reply.send(out);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return reply.code(500).send({ error: 'llm_call_failed', detail: msg });
+    }
+  });
+
+  // -------------------------------------------------------------------
+  // Voice-driven dialogue: player speaks → Whisper → LLM → TTS reply.
+  // Multipart upload with field "audio" (wav/mp3/webm/m4a). Optional
+  // form fields: speakerName, sceneContext, maxTokens, tts (default true).
+  // Returns { transcript, line, audio_url, ... }.
+  // Requires OPENAI_API_KEY for Whisper transcription.
+  // -------------------------------------------------------------------
+  fastify.post<{
+    Params: { idOrName: string };
+  }>('/characters/:idOrName/dialogue/voice', async (request, reply) => {
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      return reply.code(503).send({
+        error: 'no_whisper_provider',
+        hint: 'Set OPENAI_API_KEY in boveda/.env',
+      });
+    }
+
+    const { idOrName } = request.params;
+    let character = await prisma.character.findUnique({ where: { id: idOrName } });
+    if (!character) {
+      character = await prisma.character.findFirst({ where: { name: idOrName } });
+    }
+    if (!character) {
+      return reply.code(404).send({ error: 'character_not_found', idOrName });
+    }
+    if (!hasLlmProvider()) {
+      return reply.code(503).send({ error: 'no_llm_provider', hint: 'Set ANTHROPIC_API_KEY' });
+    }
+
+    let audioBuf: Buffer | null = null;
+    let audioFilename = 'speech.wav';
+    let audioMimetype = 'audio/wav';
+    const formFields: Record<string, string> = {};
+
+    try {
+      const parts = request.parts();
+      for await (const part of parts) {
+        if (part.type === 'file' && part.fieldname === 'audio') {
+          audioFilename = part.filename || audioFilename;
+          audioMimetype = part.mimetype || audioMimetype;
+          audioBuf = await part.toBuffer();
+        } else if (part.type === 'field' && typeof part.value === 'string') {
+          formFields[part.fieldname] = part.value;
+        }
+      }
+    } catch (e) {
+      return reply.code(400).send({
+        error: 'multipart_parse_failed',
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    if (!audioBuf || audioBuf.length === 0) {
+      return reply.code(400).send({ error: 'audio_field_required' });
+    }
+
+    let transcript = '';
+    try {
+      const fd = new FormData();
+      fd.append('file', new Blob([audioBuf], { type: audioMimetype }), audioFilename);
+      fd.append('model', 'whisper-1');
+      fd.append('language', 'en');
+      const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${openaiKey}` },
+        body: fd,
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        return reply.code(502).send({
+          error: 'whisper_failed',
+          status: resp.status,
+          detail: text.slice(0, 500),
+        });
+      }
+      const data = (await resp.json()) as { text?: string };
+      transcript = (data.text ?? '').trim();
+    } catch (e) {
+      return reply.code(502).send({
+        error: 'whisper_request_failed',
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+
+    if (!transcript) {
+      return reply.code(422).send({ error: 'empty_transcript', hint: 'silent or unintelligible audio' });
+    }
+
+    const ttsFlag = formFields.tts ? formFields.tts !== 'false' : true;
+    const maxTokens = formFields.maxTokens ? parseInt(formFields.maxTokens, 10) : undefined;
+
+    try {
+      const out = await runDialogueTurn({
+        character,
+        userText: transcript,
+        speakerName: formFields.speakerName,
+        sceneContext: formFields.sceneContext,
+        maxTokens: Number.isFinite(maxTokens) ? maxTokens : undefined,
+        tts: ttsFlag,
+      });
+      return reply.send({ transcript, ...out });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return reply.code(500).send({ error: 'llm_call_failed', detail: msg, transcript });
     }
   });
 

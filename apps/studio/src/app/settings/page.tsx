@@ -96,7 +96,7 @@ export default function SettingsPage() {
     setImportError(null);
     setImportResult(null);
     try {
-      const res = await fetch(`${API_URL}/characters/bulk-import-tizita`, {
+      const res = await fetch(`${API_URL}/characters/bulk-import-ikenga`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
       });
@@ -121,11 +121,11 @@ export default function SettingsPage() {
 
       <section style={{ border: '1px solid var(--border)', padding: '1.5rem', background: 'rgba(255,255,255,0.02)', marginTop: '1.5rem' }}>
         <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem', fontWeight: 400, marginBottom: '0.5rem' }}>
-          Tizita federation
+          Ikenga federation
         </h2>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: '1rem', lineHeight: 1.6, maxWidth: '60ch' }}>
-          Import your sorted Tizita people as Bóveda characters. Each named persona
-          becomes a character bound to its Tizita persona id, so photo libraries
+          Import your sorted Ikenga people as Bóveda characters. Each named persona
+          becomes a character bound to its Ikenga persona id, so photo libraries
           stay linked. Unsorted faces are skipped. Idempotent — safe to re-run.
         </p>
         <button
@@ -134,7 +134,7 @@ export default function SettingsPage() {
           disabled={importing}
           className="btn btn-primary"
         >
-          {importing ? 'Importing' : 'Import named Tizita people'}
+          {importing ? 'Importing' : 'Import named Ikenga people'}
         </button>
 
         {importError && (
@@ -149,7 +149,7 @@ export default function SettingsPage() {
               Import complete.
             </p>
             <ul style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', lineHeight: 1.7, listStyle: 'none', padding: 0 }}>
-              <li>{importResult.total_in_tizita} total personas in Tizita</li>
+              <li>{importResult.total_in_tizita} total personas in Ikenga</li>
               <li>{importResult.named_in_tizita} named (sorted)</li>
               <li>{importResult.imported} imported as new characters</li>
               <li>{importResult.reused} already bound (reused)</li>

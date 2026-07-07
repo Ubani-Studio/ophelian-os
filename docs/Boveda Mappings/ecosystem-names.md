@@ -32,7 +32,7 @@ Working document. The goal is that every app in the Violet Sphinx ecosystem carr
 | **Sankoré** | Timbuktu / Songhai / Mandé | The Sankoré Madrasah — Timbuktu's scholarly centre, 15th–16th c. | African scholarly inheritance, ancient, specific. The video/asset library as house-of-knowledge. |
 | **Òrò** | Yoruba | Word of weight; creative utterance | Exactly the function of the narrative layer: naming what will be. |
 | **Boveda** | Spanish / vault-dome | Vault, cupola, enclosed sacred space | Cross-cultural; dome = cosmological. The subtaste algebra as vault of signatures. |
-| **Tizita** | Amharic / Ethiopia | ጥዝታ — memory, longing, the song-form named for both | Photo curation as memory-form. Specific, singable, gorgeous. |
+| **Ikenga** | Amharic / Ethiopia | ጥዝታ — memory, longing, the song-form named for both | Photo curation as memory-form. Specific, singable, gorgeous. |
 | **Ibis** | Ancient Egyptian (Kemet) | Thoth's animal — god of writing, wisdom, scribes | Proposed as the writing layer. The ibis is Thoth. Writing is already his domain. |
 
 ### ○ Keep-but-review
@@ -80,7 +80,7 @@ If all three renames ship:
 | Role | Name |
 |---|---|
 | Library / asset hub | **Sankoré** |
-| Photo curation | **Tizita** |
+| Photo curation | **Ikenga** |
 | Music project authority | **Crucibla** (or **Djed**) |
 | Subtaste engine | **Boveda** |
 | Narrative generator | **Òrò** |
@@ -89,7 +89,7 @@ If all three renames ship:
 | Craft / edit | **Ogun** |
 | Generative AI | **Heka** |
 
-Every name is either rooted in a living Afro-Atlantic cosmology or explicitly drawn from pan-African scholarly heritage (Sankoré, Tizita). No floating tech-Latin. Hu/Heka/Ogun together form a consistent Kemet + Yoruba-Vodun stack.
+Every name is either rooted in a living Afro-Atlantic cosmology or explicitly drawn from pan-African scholarly heritage (Sankoré, Ikenga). No floating tech-Latin. Hu/Heka/Ogun together form a consistent Kemet + Yoruba-Vodun stack.
 
 Alternative stack if you want Vodun-heavy rather than Kemet-heavy:
 

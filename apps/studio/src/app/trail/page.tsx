@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { SovereigntyBadge } from '@/components/SovereigntyBadge';
 import { TrailPost, type TrailPostData } from '@/components/trail/TrailPost';
+import { PresencePill } from '@/components/PresencePill';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5130';
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'ophelian-dev-key-2026';
@@ -47,6 +48,12 @@ interface TrailCharacter {
   tizitaRepresentativeUrl: string | null;
   identity?: unknown;
   events: TrailEvent[];
+  presence?: {
+    status: 'online' | 'idle' | 'away' | 'dormant';
+    lastActivityAt: string | null;
+    lastActivityKind: string | null;
+    currentLocation: string | null;
+  };
 }
 
 interface TrailResponse {
@@ -459,6 +466,14 @@ function CharacterIssue({
             <span style={{ opacity: 0.65 }}>
               {character.events.length} act{character.events.length === 1 ? '' : 's'}
             </span>
+            {character.presence && (
+              <>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <span style={{ textTransform: 'none', letterSpacing: 0 }}>
+                  <PresencePill presence={character.presence} size="xs" />
+                </span>
+              </>
+            )}
           </div>
         </div>
         <button

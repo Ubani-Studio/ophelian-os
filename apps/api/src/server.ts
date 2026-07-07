@@ -23,6 +23,8 @@ import { relationshipRoutes } from './routes/relationships.js';
 import { ensembleRoutes } from './routes/ensembles.js';
 import { positionRoutes } from './routes/positions.js';
 import { sceneRoutes } from './routes/scenes.js';
+import { sphereRoutes } from './routes/spheres.js';
+import { relicRoutes } from './routes/relics.js';
 import { worldRoutes } from './routes/worlds.js';
 import { connectionRoutes } from './routes/connections.js';
 import { snapshotRoutes } from './routes/snapshots.js';
@@ -116,6 +118,8 @@ async function start() {
     await fastify.register(ensembleRoutes);
     await fastify.register(positionRoutes);
     await fastify.register(sceneRoutes);
+    await fastify.register(sphereRoutes);
+    await fastify.register(relicRoutes);
     await fastify.register(worldRoutes);
     await fastify.register(connectionRoutes);
     await fastify.register(snapshotRoutes);

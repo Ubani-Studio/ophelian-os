@@ -2,7 +2,7 @@
   "name": "alabo_eye",
   "trigger": "alabo_eye",
   "display_name": "Alabo Eye (style)",
-  "description": "Visual taste LoRA trained on 117 Tizita Apex photos (Crown + Favorite + 5★). Style only — applies aesthetic, no character identity.",
+  "description": "Visual taste LoRA trained on 117 Ikenga Apex photos (Crown + Favorite + 5★). Style only — applies aesthetic, no character identity.",
   "type": "style",
 
   "lora": {

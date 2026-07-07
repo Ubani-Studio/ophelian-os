@@ -4,7 +4,7 @@
 
 ## P0 — this week (blocking)
 
-1. **Bo Ubani full fine-tune verdict.** Fine-tune COMPLETE (985 transcripts, 32 min run, both checkpoints saved). Listen to `FULL_01_signature.wav` and decide: lock GPT-SoVITS path, or pivot to F5-TTS.
+1. **Voice verdict moved to the Mmuo Stage 2 sweep (updated 2026-06-10).** `FULL_01_signature.wav` (GPT-SoVITS, May 7) is superseded. The voice stack now lives in ai-8o sound packs: CosyVoice 2 baseline wired, kNN-VC blend lane shipped, Higgs Audio v2 on disk, Qwen3-TTS queued as priority pull. Build `sandbox/ab_sweep.py` per `/home/sphinxy/ai-8o/STAGE_2_QUEUE.md`, pick the winner, then point Boveda voice routing at the winning pack route instead of the old mmuo-modal GPT-SoVITS app. Stage 3 LoRA on the winner gives the owned identity the rights rail requires. ElevenLabs fallback stays demo-only: losing voice IP kills the moat.
 
 2. **Capture Bo Ubani face for MetaHuman.** iPhone via MetaHuman Animator, or 30-50 photo upload to MetaHuman Mesh from Mobile. Unblocks every "performable body" item. Half day, you-only.
 
@@ -16,7 +16,7 @@
 
 5. **Wire Audio2Face to PlayAudioUrl.** NPCs lipsync to Mmuo audio automatically. NVIDIA's UE plugin handles ~80% of work. *1 day.*
 
-6. **Build Tizita 2.5D Saltway scene.** Tizita photo as parallax background, MetaHumans as foreground, atmospheric events drive lighting. The actual demo space. *3-5 days.*
+6. **Build Ikenga 2.5D Saltway scene.** Ikenga photo as parallax background, MetaHumans as foreground, atmospheric events drive lighting. The actual demo space. *3-5 days.*
 
 7. **Voice-driven player input via Whisper API → /dialogue.** Player speaks, Mmuo responds. Closes the conversation loop. *Half day.*
 
@@ -28,7 +28,7 @@
 
 10. **Atmospheric event → UE ambient sync.** Boveda's scheduler fires events; UE shifts lighting/sound/fog. Makes world feel autonomous. *1 day.*
 
-11. **Submit PRS Foundation Open Fund application.** £5K, 6-week turnaround. Submit while work is fresh. *2 hours of writing.*
+11. **Grant stack (updated 2026-06-10).** PRS Foundation Open Fund (£5K, two 2026 deadlines, check prsfoundation.com/funding-support/deadlines). Epic MegaGrants 2026 window June 29 to Sept 4: the five-minute demo video doubles as the application asset, highest-fit fund on the list. Serpentine Future Art Ecosystems R&D Fellowship 2026 (£10K, theme Art x Convergence: AI reshaping cultural and legal realities, near-perfect rights-rail fit, launches September). Onassis ONX (NYC, XR/AI fellows, production facilities). Immersive Arts UK is CLOSED (second and final round complete).
 
 12. **OpenVoice V2 wiring for emotional registers** (gender, age, scream pack). Drives one Bo Ubani clone into many character variations. Unblocks Ai-8O degraded twin properly. *Half day.*
 
@@ -42,7 +42,7 @@
 
 16. **Pioneer Works Tech residency application.** Stipend + studio + exhibition.
 
-17. **Audience-as-character signup flow.** Tizita Visual DNA → Boveda character per fan → NPC body in Tufiakwa. Unblocks bounded-parasocial layer.
+17. **Audience-as-character signup flow.** Ikenga Visual DNA → Boveda character per fan → NPC body in Tufiakwa. Unblocks bounded-parasocial layer.
 
 18. **Audio QA agent.** Listens to fresh Mmuo synth, flags vocodery output. Catches regressions when training new voices.
 
@@ -61,7 +61,7 @@
 
 ## Critical 5 right now
 
-**1, 2, 4, 5, 6.** Bo Ubani voice quality verdict + face capture + Cipher HUD + Audio2Face + Tizita 2.5D scene = Phase 1 MVP.
+**1, 2, 4, 5, 6.** Bo Ubani voice quality verdict + face capture + Cipher HUD + Audio2Face + Ikenga 2.5D scene = Phase 1 MVP.
 
 Everything else is downstream of those five.
 
